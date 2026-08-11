@@ -31,25 +31,41 @@ export default async function AdminBookingsPage({
   searchParams: { status?: string };
 }) {
   const supabase = createAdminClient();
-  const [{ data: bookings }, { data: bookingExtras }, { data: layoutProofsData }, { data: activityData }] =
-    await Promise.all([
-      supabase
-        .from("bookings")
-        .select("*, layouts(name, preview_image_url), home_screens(name, preview_image_url)")
-        .order("event_date", { ascending: true }),
-      supabase
-        .from("booking_extras")
-        .select("booking_id, extra_id, price, added_by_admin, extras(name, category), extra_variants(name)"),
-      supabase
-        .from("layout_proofs")
-        .select("*")
-        .order("version", { ascending: false }),
-      supabase
-        .from("activity_log")
-        .select("id, message, created_at, read_at, bookings(booking_code)")
-        .order("created_at", { ascending: false })
-        .limit(50),
-    ]);
+  const [
+    { data: bookings },
+    { data: bookingExtras },
+    { data: layoutProofsData },
+    { data: activityData },
+    { data: screenProofsData },
+  ] = await Promise.all([
+    supabase
+      .from("bookings")
+      .select("*, layouts(name, preview_image_url), home_screens(name, preview_image_url)")
+      .order("event_date", { ascending: true }),
+    supabase
+      .from("booking_extras")
+      .select("booking_id, extra_id, price, added_by_admin, extras(name, category), extra_variants(name)"),
+    supabase
+      .from("layout_proofs")
+      .select("*")
+      .order("version", { ascending: false }),
+    supabase
+      .from("activity_log")
+      .select("id, message, created_at, read_at, bookings(booking_code)")
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("personalized_screen_proofs")
+      .select("booking_id, status")
+      .order("version", { ascending: false }),
+  ]);
+
+  const latestScreenProofStatusByBooking = new Map<string, string>();
+  (screenProofsData ?? []).forEach((proof: any) => {
+    if (!latestScreenProofStatusByBooking.has(proof.booking_id)) {
+      latestScreenProofStatusByBooking.set(proof.booking_id, proof.status);
+    }
+  });
 
   const activityEntries: ActivityFeedEntry[] = (activityData ?? []).map((entry: any) => ({
     id: entry.id,
@@ -322,8 +338,15 @@ export default async function AdminBookingsPage({
                     {(() => {
                       const byName = latestProofsByBooking.get(booking.id);
                       const latest = byName ? Array.from(byName.values()) : [];
+                      const screenProofApproved =
+                        latestScreenProofStatusByBooking.get(booking.id) === "freigegeben";
                       const steps = [
-                        { label: "Startbildschirm", done: Boolean(booking.selected_home_screen_id) },
+                        {
+                          label: "Startbildschirm",
+                          done:
+                            Boolean(booking.selected_home_screen_id) ||
+                            (personalizedScreenBookingIds.has(booking.id) && screenProofApproved),
+                        },
                         { label: "Layout", done: Boolean(booking.selected_layout_id) },
                         {
                           label: "Freigabe",
