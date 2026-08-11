@@ -63,6 +63,15 @@ export default async function DashboardPage() {
     isPersonalizedBooked = Boolean(count);
   }
 
+  const { data: latestScreenProofData } = await supabase
+    .from("personalized_screen_proofs")
+    .select("id, status")
+    .eq("booking_id", booking.id)
+    .order("version", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const screenProofAwaitingReview = latestScreenProofData?.status === "in_pruefung";
+
   const { data: proofsData } = await supabase
     .from("layout_proofs")
     .select("*")
@@ -93,6 +102,28 @@ export default async function DashboardPage() {
       <GuestHeader bookingCode={booking.booking_code} />
 
       <main className="mx-auto max-w-3xl space-y-6 px-4 py-8 sm:px-6">
+        {screenProofAwaitingReview && (
+          <Link
+            href="/dashboard/startbildschirm"
+            className="animate-fade-in-up flex flex-col items-start gap-3 rounded-2xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card-hover sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gradient-to-br from-gold-500 to-gold-600 text-white shadow-sm">
+                <MonitorIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-medium text-anthracite-800">
+                  Euer Startbildschirm-Entwurf ist da!
+                </p>
+                <p className="mt-0.5 text-sm text-anthracite-600">
+                  Bitte prüft ihn und gebt ihn frei oder fordert Änderungen an.
+                </p>
+              </div>
+            </div>
+            <Button className="w-full flex-none sm:w-auto">Jetzt prüfen</Button>
+          </Link>
+        )}
+
         <div className="animate-fade-in-up">
           <p className="text-xs font-medium uppercase tracking-[0.2em] text-gold-600">
             Willkommen
