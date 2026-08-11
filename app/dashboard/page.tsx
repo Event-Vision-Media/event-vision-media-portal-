@@ -228,9 +228,11 @@ export default async function DashboardPage() {
               </div>
               <h3 className="font-medium text-anthracite-800">Startbildschirm</h3>
               <p className="mt-1 text-sm text-anthracite-500">
-                {homeScreenDone
+                {selectedHomeScreenName
                   ? `Ihr habt "${selectedHomeScreenName}" gewählt.`
-                  : "Wählt euren Startbildschirm passend zu eurem Produkt."}
+                  : homeScreenDone
+                    ? "Euer personalisierter Startbildschirm wurde freigegeben."
+                    : "Wählt euren Startbildschirm passend zu eurem Produkt."}
               </p>
             </div>
             <Link href="/dashboard/startbildschirm" className="mt-4">
