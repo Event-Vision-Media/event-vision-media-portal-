@@ -19,6 +19,7 @@ export function LayoutGallery({
   initialPersonalizationDate,
   initialExtraWishes,
   hasConsentedBefore,
+  premiumIncluded,
 }: {
   inclusiveLayouts: Layout[];
   premiumLayouts: Layout[];
@@ -28,6 +29,7 @@ export function LayoutGallery({
   initialPersonalizationDate: string | null;
   initialExtraWishes: string | null;
   hasConsentedBefore: boolean;
+  premiumIncluded: boolean;
 }) {
   const [activeLayout, setActiveLayout] = useState<Layout | null>(null);
   const [modalStep, setModalStep] = useState<ModalStep>("preview");
@@ -118,9 +120,18 @@ export function LayoutGallery({
 
       {selectedLayout?.is_premium && (
         <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
-          <strong>Premium-Layout ausgewählt</strong> – die Zusatzkosten von{" "}
-          {formatCurrencyEUR(selectedLayout.extra_price)} werden dir separat in
-          Rechnung gestellt.
+          {premiumIncluded ? (
+            <>
+              <strong>Premium-Layout ausgewählt</strong> – bei eurer Buchung bereits inklusive,
+              es entstehen keine Zusatzkosten.
+            </>
+          ) : (
+            <>
+              <strong>Premium-Layout ausgewählt</strong> – die Zusatzkosten von{" "}
+              {formatCurrencyEUR(selectedLayout.extra_price)} werden dir separat in
+              Rechnung gestellt.
+            </>
+          )}
         </div>
       )}
 
@@ -144,7 +155,7 @@ export function LayoutGallery({
           <h2 className="font-serif text-xl font-semibold tracking-tight text-anthracite-800">
             Premium Layouts
           </h2>
-          <Badge tone="gold">+25 €</Badge>
+          <Badge tone="gold">{premiumIncluded ? "Inklusive" : "+25 €"}</Badge>
         </div>
 
         {availableCategories.length > 0 && (
@@ -212,8 +223,10 @@ export function LayoutGallery({
                     {activeLayout.is_premium ? (
                       <p className="text-sm text-gold-600">
                         Premium
-                        {activeLayout.category ? ` · ${activeLayout.category}` : ""} · +
-                        {formatCurrencyEUR(activeLayout.extra_price)}
+                        {activeLayout.category ? ` · ${activeLayout.category}` : ""} ·{" "}
+                        {premiumIncluded
+                          ? "inklusive"
+                          : `+${formatCurrencyEUR(activeLayout.extra_price)}`}
                       </p>
                     ) : (
                       <p className="text-sm text-anthracite-400">Inklusive</p>

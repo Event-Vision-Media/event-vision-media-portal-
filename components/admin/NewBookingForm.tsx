@@ -53,6 +53,25 @@ export function NewBookingForm({
         </select>
       </div>
 
+      <label
+        htmlFor="premium_layout_included"
+        className="flex cursor-pointer items-start gap-3 rounded-lg border border-anthracite-100 bg-anthracite-50 p-3"
+      >
+        <input
+          id="premium_layout_included"
+          name="premium_layout_included"
+          type="checkbox"
+          className="mt-0.5 h-4 w-4 rounded border-anthracite-300 text-gold-500 focus:ring-gold-400"
+        />
+        <span className="text-sm text-anthracite-700">
+          Premium-Layout ist bei dieser Buchung bereits inklusive
+          <span className="mt-0.5 block text-xs text-anthracite-400">
+            Der Kunde kann dann ein Premium-Layout wählen, ohne dass ihm der Aufpreis von 25 €
+            berechnet wird.
+          </span>
+        </span>
+      </label>
+
       <div>
         <label
           htmlFor="custom_login_code"

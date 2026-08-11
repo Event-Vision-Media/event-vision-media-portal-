@@ -27,6 +27,7 @@ export interface Booking {
   selected_layout_id: string | null;
   selected_home_screen_id: string | null;
   is_premium_selected: boolean;
+  premium_layout_included: boolean;
   extra_wishes: string | null;
   personalization_name: string | null;
   personalization_date: string | null;

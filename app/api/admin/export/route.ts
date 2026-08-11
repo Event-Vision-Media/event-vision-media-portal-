@@ -69,7 +69,11 @@ export async function GET() {
       b.event_date,
       b.product_type,
       b.layouts?.name ?? "",
-      b.is_premium_selected ? "Ja" : "Nein",
+      !b.is_premium_selected
+        ? "Nein"
+        : b.premium_layout_included
+          ? "Ja (bereits inklusive, kein Aufpreis)"
+          : "Ja (25 € Aufpreis)",
       extras
         .map((e) => `${e.label} (${e.price.toFixed(2)} €${e.addedByAdmin ? ", vorab" : ""})`)
         .join(", "),

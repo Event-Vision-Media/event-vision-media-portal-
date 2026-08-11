@@ -52,6 +52,7 @@ export default async function LayoutSelectionPage() {
           initialPersonalizationDate={booking.personalization_date}
           initialExtraWishes={booking.extra_wishes}
           hasConsentedBefore={Boolean(booking.personalization_name)}
+          premiumIncluded={booking.premium_layout_included}
         />
       </main>
 

@@ -8,6 +8,7 @@ import { BookingRowActions } from "@/components/admin/BookingRowActions";
 import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { ActivityFeed, type ActivityFeedEntry } from "@/components/admin/ActivityFeed";
 import { CustomLoginCodeCell } from "@/components/admin/CustomLoginCodeCell";
+import { PremiumIncludedToggle } from "@/components/admin/PremiumIncludedToggle";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman, formatTimeGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
 
@@ -231,9 +232,15 @@ export default async function AdminBookingsPage({
                     )}
                     {booking.is_premium_selected && (
                       <Badge tone="gold" className="ml-2">
-                        Premium
+                        {booking.premium_layout_included ? "Premium · inklusive" : "Premium"}
                       </Badge>
                     )}
+                    <div className="mt-1.5">
+                      <PremiumIncludedToggle
+                        bookingId={booking.id}
+                        included={booking.premium_layout_included}
+                      />
+                    </div>
                   </td>
                   <td className="px-4 py-3">
                     <Badge

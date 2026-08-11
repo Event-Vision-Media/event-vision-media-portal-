@@ -29,6 +29,7 @@ export default async function AdminLayoutProofsPage({
   let selectedLayoutInfo: {
     layout: { name: string; preview_image_url: string; extra_price: number } | null;
     isPremiumSelected: boolean;
+    premiumIncluded: boolean;
     personalizationName: string | null;
     personalizationDate: string | null;
     extraWishes: string | null;
@@ -43,7 +44,7 @@ export default async function AdminLayoutProofsPage({
       supabase
         .from("bookings")
         .select(
-          "is_premium_selected, personalization_name, personalization_date, extra_wishes, layouts(name, preview_image_url, extra_price)"
+          "is_premium_selected, premium_layout_included, personalization_name, personalization_date, extra_wishes, layouts(name, preview_image_url, extra_price)"
         )
         .eq("id", selectedBookingId)
         .maybeSingle(),
@@ -53,6 +54,7 @@ export default async function AdminLayoutProofsPage({
       ? {
           layout: (bookingDetail as any).layouts ?? null,
           isPremiumSelected: (bookingDetail as any).is_premium_selected,
+          premiumIncluded: (bookingDetail as any).premium_layout_included,
           personalizationName: (bookingDetail as any).personalization_name,
           personalizationDate: (bookingDetail as any).personalization_date,
           extraWishes: (bookingDetail as any).extra_wishes,
@@ -95,6 +97,7 @@ export default async function AdminLayoutProofsPage({
                 <SelectedLayoutSummary
                   layout={selectedLayoutInfo.layout}
                   isPremiumSelected={selectedLayoutInfo.isPremiumSelected}
+                  premiumIncluded={selectedLayoutInfo.premiumIncluded}
                   personalizationName={selectedLayoutInfo.personalizationName}
                   personalizationDate={selectedLayoutInfo.personalizationDate}
                   extraWishes={selectedLayoutInfo.extraWishes}

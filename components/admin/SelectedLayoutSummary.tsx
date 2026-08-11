@@ -5,12 +5,14 @@ import { formatCurrencyEUR, formatDateGerman } from "@/lib/format";
 export function SelectedLayoutSummary({
   layout,
   isPremiumSelected,
+  premiumIncluded,
   personalizationName,
   personalizationDate,
   extraWishes,
 }: {
   layout: { name: string; preview_image_url: string; extra_price: number } | null;
   isPremiumSelected: boolean;
+  premiumIncluded: boolean;
   personalizationName: string | null;
   personalizationDate: string | null;
   extraWishes: string | null;
@@ -40,7 +42,10 @@ export function SelectedLayoutSummary({
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-medium text-anthracite-800">{layout.name}</p>
             {isPremiumSelected && (
-              <Badge tone="gold">Premium · +{formatCurrencyEUR(layout.extra_price)}</Badge>
+              <Badge tone="gold">
+                Premium ·{" "}
+                {premiumIncluded ? "inklusive" : `+${formatCurrencyEUR(layout.extra_price)}`}
+              </Badge>
             )}
           </div>
           <dl className="mt-2 space-y-1.5 text-sm">

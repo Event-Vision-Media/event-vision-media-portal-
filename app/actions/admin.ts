@@ -42,6 +42,7 @@ export async function createBooking(
   const eventDate = String(formData.get("event_date") ?? "").trim();
   const productType = String(formData.get("product_type") ?? "").trim();
   const customLoginCode = String(formData.get("custom_login_code") ?? "").trim() || null;
+  const premiumLayoutIncluded = formData.get("premium_layout_included") === "on";
 
   if (!coupleNames || !eventDate || !productType) {
     return { error: "Bitte alle Pflichtfelder ausfüllen." };
@@ -59,6 +60,7 @@ export async function createBooking(
       product_type: productType,
       status: "offen",
       custom_login_code: customLoginCode,
+      premium_layout_included: premiumLayoutIncluded,
     })
     .select("id")
     .single();
@@ -570,6 +572,29 @@ export async function updateCustomLoginCode(
   }
 
   revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+export async function updatePremiumLayoutIncluded(
+  bookingId: string,
+  included: boolean
+): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) {
+    return { error: "Nicht angemeldet." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ premium_layout_included: included })
+    .eq("id", bookingId);
+
+  if (error) {
+    return { error: "Konnte nicht gespeichert werden." };
+  }
+
+  revalidatePath("/admin/dashboard");
+  revalidatePath("/dashboard/layout");
   return { success: true };
 }
 
