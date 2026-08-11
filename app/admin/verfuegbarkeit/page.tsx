@@ -9,6 +9,8 @@ import { Card } from "@/components/ui/Card";
 import { getAvailabilityBoard } from "@/lib/availability-server";
 import { formatAvailabilityLabel, type AvailabilityInfo } from "@/lib/availability";
 
+export const dynamic = "force-dynamic";
+
 function todayDateString() {
   const d = new Date();
   const yyyy = d.getFullYear();

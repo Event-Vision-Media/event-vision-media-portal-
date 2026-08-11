@@ -6,6 +6,8 @@ import { Footer } from "@/components/Footer";
 import { LayoutProofsSection } from "@/components/LayoutProofsSection";
 import type { LayoutProof } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function LayoutFreigabePage() {
   const booking = await requireBooking();
 

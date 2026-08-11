@@ -13,6 +13,8 @@ import type {
   PersonalizedScreenRequest,
 } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function StartbildschirmPage() {
   const booking = await requireBooking();
 

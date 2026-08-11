@@ -7,6 +7,8 @@ import { ExtrasSection } from "@/components/ExtrasSection";
 import { getAvailabilityBoard } from "@/lib/availability-server";
 import type { BookingExtra, Extra, ExtraVariant } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function EventHighlightsPage() {
   const booking = await requireBooking();
 

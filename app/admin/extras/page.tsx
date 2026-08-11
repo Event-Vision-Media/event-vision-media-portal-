@@ -6,6 +6,8 @@ import { ExtraListItem } from "@/components/admin/ExtraListItem";
 import { Card } from "@/components/ui/Card";
 import type { Extra, ExtraVariant } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminExtrasPage() {
   const supabase = createAdminClient();
   const [{ data: extras }, { data: variants }] = await Promise.all([

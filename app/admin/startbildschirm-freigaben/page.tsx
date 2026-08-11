@@ -9,6 +9,8 @@ import { SelectedHomeScreenSummary } from "@/components/admin/SelectedHomeScreen
 import { Card } from "@/components/ui/Card";
 import type { PersonalizedScreenProof, PersonalizedScreenRequest } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminPersonalizedScreenPage({
   searchParams,
 }: {

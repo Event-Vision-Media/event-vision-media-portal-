@@ -6,6 +6,8 @@ import { LayoutListItem } from "@/components/admin/LayoutListItem";
 import { Card } from "@/components/ui/Card";
 import type { Layout } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayoutsPage() {
   const supabase = createAdminClient();
   const { data: layouts } = await supabase

@@ -6,6 +6,8 @@ import { Footer } from "@/components/Footer";
 import { LayoutGallery } from "@/components/LayoutGallery";
 import type { Layout } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function LayoutSelectionPage() {
   const booking = await requireBooking();
 

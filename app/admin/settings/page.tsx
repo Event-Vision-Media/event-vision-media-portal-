@@ -4,6 +4,8 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { GoogleReviewLinkForm } from "@/components/admin/GoogleReviewLinkForm";
 import { Card } from "@/components/ui/Card";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminSettingsPage() {
   const supabase = createAdminClient();
   const { data: setting } = await supabase

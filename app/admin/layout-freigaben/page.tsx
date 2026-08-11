@@ -8,6 +8,8 @@ import { SelectedLayoutSummary } from "@/components/admin/SelectedLayoutSummary"
 import { Card } from "@/components/ui/Card";
 import type { LayoutProof } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLayoutProofsPage({
   searchParams,
 }: {

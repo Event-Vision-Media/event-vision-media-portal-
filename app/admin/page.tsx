@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { Card } from "@/components/ui/Card";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminLoginPage() {
   const supabase = createClient();
   const {

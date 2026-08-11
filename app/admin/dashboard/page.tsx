@@ -11,6 +11,8 @@ import { CustomLoginCodeCell } from "@/components/admin/CustomLoginCodeCell";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman, formatTimeGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 const STATUS_LABELS: Record<BookingStatus, string> = {
   offen: "Offen",
   layout_ausgewaehlt: "Layout ausgewählt",

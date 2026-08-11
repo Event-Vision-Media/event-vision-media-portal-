@@ -7,6 +7,8 @@ import { PersonalizedScreenExampleUpload } from "@/components/admin/Personalized
 import { Card } from "@/components/ui/Card";
 import { PRODUCT_TYPES, type HomeScreen, type PersonalizedScreenExample } from "@/lib/types";
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminHomeScreensPage() {
   const supabase = createAdminClient();
   const [{ data: homeScreens }, { data: examples }] = await Promise.all([
