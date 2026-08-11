@@ -83,11 +83,6 @@ export default async function AdminLayoutProofsPage({
           Lade individuelle Layout-Entwürfe hoch und verfolge die Freigabe durch den Kunden.
         </p>
 
-        <p className="mb-2 rounded bg-red-100 px-2 py-1 text-xs text-red-700">
-          DEBUG {new Date().toISOString()} · URL: {process.env.NEXT_PUBLIC_SUPABASE_URL} ·{" "}
-          {allBookings.length} Buchungen: {JSON.stringify(allBookings)}
-        </p>
-
         <BookingSelect bookings={allBookings} selectedId={selectedBookingId} />
 
         {selectedBooking && (
