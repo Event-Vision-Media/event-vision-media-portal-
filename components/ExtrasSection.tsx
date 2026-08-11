@@ -54,7 +54,9 @@ export function ExtrasSection({
     return map;
   }, [selections]);
 
-  const newSelections = selections.filter((s) => !s.added_by_admin);
+  const newSelections = selections.filter(
+    (s) => !s.added_by_admin && extras.some((e) => e.id === s.extra_id)
+  );
   const total = newSelections.reduce((sum, s) => sum + s.price, 0);
 
   function openExtra(extra: Extra) {
