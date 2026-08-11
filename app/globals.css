@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-sand-50 text-anthracite-800 antialiased;
+    background-image: radial-gradient(
+        120% 100% at 50% -10%,
+        rgba(196, 147, 63, 0.14) 0%,
+        rgba(196, 147, 63, 0) 55%
+      ),
+      linear-gradient(180deg, #faf8f4 0%, #f6f1e8 100%);
+    background-attachment: fixed;
+  }
+
+  ::selection {
+    @apply bg-gold-200 text-anthracite-900;
+  }
+}
+
+@layer components {
+  .input-field {
+    @apply w-full rounded-xl border border-anthracite-200 bg-white px-4 py-3 text-base text-anthracite-800 placeholder:text-anthracite-300 transition focus:border-gold-500 focus:outline-none focus:ring-4 focus:ring-gold-100;
+  }
+
+  .surface-card {
+    @apply rounded-2xl border border-anthracite-100/80 bg-white/90 shadow-card backdrop-blur-sm;
+  }
+}
