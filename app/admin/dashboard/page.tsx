@@ -239,7 +239,12 @@ export default async function AdminBookingsPage({
                     {(() => {
                       const items = extrasByBooking.get(booking.id) ?? [];
                       if (items.length === 0) return "—";
-                      const total = items.reduce((sum, i) => sum + i.price, 0);
+                      const newTotal = items
+                        .filter((i) => !i.addedByAdmin)
+                        .reduce((sum, i) => sum + i.price, 0);
+                      const vorabTotal = items
+                        .filter((i) => i.addedByAdmin)
+                        .reduce((sum, i) => sum + i.price, 0);
                       return (
                         <div className="space-y-0.5">
                           {items.map((item, i) => (
@@ -251,8 +256,13 @@ export default async function AdminBookingsPage({
                             </div>
                           ))}
                           <div className="font-medium text-anthracite-700">
-                            Gesamt: {formatCurrencyEUR(total)}
+                            Neu zu berechnen: {formatCurrencyEUR(newTotal)}
                           </div>
+                          {vorabTotal > 0 && (
+                            <div className="text-anthracite-400">
+                              Bereits abgerechnet: {formatCurrencyEUR(vorabTotal)}
+                            </div>
+                          )}
                           {booking.extras_confirmed_at ? (
                             <Badge tone="success" className="mt-1">
                               Gebucht am {formatDateTimeGerman(booking.extras_confirmed_at)} Uhr

@@ -22,20 +22,22 @@ export async function GET() {
   const adminClient = createAdminClient();
   const [{ data: bookings, error }, { data: bookingExtras }] = await Promise.all([
     adminClient.from("bookings").select("*, layouts(name)").order("event_date", { ascending: true }),
-    adminClient.from("booking_extras").select("booking_id, price, extras(name), extra_variants(name)"),
+    adminClient
+      .from("booking_extras")
+      .select("booking_id, price, added_by_admin, extras(name), extra_variants(name)"),
   ]);
 
   if (error) {
     return NextResponse.json({ error: "Export fehlgeschlagen." }, { status: 500 });
   }
 
-  const extrasByBooking = new Map<string, { label: string; price: number }[]>();
+  const extrasByBooking = new Map<string, { label: string; price: number; addedByAdmin: boolean }[]>();
   (bookingExtras ?? []).forEach((be: any) => {
     const label = be.extra_variants?.name
       ? `${be.extras?.name} – ${be.extra_variants.name}`
       : be.extras?.name ?? "Extra";
     const list = extrasByBooking.get(be.booking_id) ?? [];
-    list.push({ label, price: be.price });
+    list.push({ label, price: be.price, addedByAdmin: be.added_by_admin });
     extrasByBooking.set(be.booking_id, list);
   });
 
@@ -51,14 +53,16 @@ export async function GET() {
     "Layout",
     "Premium",
     "Exclusive Extras",
-    "Extras gesamt",
+    "Extras gesamt (neu zu berechnen)",
+    "Extras bereits abgerechnet (vorab)",
     "Extras verbindlich gebucht am",
     "Sonderwünsche",
   ];
 
   const rows = relevantBookings.map((b) => {
     const extras = extrasByBooking.get(b.id) ?? [];
-    const extrasTotal = extras.reduce((sum, e) => sum + e.price, 0);
+    const newTotal = extras.filter((e) => !e.addedByAdmin).reduce((sum, e) => sum + e.price, 0);
+    const vorabTotal = extras.filter((e) => e.addedByAdmin).reduce((sum, e) => sum + e.price, 0);
     return [
       b.booking_code,
       b.couple_names,
@@ -66,8 +70,11 @@ export async function GET() {
       b.product_type,
       b.layouts?.name ?? "",
       b.is_premium_selected ? "Ja" : "Nein",
-      extras.map((e) => `${e.label} (${e.price.toFixed(2)} €)`).join(", "),
-      extrasTotal ? `${extrasTotal.toFixed(2)} €` : "",
+      extras
+        .map((e) => `${e.label} (${e.price.toFixed(2)} €${e.addedByAdmin ? ", vorab" : ""})`)
+        .join(", "),
+      newTotal ? `${newTotal.toFixed(2)} €` : "",
+      vorabTotal ? `${vorabTotal.toFixed(2)} €` : "",
       b.extras_confirmed_at ? new Date(b.extras_confirmed_at).toLocaleString("de-DE") : "",
       b.extra_wishes ?? "",
     ]

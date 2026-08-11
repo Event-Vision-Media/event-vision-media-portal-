@@ -54,7 +54,8 @@ export function ExtrasSection({
     return map;
   }, [selections]);
 
-  const total = selections.reduce((sum, s) => sum + s.price, 0);
+  const newSelections = selections.filter((s) => !s.added_by_admin);
+  const total = newSelections.reduce((sum, s) => sum + s.price, 0);
 
   function openExtra(extra: Extra) {
     setErrorMessage(null);
@@ -244,7 +245,7 @@ export function ExtrasSection({
         })}
       </div>
 
-      {selections.length > 0 && (
+      {newSelections.length > 0 && (
         <div className="mt-4 flex items-center justify-between rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-3 text-sm text-gold-800 shadow-sm">
           <span>Extras gesamt</span>
           <strong className="font-serif text-base">{formatCurrencyEUR(total)}</strong>
@@ -260,7 +261,7 @@ export function ExtrasSection({
         </div>
       )}
 
-      {selections.length > 0 && !confirmedAt && (
+      {newSelections.length > 0 && !confirmedAt && (
         <Button
           variant="secondary"
           className="mt-4 w-full"
@@ -294,7 +295,7 @@ export function ExtrasSection({
         <ConfirmationModal
           extras={extras}
           variantsByExtra={variantsByExtra}
-          selections={selections}
+          selections={newSelections}
           total={total}
           isPending={isPending}
           error={errorMessage}
