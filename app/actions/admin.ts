@@ -719,3 +719,25 @@ export async function updateDeliveryPickupInfo(
   return { success: true };
 }
 
+export async function updateAdminNotes(
+  bookingId: string,
+  notes: string
+): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) {
+    return { error: "Nicht angemeldet." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ addon_notes: notes.trim() || null })
+    .eq("id", bookingId);
+
+  if (error) {
+    return { error: "Notiz konnte nicht gespeichert werden." };
+  }
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
