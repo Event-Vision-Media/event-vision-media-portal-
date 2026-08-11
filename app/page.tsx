@@ -43,8 +43,8 @@ export default async function LoginPage() {
           </Card>
 
           <p className="mt-6 text-center text-sm text-anthracite-400">
-            Deinen Buchungscode findest du in deiner Buchungsbestätigung. Fragen?
-            Melde dich einfach bei uns.
+            Deinen Buchungscode oder dein individuelles Passwort findest du in deiner
+            Buchungsbestätigung. Fragen? Melde dich einfach bei uns.
           </p>
         </div>
       </main>

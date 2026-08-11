@@ -53,6 +53,25 @@ export function NewBookingForm({
         </select>
       </div>
 
+      <div>
+        <label
+          htmlFor="custom_login_code"
+          className="mb-2 block text-sm font-medium text-anthracite-600"
+        >
+          Individuelles Login-Passwort <span className="text-anthracite-400">(optional)</span>
+        </label>
+        <input
+          id="custom_login_code"
+          name="custom_login_code"
+          type="text"
+          placeholder="z. B. Andrea08.08"
+          className="input-field"
+        />
+        <p className="mt-1 text-xs text-anthracite-400">
+          Der Kunde kann sich damit zusätzlich zum automatisch erzeugten Buchungscode einloggen.
+        </p>
+      </div>
+
       {extras.length > 0 && (
         <div className="border-t border-anthracite-100 pt-4">
           <p className="mb-1 text-sm font-medium text-anthracite-600">

@@ -15,22 +15,33 @@ export async function loginWithBookingCode(
   const rawCode = String(formData.get("booking_code") ?? "").trim();
 
   if (!rawCode) {
-    return { error: "Bitte gib deinen Buchungscode ein." };
+    return { error: "Bitte gib deinen Buchungscode oder dein Passwort ein." };
   }
 
-  const normalizedCode = rawCode.toUpperCase();
   const supabase = createAdminClient();
+  const normalizedCode = rawCode.toUpperCase();
 
-  const { data: booking, error } = await supabase
+  const { data: byCode } = await supabase
     .from("bookings")
     .select("id")
     .eq("booking_code", normalizedCode)
     .maybeSingle();
 
-  if (error || !booking) {
+  let booking = byCode;
+
+  if (!booking) {
+    const { data: byPassword } = await supabase
+      .from("bookings")
+      .select("id")
+      .eq("custom_login_code", rawCode)
+      .maybeSingle();
+    booking = byPassword;
+  }
+
+  if (!booking) {
     return {
       error:
-        "Diesen Buchungscode kennen wir leider nicht. Bitte überprüfe deine Eingabe oder kontaktiere uns.",
+        "Diesen Buchungscode oder dieses Passwort kennen wir leider nicht. Bitte überprüfe deine Eingabe oder kontaktiere uns.",
     };
   }
 

@@ -4,6 +4,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BookingSelect } from "@/components/admin/BookingSelect";
 import { NewLayoutProofForm } from "@/components/admin/NewLayoutProofForm";
 import { LayoutProofGroup } from "@/components/admin/LayoutProofGroup";
+import { SelectedLayoutSummary } from "@/components/admin/SelectedLayoutSummary";
 import { Card } from "@/components/ui/Card";
 import type { LayoutProof } from "@/lib/types";
 
@@ -23,13 +24,38 @@ export default async function AdminLayoutProofsPage({
   const selectedBooking = allBookings.find((b) => b.id === selectedBookingId);
 
   let proofs: LayoutProof[] = [];
+  let selectedLayoutInfo: {
+    layout: { name: string; preview_image_url: string; extra_price: number } | null;
+    isPremiumSelected: boolean;
+    personalizationName: string | null;
+    personalizationDate: string | null;
+    extraWishes: string | null;
+  } | null = null;
   if (selectedBookingId) {
-    const { data } = await supabase
-      .from("layout_proofs")
-      .select("*")
-      .eq("booking_id", selectedBookingId)
-      .order("version", { ascending: false });
+    const [{ data }, { data: bookingDetail }] = await Promise.all([
+      supabase
+        .from("layout_proofs")
+        .select("*")
+        .eq("booking_id", selectedBookingId)
+        .order("version", { ascending: false }),
+      supabase
+        .from("bookings")
+        .select(
+          "is_premium_selected, personalization_name, personalization_date, extra_wishes, layouts(name, preview_image_url, extra_price)"
+        )
+        .eq("id", selectedBookingId)
+        .maybeSingle(),
+    ]);
     proofs = (data ?? []) as LayoutProof[];
+    selectedLayoutInfo = bookingDetail
+      ? {
+          layout: (bookingDetail as any).layouts ?? null,
+          isPremiumSelected: (bookingDetail as any).is_premium_selected,
+          personalizationName: (bookingDetail as any).personalization_name,
+          personalizationDate: (bookingDetail as any).personalization_date,
+          extraWishes: (bookingDetail as any).extra_wishes,
+        }
+      : null;
   }
 
   const groupedByName = new Map<string, LayoutProof[]>();
@@ -63,6 +89,15 @@ export default async function AdminLayoutProofsPage({
               <p className="text-sm text-anthracite-500">
                 Layouts für <strong>{selectedBooking.couple_names}</strong> ({selectedBooking.booking_code})
               </p>
+              {selectedLayoutInfo && (
+                <SelectedLayoutSummary
+                  layout={selectedLayoutInfo.layout}
+                  isPremiumSelected={selectedLayoutInfo.isPremiumSelected}
+                  personalizationName={selectedLayoutInfo.personalizationName}
+                  personalizationDate={selectedLayoutInfo.personalizationDate}
+                  extraWishes={selectedLayoutInfo.extraWishes}
+                />
+              )}
               {layoutNames.length === 0 && (
                 <p className="text-sm text-anthracite-400">Noch keine Layouts hochgeladen.</p>
               )}

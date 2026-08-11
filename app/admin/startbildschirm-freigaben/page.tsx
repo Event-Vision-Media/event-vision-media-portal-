@@ -5,6 +5,7 @@ import { BookingSelect } from "@/components/admin/BookingSelect";
 import { NewPersonalizedScreenProofForm } from "@/components/admin/NewPersonalizedScreenProofForm";
 import { PersonalizedScreenProofPanel } from "@/components/admin/PersonalizedScreenProofPanel";
 import { PersonalizationDetailsCard } from "@/components/admin/PersonalizationDetailsCard";
+import { SelectedHomeScreenSummary } from "@/components/admin/SelectedHomeScreenSummary";
 import { Card } from "@/components/ui/Card";
 import type { PersonalizedScreenProof, PersonalizedScreenRequest } from "@/lib/types";
 
@@ -25,8 +26,12 @@ export default async function AdminPersonalizedScreenPage({
 
   let request: PersonalizedScreenRequest | null = null;
   let proofs: PersonalizedScreenProof[] = [];
+  let homeScreenInfo: {
+    homeScreen: { name: string; preview_image_url: string } | null;
+    productType: string;
+  } | null = null;
   if (selectedBookingId) {
-    const [{ data: requestData }, { data: proofsData }] = await Promise.all([
+    const [{ data: requestData }, { data: proofsData }, { data: bookingDetail }] = await Promise.all([
       supabase
         .from("personalized_screen_requests")
         .select("*")
@@ -37,9 +42,20 @@ export default async function AdminPersonalizedScreenPage({
         .select("*")
         .eq("booking_id", selectedBookingId)
         .order("version", { ascending: false }),
+      supabase
+        .from("bookings")
+        .select("product_type, home_screens(name, preview_image_url)")
+        .eq("id", selectedBookingId)
+        .maybeSingle(),
     ]);
     request = (requestData as PersonalizedScreenRequest | null) ?? null;
     proofs = (proofsData ?? []) as PersonalizedScreenProof[];
+    homeScreenInfo = bookingDetail
+      ? {
+          homeScreen: (bookingDetail as any).home_screens ?? null,
+          productType: (bookingDetail as any).product_type,
+        }
+      : null;
   }
 
   return (
@@ -71,6 +87,13 @@ export default async function AdminPersonalizedScreenPage({
                 Startbildschirm für <strong>{selectedBooking.couple_names}</strong> (
                 {selectedBooking.booking_code})
               </p>
+              {homeScreenInfo && (
+                <SelectedHomeScreenSummary
+                  homeScreen={homeScreenInfo.homeScreen}
+                  productType={homeScreenInfo.productType}
+                  isPersonalizedBooked={Boolean(request)}
+                />
+              )}
               <PersonalizationDetailsCard request={request} />
               <PersonalizedScreenProofPanel versions={proofs} />
             </div>

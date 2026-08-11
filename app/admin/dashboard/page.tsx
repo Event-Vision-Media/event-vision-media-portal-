@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { BookingRowActions } from "@/components/admin/BookingRowActions";
 import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { ActivityFeed, type ActivityFeedEntry } from "@/components/admin/ActivityFeed";
+import { CustomLoginCodeCell } from "@/components/admin/CustomLoginCodeCell";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman, formatTimeGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
 
@@ -131,6 +132,7 @@ export default async function AdminBookingsPage({
             <thead className="bg-anthracite-50 text-left text-xs uppercase tracking-wide text-anthracite-400">
               <tr>
                 <th className="px-4 py-3">Code</th>
+                <th className="px-4 py-3">Login-Passwort</th>
                 <th className="px-4 py-3">Namen</th>
                 <th className="px-4 py-3">Event-Datum</th>
                 <th className="px-4 py-3">Produkt</th>
@@ -152,6 +154,9 @@ export default async function AdminBookingsPage({
                 <tr key={booking.id} className="align-top hover:bg-anthracite-50/50">
                   <td className="whitespace-nowrap px-4 py-3 font-medium text-anthracite-800">
                     {booking.booking_code}
+                  </td>
+                  <td className="px-4 py-3">
+                    <CustomLoginCodeCell bookingId={booking.id} code={booking.custom_login_code} />
                   </td>
                   <td className="px-4 py-3">
                     <div className="text-anthracite-800">{booking.couple_names}</div>
@@ -399,7 +404,7 @@ export default async function AdminBookingsPage({
               ))}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={15} className="px-4 py-8 text-center text-anthracite-400">
+                  <td colSpan={16} className="px-4 py-8 text-center text-anthracite-400">
                     Keine Buchungen gefunden.
                   </td>
                 </tr>

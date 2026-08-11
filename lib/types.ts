@@ -48,6 +48,7 @@ export interface Booking {
   pickup_contact_phone: string | null;
   access_notes: string | null;
   access_notes_updated_at: string | null;
+  custom_login_code: string | null;
   created_at: string;
   updated_at: string;
 }

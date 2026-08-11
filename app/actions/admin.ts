@@ -41,6 +41,7 @@ export async function createBooking(
   const coupleNames = String(formData.get("couple_names") ?? "").trim();
   const eventDate = String(formData.get("event_date") ?? "").trim();
   const productType = String(formData.get("product_type") ?? "").trim();
+  const customLoginCode = String(formData.get("custom_login_code") ?? "").trim() || null;
 
   if (!coupleNames || !eventDate || !productType) {
     return { error: "Bitte alle Pflichtfelder ausfüllen." };
@@ -57,11 +58,18 @@ export async function createBooking(
       event_date: eventDate,
       product_type: productType,
       status: "offen",
+      custom_login_code: customLoginCode,
     })
     .select("id")
     .single();
 
   if (error || !booking) {
+    if (error?.code === "23505") {
+      return {
+        error:
+          "Dieses individuelle Passwort wird bereits für eine andere Buchung verwendet. Bitte wähle ein anderes.",
+      };
+    }
     return { error: "Buchung konnte nicht angelegt werden." };
   }
 
@@ -534,6 +542,34 @@ export async function updateOnlineGalleryUrl(
 
   revalidatePath("/admin/dashboard");
   revalidatePath("/dashboard");
+  return { success: true };
+}
+
+export async function updateCustomLoginCode(
+  bookingId: string,
+  code: string
+): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) {
+    return { error: "Nicht angemeldet." };
+  }
+
+  const trimmed = code.trim();
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ custom_login_code: trimmed || null })
+    .eq("id", bookingId);
+
+  if (error) {
+    if (error.code === "23505") {
+      return {
+        error: "Dieses individuelle Passwort wird bereits für eine andere Buchung verwendet.",
+      };
+    }
+    return { error: "Passwort konnte nicht gespeichert werden." };
+  }
+
+  revalidatePath("/admin/dashboard");
   return { success: true };
 }
 
