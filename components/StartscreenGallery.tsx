@@ -137,12 +137,12 @@ export function StartscreenGallery({
 
       {personalizedExtra && (
         <Card>
-          <div className="flex items-start gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
             {exampleImage && (
               <button
                 type="button"
                 onClick={() => setShowExamplePreview(true)}
-                className="group relative h-20 w-28 flex-none overflow-hidden rounded-xl bg-anthracite-50 shadow-sm ring-1 ring-anthracite-100"
+                className="group relative h-20 w-28 flex-none self-start overflow-hidden rounded-xl bg-anthracite-50 shadow-sm ring-1 ring-anthracite-100"
                 title="Beispielbild vergrößern"
               >
                 <Image
@@ -157,21 +157,21 @@ export function StartscreenGallery({
                 </span>
               </button>
             )}
-            <div className="flex flex-1 items-start justify-between gap-3">
-              <div>
-                <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+                <div className="flex flex-wrap items-center gap-2">
                   <h3 className="font-medium text-anthracite-800">{personalizedExtra.name}</h3>
                   <Badge tone="gold">Optional</Badge>
                 </div>
-                {personalizedExtra.description && (
-                  <p className="mt-1 text-sm text-anthracite-500">
-                    {personalizedExtra.description}
-                  </p>
-                )}
+                <p className="flex-none font-serif text-lg font-semibold text-gold-700">
+                  {formatCurrencyEUR(personalizedExtra.price)}
+                </p>
               </div>
-              <p className="flex-none font-serif text-lg font-semibold text-gold-700">
-                {formatCurrencyEUR(personalizedExtra.price)}
-              </p>
+              {personalizedExtra.description && (
+                <p className="mt-1 text-sm text-anthracite-500">
+                  {personalizedExtra.description}
+                </p>
+              )}
             </div>
           </div>
 

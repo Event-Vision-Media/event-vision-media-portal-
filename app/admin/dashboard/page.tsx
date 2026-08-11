@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -31,7 +32,7 @@ export default async function AdminBookingsPage({
     await Promise.all([
       supabase
         .from("bookings")
-        .select("*, layouts(name), home_screens(name)")
+        .select("*, layouts(name, preview_image_url), home_screens(name, preview_image_url)")
         .order("event_date", { ascending: true }),
       supabase
         .from("booking_extras")
@@ -160,7 +161,24 @@ export default async function AdminBookingsPage({
                   </td>
                   <td className="px-4 py-3 text-anthracite-600">{booking.product_type}</td>
                   <td className="px-4 py-3 text-xs text-anthracite-600">
-                    {booking.home_screens?.name ?? "—"}
+                    {booking.home_screens ? (
+                      <div className="flex items-center gap-2">
+                        {booking.home_screens.preview_image_url && (
+                          <div className="relative h-10 w-10 flex-none overflow-hidden rounded-md border border-anthracite-100 bg-anthracite-50">
+                            <Image
+                              src={booking.home_screens.preview_image_url}
+                              alt={booking.home_screens.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <span>{booking.home_screens.name}</span>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                     {personalizedScreenBookingIds.has(booking.id) && (
                       <Link href={`/admin/startbildschirm-freigaben?booking=${booking.id}`}>
                         <Badge tone="gold" className="ml-2 hover:opacity-80">
@@ -170,7 +188,24 @@ export default async function AdminBookingsPage({
                     )}
                   </td>
                   <td className="px-4 py-3 text-anthracite-600">
-                    {booking.layouts?.name ?? "—"}
+                    {booking.layouts ? (
+                      <div className="flex items-center gap-2">
+                        {booking.layouts.preview_image_url && (
+                          <div className="relative h-10 w-10 flex-none overflow-hidden rounded-md border border-anthracite-100 bg-anthracite-50">
+                            <Image
+                              src={booking.layouts.preview_image_url}
+                              alt={booking.layouts.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          </div>
+                        )}
+                        <span>{booking.layouts.name}</span>
+                      </div>
+                    ) : (
+                      "—"
+                    )}
                     {booking.is_premium_selected && (
                       <Badge tone="gold" className="ml-2">
                         Premium
