@@ -22,7 +22,7 @@ function availabilityTone(status: AvailabilityInfo["status"]) {
 }
 
 function AvailabilityBadge({ info }: { info: AvailabilityInfo | undefined }) {
-  if (!info || info.status === "unbegrenzt") return null;
+  if (!info) return null;
   return <Badge tone={availabilityTone(info.status)}>{formatAvailabilityLabel(info)}</Badge>;
 }
 
@@ -230,7 +230,7 @@ export function ExtrasSection({
                     ? `ab ${formatCurrencyEUR(minVariantPrice)}`
                     : formatCurrencyEUR(extra.price)}
                 </p>
-                {cardAvailability && cardAvailability.status !== "unbegrenzt" && (
+                {cardAvailability && (
                   <div className="mt-1.5">
                     <AvailabilityBadge info={cardAvailability} />
                   </div>
@@ -423,7 +423,7 @@ function ExtraModal({
                           {formatCurrencyEUR(variant.price)}
                         </p>
                       </div>
-                      {variantAvailability && variantAvailability.status !== "unbegrenzt" && (
+                      {variantAvailability && (
                         <div className="mt-1.5">
                           <AvailabilityBadge info={variantAvailability} />
                         </div>
@@ -468,9 +468,7 @@ function ExtraModal({
               <p className="font-serif text-lg font-medium text-gold-700">
                 {formatCurrencyEUR(extra.price)}
               </p>
-              {extraAvailability && extraAvailability.status !== "unbegrenzt" && (
-                <AvailabilityBadge info={extraAvailability} />
-              )}
+              {extraAvailability && <AvailabilityBadge info={extraAvailability} />}
             </div>
             <p className="mt-1 text-xs text-anthracite-400">
               wird dir separat in Rechnung gestellt
@@ -579,7 +577,7 @@ function ConfirmationModal({
                 <span className="text-anthracite-700">{item.label}</span>
                 <span className="font-medium text-gold-700">{formatCurrencyEUR(item.price)}</span>
               </div>
-              {item.availability && item.availability.status !== "unbegrenzt" && (
+              {item.availability && (
                 <div className="mt-1.5">
                   <AvailabilityBadge info={item.availability} />
                 </div>
