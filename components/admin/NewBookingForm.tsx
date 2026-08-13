@@ -114,6 +114,9 @@ export function NewBookingForm({
                     </label>
                     <select id={`extra_${extra.id}`} name={`extra_${extra.id}`} className="input-field text-sm" defaultValue="">
                       <option value="">Nicht mitgebucht</option>
+                      <option value="__pending__">
+                        Bereits gebucht – Kunde wählt Variante später (kein Aufpreis)
+                      </option>
                       {variants
                         .filter((v) => v.is_available)
                         .map((variant) => (

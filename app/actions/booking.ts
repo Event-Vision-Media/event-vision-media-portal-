@@ -213,11 +213,21 @@ export async function selectExtraVariant(
     return { error: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an." };
   }
 
-  if (await isExtraLockedByAdmin(booking.id, extraId)) {
+  const supabase = createAdminClient();
+  const { data: existing } = await supabase
+    .from("booking_extras")
+    .select("added_by_admin, variant_id")
+    .eq("booking_id", booking.id)
+    .eq("extra_id", extraId)
+    .maybeSingle();
+
+  // Ein admin-seitig vorab gebuchtes Extra ohne festgelegte Variante
+  // ("Bereits gebucht - Kunde wählt Variante später") bleibt für die
+  // Variantenwahl offen; nur eine bereits festgelegte Variante ist gesperrt.
+  if (existing?.added_by_admin && existing.variant_id) {
     return { error: "Diese Option wurde bereits für euch gebucht und kann nicht geändert werden." };
   }
 
-  const supabase = createAdminClient();
   const { data: variant, error: variantError } = await supabase
     .from("extra_variants")
     .select("id, price, is_available, extra_id")
@@ -244,6 +254,7 @@ export async function selectExtraVariant(
       extra_id: extraId,
       variant_id: variantId,
       price: variant.price,
+      added_by_admin: existing?.added_by_admin ?? false,
     },
     { onConflict: "booking_id,extra_id" }
   );

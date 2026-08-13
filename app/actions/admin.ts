@@ -100,6 +100,16 @@ export async function createBooking(
 
     if (extra.has_variants) {
       if (!raw) continue;
+      if (raw === "__pending__") {
+        bookingExtraRows.push({
+          booking_id: booking.id,
+          extra_id: extraId,
+          variant_id: null,
+          price: 0,
+          added_by_admin: true,
+        });
+        continue;
+      }
       const variant = variantsById.get(raw);
       if (!variant || variant.extra_id !== extraId) continue;
       bookingExtraRows.push({

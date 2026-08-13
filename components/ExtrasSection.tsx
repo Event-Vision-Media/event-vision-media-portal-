@@ -90,6 +90,7 @@ export function ExtrasSection({
 
   function handleSelectVariant(extra: Extra, variant: ExtraVariant) {
     setErrorMessage(null);
+    const wasAdminAdded = selectionByExtraId.get(extra.id)?.added_by_admin ?? false;
     startTransition(async () => {
       const result = await selectExtraVariant(extra.id, variant.id);
       if (result.error) {
@@ -104,7 +105,7 @@ export function ExtrasSection({
           extra_id: extra.id,
           variant_id: variant.id,
           price: variant.price,
-          added_by_admin: false,
+          added_by_admin: wasAdminAdded,
         },
       ]);
       setConfirmedAt(null);
@@ -237,7 +238,11 @@ export function ExtrasSection({
                 )}
                 {selection && (
                   <p className="mt-1 text-xs font-medium text-emerald-600">
-                    {selection.added_by_admin ? "✓ Bereits gebucht" : "✓ Ausgewählt"}
+                    {selection.added_by_admin
+                      ? selectedVariant || !extra.has_variants
+                        ? "✓ Bereits gebucht"
+                        : "✓ Bereits gebucht – Variante wählen"
+                      : "✓ Ausgewählt"}
                     {selectedVariant ? `: ${selectedVariant.name}` : ""}
                   </p>
                 )}
@@ -349,7 +354,9 @@ function ExtraModal({
   onSelectVariant: (variant: ExtraVariant) => void;
   onRemove: () => void;
 }) {
-  const isLocked = Boolean(selection?.added_by_admin);
+  const isPendingVariantChoice =
+    Boolean(selection?.added_by_admin) && extra.has_variants && !selection?.variant_id;
+  const isLocked = Boolean(selection?.added_by_admin) && !isPendingVariantChoice;
   const isSimpleSoldOut = !extra.has_variants && extraAvailability?.status === "ausgebucht" && !selection;
 
   return (
@@ -376,6 +383,16 @@ function ExtraModal({
             </span>
             Diese Option wurde bereits für euch gebucht. Bei Änderungswünschen meldet euch bitte
             bei uns.
+          </div>
+        )}
+
+        {isPendingVariantChoice && (
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-gold-300 bg-gold-50 px-4 py-3 text-sm text-gold-800 shadow-sm">
+            <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-gold-500 text-xs font-bold text-white">
+              ✓
+            </span>
+            Dieses Extra ist für euch bereits gebucht — wählt jetzt eure gewünschte Variante aus,
+            es entstehen keine zusätzlichen Kosten.
           </div>
         )}
 
@@ -496,7 +513,7 @@ function ExtraModal({
                     : "Auswählen"}
             </Button>
           )}
-          {extra.has_variants && selection && !isLocked && (
+          {extra.has_variants && selection && !selection.added_by_admin && (
             <Button
               variant="ghost"
               className="flex-1"
