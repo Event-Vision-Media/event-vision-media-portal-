@@ -9,6 +9,7 @@ import { logActivity } from "@/lib/activity-log";
 export interface ActionResult {
   success?: boolean;
   error?: string;
+  feeAdded?: boolean;
 }
 
 export async function selectLayout(
@@ -20,6 +21,8 @@ export async function selectLayout(
     return { error: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an." };
   }
 
+  const isSwitch = Boolean(booking.selected_layout_id) && booking.selected_layout_id !== layoutId;
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("bookings")
@@ -30,6 +33,7 @@ export async function selectLayout(
         booking.status === "personalisierung_komplett"
           ? booking.status
           : "layout_ausgewaehlt",
+      ...(isSwitch ? { layout_switch_count: booking.layout_switch_count + 1 } : {}),
     })
     .eq("id", booking.id);
 
@@ -37,12 +41,18 @@ export async function selectLayout(
     return { error: "Die Auswahl konnte nicht gespeichert werden. Bitte versuche es erneut." };
   }
 
-  await logActivity(booking.id, "layout_selected", `${booking.couple_names} hat ein Layout ausgewählt.`);
+  await logActivity(
+    booking.id,
+    "layout_selected",
+    isSwitch
+      ? `${booking.couple_names} hat zu einem anderen Layout gewechselt (25 € Aufpreis).`
+      : `${booking.couple_names} hat ein Layout ausgewählt.`
+  );
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/layout");
   revalidatePath("/admin/dashboard");
-  return { success: true };
+  return { success: true, feeAdded: isSwitch };
 }
 
 export async function selectLayoutWithPersonalization(
@@ -60,6 +70,8 @@ export async function selectLayoutWithPersonalization(
     return { error: "Bitte gib den Namen bzw. die Namen fürs Layout an." };
   }
 
+  const isSwitch = Boolean(booking.selected_layout_id) && booking.selected_layout_id !== layoutId;
+
   const supabase = createAdminClient();
   const { error } = await supabase
     .from("bookings")
@@ -70,6 +82,7 @@ export async function selectLayoutWithPersonalization(
       personalization_date: personalization.date.trim() || null,
       extra_wishes: personalization.wishes.trim() || null,
       status: "personalisierung_komplett",
+      ...(isSwitch ? { layout_switch_count: booking.layout_switch_count + 1 } : {}),
     })
     .eq("id", booking.id);
 
@@ -80,14 +93,16 @@ export async function selectLayoutWithPersonalization(
   await logActivity(
     booking.id,
     "layout_personalized",
-    `${booking.couple_names} hat ein Layout ausgewählt und personalisiert.`
+    isSwitch
+      ? `${booking.couple_names} hat zu einem anderen Layout gewechselt und personalisiert (25 € Aufpreis).`
+      : `${booking.couple_names} hat ein Layout ausgewählt und personalisiert.`
   );
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/layout");
   revalidatePath("/dashboard/event-highlights");
   revalidatePath("/admin/dashboard");
-  return { success: true };
+  return { success: true, feeAdded: isSwitch };
 }
 
 export async function selectHomeScreen(homeScreenId: string): Promise<ActionResult> {
@@ -107,9 +122,15 @@ export async function selectHomeScreen(homeScreenId: string): Promise<ActionResu
     return { error: "Dieser Startbildschirm ist aktuell nicht verfügbar." };
   }
 
+  const isSwitch =
+    Boolean(booking.selected_home_screen_id) && booking.selected_home_screen_id !== homeScreenId;
+
   const { error } = await supabase
     .from("bookings")
-    .update({ selected_home_screen_id: homeScreenId })
+    .update({
+      selected_home_screen_id: homeScreenId,
+      ...(isSwitch ? { home_screen_switch_count: booking.home_screen_switch_count + 1 } : {}),
+    })
     .eq("id", booking.id);
 
   if (error) {
@@ -119,13 +140,15 @@ export async function selectHomeScreen(homeScreenId: string): Promise<ActionResu
   await logActivity(
     booking.id,
     "home_screen_selected",
-    `${booking.couple_names} hat einen Startbildschirm ausgewählt.`
+    isSwitch
+      ? `${booking.couple_names} hat zu einem anderen Startbildschirm gewechselt (25 € Aufpreis).`
+      : `${booking.couple_names} hat einen Startbildschirm ausgewählt.`
   );
 
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/startbildschirm");
   revalidatePath("/admin/dashboard");
-  return { success: true };
+  return { success: true, feeAdded: isSwitch };
 }
 
 async function resetExtrasConfirmation(bookingId: string) {

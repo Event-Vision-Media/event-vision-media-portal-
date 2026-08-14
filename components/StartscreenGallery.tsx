@@ -7,7 +7,9 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { formatCurrencyEUR } from "@/lib/format";
-import { getHomeScreenAspect, type Extra, type HomeScreen } from "@/lib/types";
+import { getHomeScreenAspect, SELECTION_SWITCH_FEE, type Extra, type HomeScreen } from "@/lib/types";
+
+type PreviewStep = "preview" | "fee-warning";
 
 export function StartscreenGallery({
   productType,
@@ -28,11 +30,15 @@ export function StartscreenGallery({
 }) {
   const [currentSelectedId, setCurrentSelectedId] = useState(selectedHomeScreenId);
   const [previewScreen, setPreviewScreen] = useState<HomeScreen | null>(null);
+  const [previewStep, setPreviewStep] = useState<PreviewStep>("preview");
   const [showExamplePreview, setShowExamplePreview] = useState(false);
   const [wantsPersonalized, setWantsPersonalized] = useState(isPersonalizedBooked);
   const [personalizedBooked, setPersonalizedBooked] = useState(isPersonalizedBooked);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [feeNotice, setFeeNotice] = useState(false);
+
+  const currentHomeScreenName = homeScreens.find((h) => h.id === currentSelectedId)?.name ?? null;
 
   const aspect = getHomeScreenAspect(productType);
   const exampleImage = personalizedExampleImageUrl ?? personalizedExtra?.preview_image_url ?? null;
@@ -46,8 +52,18 @@ export function StartscreenGallery({
         return;
       }
       setCurrentSelectedId(homeScreen.id);
+      setFeeNotice(Boolean(result.feeAdded));
       setPreviewScreen(null);
+      setPreviewStep("preview");
     });
+  }
+
+  function handleChooseClick(homeScreen: HomeScreen) {
+    if (currentSelectedId && currentSelectedId !== homeScreen.id) {
+      setPreviewStep("fee-warning");
+    } else {
+      handleSelect(homeScreen);
+    }
   }
 
   function handleConfirmPersonalized() {
@@ -84,6 +100,13 @@ export function StartscreenGallery({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</p>
       )}
 
+      {feeNotice && (
+        <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
+          Startbildschirm gewechselt – für den Wechsel wurde ein Aufpreis von{" "}
+          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu eurer Buchung hinzugefügt.
+        </div>
+      )}
+
       <section>
         {homeScreens.length === 0 ? (
           <p className="text-sm text-anthracite-400">
@@ -99,7 +122,10 @@ export function StartscreenGallery({
                   key={homeScreen.id}
                   type="button"
                   disabled={isPending}
-                  onClick={() => setPreviewScreen(homeScreen)}
+                  onClick={() => {
+                    setPreviewStep("preview");
+                    setPreviewScreen(homeScreen);
+                  }}
                   className={`group overflow-hidden rounded-2xl border bg-white text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover disabled:opacity-60 ${
                     isSelected
                       ? "border-gold-500 ring-4 ring-gold-200"
@@ -250,35 +276,61 @@ export function StartscreenGallery({
             className="w-full max-w-lg rounded-2xl bg-white p-5 shadow-card-hover animate-fade-in-up"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className={`relative w-full overflow-hidden rounded-xl bg-anthracite-50 ${aspect.class}`}>
-              <Image
-                src={previewScreen.preview_image_url}
-                alt={previewScreen.name}
-                fill
-                sizes="512px"
-                className="object-contain"
-              />
-            </div>
-            <div className="mt-4 flex items-center justify-between">
-              <h3 className="font-medium text-anthracite-800">{previewScreen.name}</h3>
-              {previewScreen.id === currentSelectedId && <Badge tone="success">Ausgewählt</Badge>}
-            </div>
-            <div className="mt-5 flex gap-3">
-              <Button variant="ghost" className="flex-1" onClick={() => setPreviewScreen(null)}>
-                Schließen
-              </Button>
-              <Button
-                className="flex-1"
-                disabled={isPending || previewScreen.id === currentSelectedId}
-                onClick={() => handleSelect(previewScreen)}
-              >
-                {previewScreen.id === currentSelectedId
-                  ? "Bereits ausgewählt"
-                  : isPending
-                    ? "Speichert…"
-                    : "Diesen Startbildschirm wählen"}
-              </Button>
-            </div>
+            {previewStep === "preview" ? (
+              <>
+                <div className={`relative w-full overflow-hidden rounded-xl bg-anthracite-50 ${aspect.class}`}>
+                  <Image
+                    src={previewScreen.preview_image_url}
+                    alt={previewScreen.name}
+                    fill
+                    sizes="512px"
+                    className="object-contain"
+                  />
+                </div>
+                <div className="mt-4 flex items-center justify-between">
+                  <h3 className="font-medium text-anthracite-800">{previewScreen.name}</h3>
+                  {previewScreen.id === currentSelectedId && <Badge tone="success">Ausgewählt</Badge>}
+                </div>
+                <div className="mt-5 flex gap-3">
+                  <Button variant="ghost" className="flex-1" onClick={() => setPreviewScreen(null)}>
+                    Schließen
+                  </Button>
+                  <Button
+                    className="flex-1"
+                    disabled={isPending || previewScreen.id === currentSelectedId}
+                    onClick={() => handleChooseClick(previewScreen)}
+                  >
+                    {previewScreen.id === currentSelectedId
+                      ? "Bereits ausgewählt"
+                      : isPending
+                        ? "Speichert…"
+                        : "Diesen Startbildschirm wählen"}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="font-serif text-lg font-semibold text-anthracite-800">
+                  Startbildschirm wechseln?
+                </h3>
+                <p className="mt-3 text-sm text-anthracite-600">
+                  Ihr habt bereits <strong>{currentHomeScreenName ?? "einen anderen Startbildschirm"}</strong>{" "}
+                  ausgewählt und dieser wird bereits individuell für euch vorbereitet. Ein Wechsel
+                  zu <strong>{previewScreen.name}</strong> ist möglich, kostet aber einmalig{" "}
+                  <strong>{formatCurrencyEUR(SELECTION_SWITCH_FEE)}</strong> Aufpreis.
+                </p>
+                <div className="mt-5 flex gap-3">
+                  <Button variant="ghost" className="flex-1" onClick={() => setPreviewStep("preview")}>
+                    Zurück
+                  </Button>
+                  <Button className="flex-1" disabled={isPending} onClick={() => handleSelect(previewScreen)}>
+                    {isPending
+                      ? "Speichert…"
+                      : `Trotzdem wechseln (+${formatCurrencyEUR(SELECTION_SWITCH_FEE)})`}
+                  </Button>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

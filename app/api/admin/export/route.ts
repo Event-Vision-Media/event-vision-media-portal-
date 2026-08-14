@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { SELECTION_SWITCH_FEE } from "@/lib/types";
 
 function escapeCsvField(value: string) {
   if (/[";\n]/.test(value)) {
@@ -42,7 +43,12 @@ export async function GET() {
   });
 
   const relevantBookings = (bookings ?? []).filter(
-    (b) => b.is_premium_selected || b.extra_wishes || extrasByBooking.has(b.id)
+    (b) =>
+      b.is_premium_selected ||
+      b.extra_wishes ||
+      extrasByBooking.has(b.id) ||
+      b.layout_switch_count > 0 ||
+      b.home_screen_switch_count > 0
   );
 
   const header = [
@@ -52,6 +58,7 @@ export async function GET() {
     "Produkt",
     "Layout",
     "Premium",
+    "Layout-/Startbildschirm-Wechsel (Aufpreis)",
     "Exclusive Extras",
     "Extras gesamt (neu zu berechnen)",
     "Extras bereits abgerechnet (vorab)",
@@ -63,6 +70,7 @@ export async function GET() {
     const extras = extrasByBooking.get(b.id) ?? [];
     const newTotal = extras.filter((e) => !e.addedByAdmin).reduce((sum, e) => sum + e.price, 0);
     const vorabTotal = extras.filter((e) => e.addedByAdmin).reduce((sum, e) => sum + e.price, 0);
+    const switchFeeTotal = (b.layout_switch_count + b.home_screen_switch_count) * SELECTION_SWITCH_FEE;
     return [
       b.booking_code,
       b.couple_names,
@@ -74,6 +82,9 @@ export async function GET() {
         : b.premium_layout_included
           ? "Ja (bereits inklusive, kein Aufpreis)"
           : "Ja (25 € Aufpreis)",
+      switchFeeTotal
+        ? `Layout ${b.layout_switch_count}×, Startbildschirm ${b.home_screen_switch_count}× (${switchFeeTotal.toFixed(2)} €)`
+        : "",
       extras
         .map((e) => `${e.label} (${e.price.toFixed(2)} €${e.addedByAdmin ? ", vorab" : ""})`)
         .join(", "),

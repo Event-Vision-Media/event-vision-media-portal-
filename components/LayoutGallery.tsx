@@ -6,9 +6,9 @@ import { selectLayout, selectLayoutWithPersonalization } from "@/app/actions/boo
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyEUR } from "@/lib/format";
-import { LAYOUT_CATEGORIES, type Layout } from "@/lib/types";
+import { LAYOUT_CATEGORIES, SELECTION_SWITCH_FEE, type Layout } from "@/lib/types";
 
-type ModalStep = "preview" | "personalize";
+type ModalStep = "preview" | "fee-warning" | "personalize";
 
 export function LayoutGallery({
   inclusiveLayouts,
@@ -37,6 +37,7 @@ export function LayoutGallery({
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [feeNotice, setFeeNotice] = useState(false);
 
   const [nameDraft, setNameDraft] = useState(initialPersonalizationName ?? coupleNames);
   const [dateDraft, setDateDraft] = useState(initialPersonalizationDate ?? "");
@@ -63,7 +64,11 @@ export function LayoutGallery({
 
   function goToPersonalize() {
     setErrorMessage(null);
-    setModalStep("personalize");
+    if (activeLayout && currentSelectedId && currentSelectedId !== activeLayout.id) {
+      setModalStep("fee-warning");
+    } else {
+      setModalStep("personalize");
+    }
   }
 
   function handleSkipPersonalization() {
@@ -76,6 +81,7 @@ export function LayoutGallery({
         return;
       }
       setCurrentSelectedId(activeLayout.id);
+      setFeeNotice(Boolean(result.feeAdded));
       closeModal();
     });
   }
@@ -102,6 +108,7 @@ export function LayoutGallery({
         return;
       }
       setCurrentSelectedId(activeLayout.id);
+      setFeeNotice(Boolean(result.feeAdded));
       closeModal();
     });
   }
@@ -116,6 +123,13 @@ export function LayoutGallery({
         <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">
           {errorMessage}
         </p>
+      )}
+
+      {feeNotice && (
+        <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
+          Layout gewechselt – für den Wechsel wurde ein Aufpreis von{" "}
+          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu eurer Buchung hinzugefügt.
+        </div>
       )}
 
       {selectedLayout?.is_premium && (
@@ -242,6 +256,30 @@ export function LayoutGallery({
                   </Button>
                   <Button className="flex-1" onClick={goToPersonalize}>
                     Dieses Layout wählen
+                  </Button>
+                </div>
+              </>
+            ) : modalStep === "fee-warning" ? (
+              <>
+                <h3 className="font-serif text-lg font-semibold text-anthracite-800">
+                  Layout wechseln?
+                </h3>
+                <p className="mt-3 text-sm text-anthracite-600">
+                  Ihr habt bereits <strong>{selectedLayout?.name ?? "ein anderes Layout"}</strong>{" "}
+                  ausgewählt und dieses wird bereits individuell für euch vorbereitet. Ein
+                  Wechsel zu <strong>{activeLayout.name}</strong> ist möglich, kostet aber
+                  einmalig <strong>{formatCurrencyEUR(SELECTION_SWITCH_FEE)}</strong> Aufpreis.
+                </p>
+                <p className="mt-2 text-sm text-anthracite-500">
+                  Änderungswünsche zu eurem aktuellen Layout (z. B. Farben, Texte) sind dagegen
+                  jederzeit kostenlos über die Layout-Freigabe möglich.
+                </p>
+                <div className="mt-5 flex gap-3">
+                  <Button variant="ghost" className="flex-1" onClick={() => setModalStep("preview")}>
+                    Zurück
+                  </Button>
+                  <Button className="flex-1" onClick={() => setModalStep("personalize")}>
+                    Trotzdem wechseln (+{formatCurrencyEUR(SELECTION_SWITCH_FEE)})
                   </Button>
                 </div>
               </>

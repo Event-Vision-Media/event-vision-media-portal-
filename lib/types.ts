@@ -10,6 +10,10 @@ export type ProductType =
   | "Audiogästebuch"
   | "LOVE Buchstaben";
 
+// Aufpreis pro zusätzlichem Layout- bzw. Startbildschirm-Wechsel, nachdem
+// die erste (kostenlose) Auswahl bereits individuell vorbereitet wurde.
+export const SELECTION_SWITCH_FEE = 25;
+
 export const PRODUCT_TYPES: ProductType[] = [
   "Fotobox",
   "Fotospiegel",
@@ -29,6 +33,8 @@ export interface Booking {
   is_premium_selected: boolean;
   premium_layout_included: boolean;
   event_uploaded: boolean;
+  layout_switch_count: number;
+  home_screen_switch_count: number;
   extra_wishes: string | null;
   personalization_name: string | null;
   personalization_date: string | null;

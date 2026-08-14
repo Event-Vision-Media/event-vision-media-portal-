@@ -18,12 +18,13 @@ import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman } from "@/lib/format";
-import type {
-  Booking,
-  BookingStatus,
-  LayoutProof,
-  PersonalizedScreenProof,
-  PersonalizedScreenRequest,
+import {
+  SELECTION_SWITCH_FEE,
+  type Booking,
+  type BookingStatus,
+  type LayoutProof,
+  type PersonalizedScreenProof,
+  type PersonalizedScreenRequest,
 } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -204,7 +205,15 @@ export default async function AdminBookingDetailPage({
         </Card>
 
         <section>
-          <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">Layout</h2>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">Layout</h2>
+            {booking.layout_switch_count > 0 && (
+              <Badge tone="gold">
+                {booking.layout_switch_count}× gewechselt ·{" "}
+                {formatCurrencyEUR(booking.layout_switch_count * SELECTION_SWITCH_FEE)} Aufpreis
+              </Badge>
+            )}
+          </div>
           <div className="space-y-4">
             <SelectedLayoutSummary
               layout={booking.layouts}
@@ -237,7 +246,15 @@ export default async function AdminBookingDetailPage({
         </section>
 
         <section>
-          <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">Startbildschirm</h2>
+          <div className="mb-3 flex flex-wrap items-center gap-2">
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">Startbildschirm</h2>
+            {booking.home_screen_switch_count > 0 && (
+              <Badge tone="gold">
+                {booking.home_screen_switch_count}× gewechselt ·{" "}
+                {formatCurrencyEUR(booking.home_screen_switch_count * SELECTION_SWITCH_FEE)} Aufpreis
+              </Badge>
+            )}
+          </div>
           <div className="space-y-4">
             <SelectedHomeScreenSummary
               homeScreen={booking.home_screens}
