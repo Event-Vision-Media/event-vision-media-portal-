@@ -130,7 +130,7 @@ export default async function AdminBookingsPage({
           />
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-anthracite-100 bg-white shadow-soft">
+        <div className="overflow-x-auto rounded-2xl border border-anthracite-100 bg-white shadow-soft">
           <table className="min-w-full divide-y divide-anthracite-100 text-sm">
             <thead className="bg-anthracite-50 text-left text-xs uppercase tracking-wide text-anthracite-400">
               <tr>
@@ -161,7 +161,12 @@ export default async function AdminBookingsPage({
                 return (
                   <tr key={booking.id} className="hover:bg-anthracite-50/50">
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-anthracite-800">
-                      {booking.booking_code}
+                      <Link
+                        href={`/admin/bookings/${booking.id}`}
+                        className="hover:text-gold-700 hover:underline"
+                      >
+                        {booking.booking_code}
+                      </Link>
                     </td>
                     <td className="px-4 py-3 text-anthracite-800">{booking.couple_names}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-anthracite-600">
