@@ -4,6 +4,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ActivityFeed, type ActivityFeedEntry } from "@/components/admin/ActivityFeed";
+import { EventUploadedToggle } from "@/components/admin/EventUploadedToggle";
 import { formatDateGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
 
@@ -139,6 +140,7 @@ export default async function AdminBookingsPage({
                 <th className="px-4 py-3">Produkt</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Fortschritt</th>
+                <th className="px-4 py-3">Hochgeladen</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -176,6 +178,9 @@ export default async function AdminBookingsPage({
                     <td className="px-4 py-3">
                       <Badge tone={doneCount === 4 ? "success" : "neutral"}>{doneCount}/4</Badge>
                     </td>
+                    <td className="px-4 py-3">
+                      <EventUploadedToggle bookingId={booking.id} uploaded={booking.event_uploaded} />
+                    </td>
                     <td className="px-4 py-3 text-right">
                       <Link
                         href={`/admin/bookings/${booking.id}`}
@@ -189,7 +194,7 @@ export default async function AdminBookingsPage({
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-anthracite-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-anthracite-400">
                     Keine Buchungen gefunden.
                   </td>
                 </tr>

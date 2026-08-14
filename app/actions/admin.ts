@@ -608,6 +608,28 @@ export async function updatePremiumLayoutIncluded(
   return { success: true };
 }
 
+export async function updateEventUploaded(
+  bookingId: string,
+  uploaded: boolean
+): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) {
+    return { error: "Nicht angemeldet." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ event_uploaded: uploaded })
+    .eq("id", bookingId);
+
+  if (error) {
+    return { error: "Konnte nicht gespeichert werden." };
+  }
+
+  revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
 export async function updatePersonalizedScreenExample(
   productType: string,
   formData: FormData

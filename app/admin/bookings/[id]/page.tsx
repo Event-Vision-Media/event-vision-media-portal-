@@ -4,6 +4,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BookingRowActions } from "@/components/admin/BookingRowActions";
 import { CustomLoginCodeCell } from "@/components/admin/CustomLoginCodeCell";
 import { PremiumIncludedToggle } from "@/components/admin/PremiumIncludedToggle";
+import { EventUploadedToggle } from "@/components/admin/EventUploadedToggle";
 import { SelectedLayoutSummary } from "@/components/admin/SelectedLayoutSummary";
 import { SelectedHomeScreenSummary } from "@/components/admin/SelectedHomeScreenSummary";
 import { LayoutProofGroup } from "@/components/admin/LayoutProofGroup";
@@ -192,6 +193,12 @@ export default async function AdminBookingDetailPage({
                 bookingId={booking.id}
                 included={booking.premium_layout_included}
               />
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
+                Veranstaltung im System angelegt
+              </p>
+              <EventUploadedToggle bookingId={booking.id} uploaded={booking.event_uploaded} />
             </div>
           </div>
         </Card>
