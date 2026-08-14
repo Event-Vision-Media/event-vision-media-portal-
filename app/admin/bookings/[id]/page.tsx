@@ -136,6 +136,14 @@ export default async function AdminBookingDetailPage({
   ];
   const doneCount = steps.filter((s) => s.done).length;
 
+  const premiumFee =
+    booking.is_premium_selected && !booking.premium_layout_included
+      ? booking.layouts?.extra_price ?? 0
+      : 0;
+  const layoutSwitchFee = booking.layout_switch_count * SELECTION_SWITCH_FEE;
+  const homeScreenSwitchFee = booking.home_screen_switch_count * SELECTION_SWITCH_FEE;
+  const totalToInvoice = premiumFee + layoutSwitchFee + homeScreenSwitchFee + newExtrasTotal;
+
   return (
     <div className="min-h-screen bg-sand-50">
       <AdminHeader />
@@ -202,6 +210,59 @@ export default async function AdminBookingDetailPage({
               <EventUploadedToggle bookingId={booking.id} uploaded={booking.event_uploaded} />
             </div>
           </div>
+        </Card>
+
+        <Card>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">Abrechnung</h2>
+            <span className="flex-none font-serif text-xl font-semibold text-gold-700">
+              {formatCurrencyEUR(totalToInvoice)}
+            </span>
+          </div>
+          {totalToInvoice === 0 && vorabExtrasTotal === 0 ? (
+            <p className="text-sm text-anthracite-400">Aktuell nichts zusätzlich zu berechnen.</p>
+          ) : (
+            <div className="space-y-1.5 text-sm text-anthracite-600">
+              {premiumFee > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Premium-Layout Aufpreis</span>
+                  <span className="font-medium text-anthracite-800">
+                    {formatCurrencyEUR(premiumFee)}
+                  </span>
+                </div>
+              )}
+              {layoutSwitchFee > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Layout-Wechsel ({booking.layout_switch_count}×)</span>
+                  <span className="font-medium text-anthracite-800">
+                    {formatCurrencyEUR(layoutSwitchFee)}
+                  </span>
+                </div>
+              )}
+              {homeScreenSwitchFee > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Startbildschirm-Wechsel ({booking.home_screen_switch_count}×)</span>
+                  <span className="font-medium text-anthracite-800">
+                    {formatCurrencyEUR(homeScreenSwitchFee)}
+                  </span>
+                </div>
+              )}
+              {newExtrasTotal > 0 && (
+                <div className="flex items-center justify-between">
+                  <span>Exclusive Extras</span>
+                  <span className="font-medium text-anthracite-800">
+                    {formatCurrencyEUR(newExtrasTotal)}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
+          {vorabExtrasTotal > 0 && (
+            <p className="mt-3 border-t border-anthracite-100 pt-3 text-xs text-anthracite-400">
+              Bereits abgerechnet (vorab, nicht in der Summe enthalten):{" "}
+              {formatCurrencyEUR(vorabExtrasTotal)}
+            </p>
+          )}
         </Card>
 
         <section>
