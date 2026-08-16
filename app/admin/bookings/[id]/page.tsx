@@ -15,17 +15,25 @@ import { NewPersonalizedScreenProofForm } from "@/components/admin/NewPersonaliz
 import { DeliveryPickupForm } from "@/components/admin/DeliveryPickupForm";
 import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
+import { AudioGuestbookAdminSection } from "@/components/admin/AudioGuestbookAdminSection";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman } from "@/lib/format";
+import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import {
   SELECTION_SWITCH_FEE,
+  type AudioGuestbookGreeting,
+  type AudioGuestbookRecording,
   type Booking,
   type BookingStatus,
   type LayoutProof,
   type PersonalizedScreenProof,
   type PersonalizedScreenRequest,
 } from "@/lib/types";
+
+const AUDIO_GREETINGS_BUCKET = "audio-guestbook-greetings";
+const AUDIO_RECORDINGS_BUCKET = "audio-guestbook-recordings";
+const AUDIO_PLAY_URL_TTL_SECONDS = 3600;
 
 export const dynamic = "force-dynamic";
 
@@ -48,6 +56,8 @@ export default async function AdminBookingDetailPage({
     { data: layoutProofsData },
     { data: requestData },
     { data: screenProofsData },
+    { data: audioGreetingData },
+    { data: audioRecordingsData },
   ] = await Promise.all([
     supabase
       .from("bookings")
@@ -73,6 +83,12 @@ export default async function AdminBookingDetailPage({
       .select("*")
       .eq("booking_id", params.id)
       .order("version", { ascending: false }),
+    supabase.from("audio_guestbook_greetings").select("*").eq("booking_id", params.id).maybeSingle(),
+    supabase
+      .from("audio_guestbook_recordings")
+      .select("*")
+      .eq("booking_id", params.id)
+      .order("uploaded_at", { ascending: true }),
   ]);
 
   const booking = bookingData as (Booking & { layouts: any; home_screens: any }) | null;
@@ -143,6 +159,39 @@ export default async function AdminBookingDetailPage({
   const layoutSwitchFee = booking.layout_switch_count * SELECTION_SWITCH_FEE;
   const homeScreenSwitchFee = booking.home_screen_switch_count * SELECTION_SWITCH_FEE;
   const totalToInvoice = premiumFee + layoutSwitchFee + homeScreenSwitchFee + newExtrasTotal;
+
+  const hasAudioGuestbook = bookingHasAudioGuestbook(
+    booking.product_type,
+    extraItems.map((e) => e.label)
+  );
+
+  const audioGreeting = audioGreetingData as AudioGuestbookGreeting | null;
+  const audioRecordings = (audioRecordingsData ?? []) as AudioGuestbookRecording[];
+
+  let audioGreetingPlayUrl: string | null = null;
+  const audioRecordingPlayUrlByPath = new Map<string, string>();
+
+  if (hasAudioGuestbook) {
+    if (audioGreeting) {
+      const { data } = await supabase.storage
+        .from(AUDIO_GREETINGS_BUCKET)
+        .createSignedUrl(audioGreeting.storage_path, AUDIO_PLAY_URL_TTL_SECONDS);
+      audioGreetingPlayUrl = data?.signedUrl ?? null;
+    }
+    if (audioRecordings.length > 0) {
+      const { data } = await supabase.storage
+        .from(AUDIO_RECORDINGS_BUCKET)
+        .createSignedUrls(
+          audioRecordings.map((r) => r.storage_path),
+          AUDIO_PLAY_URL_TTL_SECONDS
+        );
+      (data ?? []).forEach((entry) => {
+        if (entry.signedUrl && !entry.error) {
+          audioRecordingPlayUrlByPath.set(entry.path ?? "", entry.signedUrl);
+        }
+      });
+    }
+  }
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -382,6 +431,35 @@ export default async function AdminBookingDetailPage({
             )}
           </Card>
         </section>
+
+        {hasAudioGuestbook && (
+          <section>
+            <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">
+              Audiogästebuch
+            </h2>
+            <AudioGuestbookAdminSection
+              bookingId={booking.id}
+              eventDate={booking.event_date}
+              greeting={
+                audioGreeting
+                  ? {
+                      fileName: audioGreeting.file_name,
+                      fileSize: audioGreeting.file_size,
+                      uploadedAt: audioGreeting.uploaded_at,
+                      playUrl: audioGreetingPlayUrl,
+                    }
+                  : null
+              }
+              recordings={audioRecordings.map((r) => ({
+                id: r.id,
+                fileName: r.file_name,
+                fileSize: r.file_size,
+                uploadedAt: r.uploaded_at,
+                playUrl: audioRecordingPlayUrlByPath.get(r.storage_path) ?? null,
+              }))}
+            />
+          </section>
+        )}
 
         <section>
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">

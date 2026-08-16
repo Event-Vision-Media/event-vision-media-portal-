@@ -227,3 +227,37 @@ export interface PersonalizedScreenProof {
   created_at: string;
 }
 
+export interface AudioGuestbookGreeting {
+  id: string;
+  booking_id: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_at: string;
+}
+
+export interface AudioGuestbookRecording {
+  id: string;
+  booking_id: string;
+  storage_path: string;
+  file_name: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_at: string;
+}
+
+// Anzahl Tage vor dem Event-Datum, bis zu der die Begrüßungsnachricht fürs
+// Audiogästebuch spätestens hochgeladen sein sollte.
+export const AUDIO_GREETING_DEADLINE_DAYS = 7;
+
+export function getAudioGreetingDeadline(eventDate: string): Date {
+  const date = new Date(eventDate + "T00:00:00");
+  date.setDate(date.getDate() - AUDIO_GREETING_DEADLINE_DAYS);
+  return date;
+}
+
+export const AUDIO_UPLOAD_ACCEPT = ".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/x-wav,audio/mp4,audio/x-m4a";
+export const AUDIO_UPLOAD_EXTENSIONS = ["mp3", "wav", "m4a"];
+export const AUDIO_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB je Datei
+

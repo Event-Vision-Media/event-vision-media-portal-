@@ -11,6 +11,8 @@ import { DeliveryPickupSection } from "@/components/DeliveryPickupSection";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
+import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
+import { getAudioGreetingDeadline } from "@/lib/types";
 import type { LayoutProof } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +102,25 @@ export default async function DashboardPage() {
   const homeScreenDone =
     Boolean(booking.selected_home_screen_id) || (isPersonalizedBooked && screenProofApproved);
 
+  const { data: bookedExtrasForAudio } = await supabase
+    .from("booking_extras")
+    .select("extras(name)")
+    .eq("booking_id", booking.id);
+  const bookedExtraNames = (bookedExtrasForAudio ?? [])
+    .map((be: any) => be.extras?.name)
+    .filter(Boolean);
+  const hasAudioGuestbook = bookingHasAudioGuestbook(booking.product_type, bookedExtraNames);
+
+  let audioGreetingMissing = false;
+  if (hasAudioGuestbook) {
+    const { count } = await supabase
+      .from("audio_guestbook_greetings")
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", booking.id);
+    audioGreetingMissing = !count;
+  }
+  const audioGreetingDeadline = getAudioGreetingDeadline(booking.event_date);
+
   return (
     <div className="min-h-screen">
       <GuestHeader bookingCode={booking.booking_code} />
@@ -124,6 +145,29 @@ export default async function DashboardPage() {
               </div>
             </div>
             <Button className="w-full flex-none sm:w-auto">Jetzt prüfen</Button>
+          </Link>
+        )}
+
+        {audioGreetingMissing && (
+          <Link
+            href="/dashboard/audiogaestebuch"
+            className="animate-fade-in-up flex flex-col items-start gap-3 rounded-2xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card-hover sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="flex items-center gap-3">
+              <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-gradient-to-br from-gold-500 to-gold-600 text-white shadow-sm">
+                <MicIcon className="h-5 w-5" />
+              </span>
+              <div>
+                <p className="font-medium text-anthracite-800">
+                  Deine Begrüßungsnachricht fehlt noch.
+                </p>
+                <p className="mt-0.5 text-sm text-anthracite-600">
+                  Bitte lade sie spätestens bis zum{" "}
+                  {formatDateGerman(audioGreetingDeadline.toISOString().slice(0, 10))} hoch.
+                </p>
+              </div>
+            </div>
+            <Button className="w-full flex-none sm:w-auto">Jetzt hochladen</Button>
           </Link>
         )}
 
@@ -317,6 +361,30 @@ export default async function DashboardPage() {
               </Button>
             </Link>
           </Card>
+
+          {hasAudioGuestbook && (
+            <Card className="group flex flex-col justify-between transition-shadow duration-300 hover:shadow-card-hover">
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-gold-600 to-gold-700 text-white shadow-sm">
+                    <MicIcon className="h-5 w-5" />
+                  </span>
+                  {!audioGreetingMissing && <Badge tone="success">Erledigt</Badge>}
+                </div>
+                <h3 className="font-medium text-anthracite-800">Audiogästebuch</h3>
+                <p className="mt-1 text-sm text-anthracite-500">
+                  {audioGreetingMissing
+                    ? "Lade eure Begrüßungsnachricht für die Gäste hoch."
+                    : "Eure Begrüßungsnachricht ist hochgeladen."}
+                </p>
+              </div>
+              <Link href="/dashboard/audiogaestebuch" className="mt-4">
+                <Button className="w-full" variant={audioGreetingMissing ? "primary" : "ghost"}>
+                  {audioGreetingMissing ? "Jetzt hochladen" : "Audiogästebuch ansehen"}
+                </Button>
+              </Link>
+            </Card>
+          )}
         </div>
 
         <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "220ms" }}>
@@ -425,6 +493,16 @@ function CameraIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
         strokeLinejoin="round"
       />
       <circle cx="12" cy="12.5" r="3.1" stroke="currentColor" strokeWidth="1.6" />
+    </svg>
+  );
+}
+
+function MicIcon({ className = "h-3.5 w-3.5" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" className={className}>
+      <rect x="9" y="3.5" width="6" height="11" rx="3" stroke="currentColor" strokeWidth="1.6" />
+      <path d="M6 11.5a6 6 0 0 0 12 0" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M12 17.5v3M9 20.5h6" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
     </svg>
   );
 }

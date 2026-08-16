@@ -114,7 +114,7 @@ export function StartscreenGallery({
             gerne bei uns.
           </p>
         ) : (
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+          <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
             {homeScreens.map((homeScreen) => {
               const isSelected = homeScreen.id === currentSelectedId;
               return (
@@ -126,9 +126,9 @@ export function StartscreenGallery({
                     setPreviewStep("preview");
                     setPreviewScreen(homeScreen);
                   }}
-                  className={`group overflow-hidden rounded-2xl border bg-white text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover disabled:opacity-60 ${
+                  className={`group overflow-hidden rounded-xl border bg-white text-left shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover disabled:opacity-60 ${
                     isSelected
-                      ? "border-gold-500 ring-4 ring-gold-200"
+                      ? "border-gold-500 ring-2 ring-gold-200"
                       : "border-anthracite-100/80 hover:border-gold-300"
                   }`}
                 >
@@ -137,22 +137,19 @@ export function StartscreenGallery({
                       src={homeScreen.preview_image_url}
                       alt={homeScreen.name}
                       fill
-                      sizes="(max-width: 640px) 100vw, 260px"
+                      sizes="(max-width: 640px) 33vw, 160px"
                       className="object-cover transition-transform duration-500 group-hover:scale-110"
                     />
                     {isSelected && (
-                      <span className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-sm">
+                      <span className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] font-bold text-white shadow-sm">
                         ✓
                       </span>
                     )}
                   </div>
-                  <div className="px-3 py-2.5">
-                    <p className="truncate text-sm font-medium text-anthracite-800">
+                  <div className="px-2 py-1.5">
+                    <p className="truncate text-xs font-medium text-anthracite-800">
                       {homeScreen.name}
                     </p>
-                    {isSelected && (
-                      <p className="mt-0.5 text-xs font-medium text-emerald-600">Ausgewählt</p>
-                    )}
                   </div>
                 </button>
               );
