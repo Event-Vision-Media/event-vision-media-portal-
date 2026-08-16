@@ -7,13 +7,17 @@ import { GuestHeader } from "@/components/GuestHeader";
 import { Footer } from "@/components/Footer";
 import { AudioGreetingUploader } from "@/components/AudioGreetingUploader";
 import { AudioRecordingsList } from "@/components/AudioRecordingsList";
-import type { AudioGuestbookGreeting, AudioGuestbookRecording } from "@/lib/types";
+import { GALLERY_UNLOCK_DAYS, type AudioGuestbookGreeting, type AudioGuestbookRecording } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 const GREETINGS_BUCKET = "audio-guestbook-greetings";
 const RECORDINGS_BUCKET = "audio-guestbook-recordings";
 const PLAY_URL_TTL_SECONDS = 3600;
+
+function formatDateLocal(date: Date) {
+  return date.toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" });
+}
 
 export default async function AudioGuestbookPage() {
   const booking = await requireBooking();
@@ -68,6 +72,10 @@ export default async function AudioGuestbookPage() {
     });
   }
 
+  const recordingsUnlockDate = new Date(booking.event_date + "T00:00:00");
+  recordingsUnlockDate.setDate(recordingsUnlockDate.getDate() + GALLERY_UNLOCK_DAYS);
+  const recordingsUnlockReached = new Date() >= recordingsUnlockDate;
+
   return (
     <div className="min-h-screen">
       <GuestHeader bookingCode={booking.booking_code} />
@@ -110,17 +118,18 @@ export default async function AudioGuestbookPage() {
           />
         </section>
 
-        {recordings.length > 0 && (
-          <section className="space-y-4 animate-fade-in-up">
-            <div>
-              <h2 className="font-serif text-lg font-semibold text-anthracite-800">
-                Eure Nachrichten
-              </h2>
-              <p className="mt-1 text-sm text-anthracite-500">
-                Hier könnt ihr die persönlichen Nachrichten eurer Gäste anhören und
-                herunterladen.
-              </p>
-            </div>
+        <section className="space-y-4 animate-fade-in-up">
+          <div>
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">
+              Eure Nachrichten
+            </h2>
+            <p className="mt-1 text-sm text-anthracite-500">
+              Hier könnt ihr die persönlichen Nachrichten eurer Gäste anhören und
+              herunterladen.
+            </p>
+          </div>
+
+          {recordings.length > 0 ? (
             <AudioRecordingsList
               bookingId={booking.id}
               recordings={recordings.map((r) => ({
@@ -130,8 +139,26 @@ export default async function AudioGuestbookPage() {
                 playUrl: playUrlByPath.get(r.storage_path) ?? null,
               }))}
             />
-          </section>
-        )}
+          ) : (
+            <div className="rounded-2xl border border-anthracite-100 bg-anthracite-50 px-4 py-4 text-sm text-anthracite-600">
+              {recordingsUnlockReached ? (
+                <p>
+                  Eure Aufnahmen werden gerade vorbereitet und sind in Kürze hier verfügbar. Wir
+                  melden uns, sobald es so weit ist.
+                </p>
+              ) : (
+                <p>
+                  Eure Nachrichten sind ab dem{" "}
+                  <span className="font-medium text-anthracite-800">
+                    {formatDateLocal(recordingsUnlockDate)}
+                  </span>{" "}
+                  hier verfügbar — wir brauchen nach eurem Event noch etwas Zeit, um alle
+                  Aufnahmen aufzubereiten.
+                </p>
+              )}
+            </div>
+          )}
+        </section>
       </main>
 
       <Footer />
