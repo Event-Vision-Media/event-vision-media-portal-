@@ -16,16 +16,10 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   personalisierung_komplett: "Komplett",
 };
 
-const STATUS_ORDER: Record<BookingStatus, number> = {
-  offen: 0,
-  layout_ausgewaehlt: 1,
-  personalisierung_komplett: 2,
-};
-
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: { status?: string };
+  searchParams: { status?: string; sort?: string };
 }) {
   const supabase = createAdminClient();
   const [
@@ -84,15 +78,22 @@ export default async function AdminBookingsPage({
   });
 
   const statusFilter = searchParams.status as BookingStatus | undefined;
+  const sortDirection = searchParams.sort === "desc" ? "desc" : "asc";
 
   const allBookings = bookings ?? [];
   const filtered = statusFilter
     ? allBookings.filter((b) => b.status === statusFilter)
     : allBookings;
 
-  const sorted = [...filtered].sort(
-    (a, b) => STATUS_ORDER[a.status as BookingStatus] - STATUS_ORDER[b.status as BookingStatus]
-  );
+  const sorted = [...filtered].sort((a, b) => {
+    const diff = a.event_date.localeCompare(b.event_date);
+    return sortDirection === "asc" ? diff : -diff;
+  });
+
+  const sortHref = `/admin/dashboard?${new URLSearchParams({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    sort: sortDirection === "asc" ? "desc" : "asc",
+  }).toString()}`;
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -116,16 +117,18 @@ export default async function AdminBookingsPage({
         </div>
 
         <div className="mb-4 flex flex-wrap gap-2 text-sm">
-          <FilterLink status={undefined} current={statusFilter} label="Alle" />
-          <FilterLink status="offen" current={statusFilter} label="Offen" />
+          <FilterLink status={undefined} current={statusFilter} sort={sortDirection} label="Alle" />
+          <FilterLink status="offen" current={statusFilter} sort={sortDirection} label="Offen" />
           <FilterLink
             status="layout_ausgewaehlt"
             current={statusFilter}
+            sort={sortDirection}
             label="Layout ausgewählt"
           />
           <FilterLink
             status="personalisierung_komplett"
             current={statusFilter}
+            sort={sortDirection}
             label="Komplett"
           />
         </div>
@@ -136,10 +139,21 @@ export default async function AdminBookingsPage({
               <tr>
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Namen</th>
-                <th className="px-4 py-3">Event-Datum</th>
+                <th className="px-4 py-3">
+                  <Link
+                    href={sortHref}
+                    className="inline-flex items-center gap-1 hover:text-anthracite-700"
+                  >
+                    Event-Datum
+                    <span className="text-anthracite-300">
+                      {sortDirection === "asc" ? "↑" : "↓"}
+                    </span>
+                  </Link>
+                </th>
                 <th className="px-4 py-3">Produkt</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3">Fortschritt</th>
+                <th className="px-4 py-3">Online-Galerie</th>
                 <th className="px-4 py-3">Hochgeladen</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -184,6 +198,13 @@ export default async function AdminBookingsPage({
                       <Badge tone={doneCount === 4 ? "success" : "neutral"}>{doneCount}/4</Badge>
                     </td>
                     <td className="px-4 py-3">
+                      <Link href={`/admin/bookings/${booking.id}#online-galerie`}>
+                        <Badge tone={booking.online_gallery_url ? "success" : "danger"}>
+                          {booking.online_gallery_url ? "Hinterlegt" : "Link fehlt"}
+                        </Badge>
+                      </Link>
+                    </td>
+                    <td className="px-4 py-3">
                       <EventUploadedToggle bookingId={booking.id} uploaded={booking.event_uploaded} />
                     </td>
                     <td className="px-4 py-3 text-right">
@@ -199,7 +220,7 @@ export default async function AdminBookingsPage({
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-anthracite-400">
+                  <td colSpan={9} className="px-4 py-8 text-center text-anthracite-400">
                     Keine Buchungen gefunden.
                   </td>
                 </tr>
@@ -215,14 +236,17 @@ export default async function AdminBookingsPage({
 function FilterLink({
   status,
   current,
+  sort,
   label,
 }: {
   status?: string;
   current?: string;
+  sort: string;
   label: string;
 }) {
   const isActive = status === current;
-  const href = status ? `/admin/dashboard?status=${status}` : "/admin/dashboard";
+  const params = new URLSearchParams({ ...(status ? { status } : {}), sort });
+  const href = `/admin/dashboard?${params.toString()}`;
   return (
     <Link
       href={href}

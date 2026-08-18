@@ -470,7 +470,7 @@ export default async function AdminBookingDetailPage({
           </Card>
         </section>
 
-        <section>
+        <section id="online-galerie" className="scroll-mt-6">
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">
             Online-Galerie &amp; Bewertung
           </h2>
