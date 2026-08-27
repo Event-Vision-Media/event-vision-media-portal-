@@ -630,6 +630,29 @@ export async function updateEventUploaded(
   return { success: true };
 }
 
+export async function updateEventCompleted(
+  bookingId: string,
+  completed: boolean
+): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) {
+    return { error: "Nicht angemeldet." };
+  }
+
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ event_completed: completed })
+    .eq("id", bookingId);
+
+  if (error) {
+    return { error: "Konnte nicht gespeichert werden." };
+  }
+
+  revalidatePath("/admin/dashboard");
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  return { success: true };
+}
+
 export async function updatePersonalizedScreenExample(
   productType: string,
   formData: FormData

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { ActivityFeed, type ActivityFeedEntry } from "@/components/admin/ActivityFeed";
 import { EventUploadedToggle } from "@/components/admin/EventUploadedToggle";
+import { EventCompletedToggle } from "@/components/admin/EventCompletedToggle";
 import { formatDateGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
 
@@ -137,6 +138,7 @@ export default async function AdminBookingsPage({
           <table className="min-w-full divide-y divide-anthracite-100 text-sm">
             <thead className="bg-anthracite-50 text-left text-xs uppercase tracking-wide text-anthracite-400">
               <tr>
+                <th className="px-4 py-3" title="Veranstaltung abgeschlossen" />
                 <th className="px-4 py-3">Code</th>
                 <th className="px-4 py-3">Namen</th>
                 <th className="px-4 py-3">
@@ -173,7 +175,20 @@ export default async function AdminBookingsPage({
                 ].filter(Boolean).length;
 
                 return (
-                  <tr key={booking.id} className="hover:bg-anthracite-50/50">
+                  <tr
+                    key={booking.id}
+                    className={
+                      booking.event_completed
+                        ? "bg-emerald-50 hover:bg-emerald-100/70"
+                        : "hover:bg-anthracite-50/50"
+                    }
+                  >
+                    <td className="px-4 py-3">
+                      <EventCompletedToggle
+                        bookingId={booking.id}
+                        completed={booking.event_completed}
+                      />
+                    </td>
                     <td className="whitespace-nowrap px-4 py-3 font-medium text-anthracite-800">
                       <Link
                         href={`/admin/bookings/${booking.id}`}
@@ -220,7 +235,7 @@ export default async function AdminBookingsPage({
               })}
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-anthracite-400">
+                  <td colSpan={10} className="px-4 py-8 text-center text-anthracite-400">
                     Keine Buchungen gefunden.
                   </td>
                 </tr>

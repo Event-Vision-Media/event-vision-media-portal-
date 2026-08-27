@@ -33,6 +33,7 @@ export interface Booking {
   is_premium_selected: boolean;
   premium_layout_included: boolean;
   event_uploaded: boolean;
+  event_completed: boolean;
   layout_switch_count: number;
   home_screen_switch_count: number;
   extra_wishes: string | null;
