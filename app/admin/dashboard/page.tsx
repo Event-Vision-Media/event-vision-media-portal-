@@ -20,7 +20,7 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
 export default async function AdminBookingsPage({
   searchParams,
 }: {
-  searchParams: { status?: string; sort?: string };
+  searchParams: { status?: string; sort?: string; view?: string };
 }) {
   const supabase = createAdminClient();
   const [
@@ -80,11 +80,15 @@ export default async function AdminBookingsPage({
 
   const statusFilter = searchParams.status as BookingStatus | undefined;
   const sortDirection = searchParams.sort === "desc" ? "desc" : "asc";
+  const showCompletedView = searchParams.view === "abgeschlossen";
 
   const allBookings = bookings ?? [];
+  const completedCount = allBookings.filter((b) => b.event_completed).length;
+
+  const byCompletion = allBookings.filter((b) => b.event_completed === showCompletedView);
   const filtered = statusFilter
-    ? allBookings.filter((b) => b.status === statusFilter)
-    : allBookings;
+    ? byCompletion.filter((b) => b.status === statusFilter)
+    : byCompletion;
 
   const sorted = [...filtered].sort((a, b) => {
     const diff = a.event_date.localeCompare(b.event_date);
@@ -93,7 +97,14 @@ export default async function AdminBookingsPage({
 
   const sortHref = `/admin/dashboard?${new URLSearchParams({
     ...(statusFilter ? { status: statusFilter } : {}),
+    ...(showCompletedView ? { view: "abgeschlossen" } : {}),
     sort: sortDirection === "asc" ? "desc" : "asc",
+  }).toString()}`;
+
+  const toggleViewHref = `/admin/dashboard?${new URLSearchParams({
+    ...(statusFilter ? { status: statusFilter } : {}),
+    sort: sortDirection,
+    ...(showCompletedView ? {} : { view: "abgeschlossen" }),
   }).toString()}`;
 
   return (
@@ -104,10 +115,24 @@ export default async function AdminBookingsPage({
         <ActivityFeed entries={activityEntries} />
 
         <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-          <h1 className="font-serif text-2xl font-semibold text-anthracite-800">
-            Buchungen
-          </h1>
-          <div className="flex gap-3">
+          <div>
+            <h1 className="font-serif text-2xl font-semibold text-anthracite-800">
+              {showCompletedView ? "Abgeschlossene Veranstaltungen" : "Buchungen"}
+            </h1>
+            {showCompletedView && (
+              <p className="mt-0.5 text-sm text-anthracite-400">
+                Als "Veranstaltung abgeschlossen" markierte Buchungen.
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Link href={toggleViewHref}>
+              <Button variant="ghost">
+                {showCompletedView
+                  ? "← Zur Übersicht"
+                  : `Abgeschlossene Veranstaltungen (${completedCount})`}
+              </Button>
+            </Link>
             <a href="/api/admin/export">
               <Button variant="ghost">CSV-Export (Zusatzwünsche)</Button>
             </a>
@@ -117,22 +142,24 @@ export default async function AdminBookingsPage({
           </div>
         </div>
 
-        <div className="mb-4 flex flex-wrap gap-2 text-sm">
-          <FilterLink status={undefined} current={statusFilter} sort={sortDirection} label="Alle" />
-          <FilterLink status="offen" current={statusFilter} sort={sortDirection} label="Offen" />
-          <FilterLink
-            status="layout_ausgewaehlt"
-            current={statusFilter}
-            sort={sortDirection}
-            label="Layout ausgewählt"
-          />
-          <FilterLink
-            status="personalisierung_komplett"
-            current={statusFilter}
-            sort={sortDirection}
-            label="Komplett"
-          />
-        </div>
+        {!showCompletedView && (
+          <div className="mb-4 flex flex-wrap gap-2 text-sm">
+            <FilterLink status={undefined} current={statusFilter} sort={sortDirection} label="Alle" />
+            <FilterLink status="offen" current={statusFilter} sort={sortDirection} label="Offen" />
+            <FilterLink
+              status="layout_ausgewaehlt"
+              current={statusFilter}
+              sort={sortDirection}
+              label="Layout ausgewählt"
+            />
+            <FilterLink
+              status="personalisierung_komplett"
+              current={statusFilter}
+              sort={sortDirection}
+              label="Komplett"
+            />
+          </div>
+        )}
 
         <div className="overflow-x-auto rounded-2xl border border-anthracite-100 bg-white shadow-soft">
           <table className="min-w-full divide-y divide-anthracite-100 text-sm">
@@ -236,7 +263,9 @@ export default async function AdminBookingsPage({
               {sorted.length === 0 && (
                 <tr>
                   <td colSpan={10} className="px-4 py-8 text-center text-anthracite-400">
-                    Keine Buchungen gefunden.
+                    {showCompletedView
+                      ? "Noch keine Veranstaltung als abgeschlossen markiert."
+                      : "Keine Buchungen gefunden."}
                   </td>
                 </tr>
               )}
