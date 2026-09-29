@@ -1,0 +1,407 @@
+{
+  "_hinweis": "Einzige Quelle für Pakete, Extras und Preise. Wird vom Portal (Anfragen, Preise, Mietvertrag) und von der Website (build.py) gelesen. Nach Änderungen: Portal deployen, dann Website neu bauen.",
+  "followupDiscount": 0.2,
+  "carryService": {
+    "name": "Trageservice – 2. Person für Auf- & Abbau",
+    "stufen": 49,
+    "treppe": 79,
+    "for": [
+      "spiegel",
+      "fotobox"
+    ]
+  },
+  "pickup": {
+    "options": [
+      {
+        "id": "folgetag",
+        "label": "Am Folgetag",
+        "short": "Folgetag",
+        "price": 0
+      },
+      {
+        "id": "abend",
+        "label": "Am selben Abend bis 22 Uhr",
+        "short": "bis 22 Uhr",
+        "price": 0
+      },
+      {
+        "id": "nacht",
+        "label": "Nachtabholung 22–24 Uhr",
+        "short": "22–24 Uhr",
+        "price": 49
+      },
+      {
+        "id": "spaetnacht",
+        "label": "Nachtabholung nach Mitternacht (bis 3 Uhr)",
+        "short": "0–3 Uhr",
+        "price": 89
+      }
+    ]
+  },
+  "travel": {
+    "origin": "Mönkhoffs Busch 34, 45277 Essen",
+    "includedKm": 30,
+    "tiers": [
+      {
+        "upToKm": 50,
+        "price": 59
+      },
+      {
+        "upToKm": 75,
+        "price": 99
+      },
+      {
+        "upToKm": 100,
+        "price": 149
+      }
+    ]
+  },
+  "packages": [
+    {
+      "id": "spiegel-modern",
+      "product": "spiegel",
+      "name": "Magic Mirror Modern",
+      "short": "Magic Mirror Modern",
+      "sub": "ohne Goldrahmen · inkl. Lieferung, Auf- & Abbau",
+      "price": 489,
+      "badge": null,
+      "features": [
+        "Unbegrenzte Nutzungszeit während der Veranstaltung",
+        "Lieferung, Auf- & Abbau",
+        "Druckflatrate inklusive",
+        "Flat für Digitalfotos",
+        "Fahrtkosten bis 30 km inklusive",
+        "Roter Teppich & edle Absperrgondeln",
+        "Requisiten-Set inklusive",
+        "Modernes Design ohne Rahmen"
+      ]
+    },
+    {
+      "id": "spiegel-gold",
+      "product": "spiegel",
+      "name": "Magic Mirror Gold",
+      "short": "Magic Mirror Gold",
+      "sub": "mit Goldrahmen · inkl. Lieferung, Auf- & Abbau",
+      "price": 549,
+      "badge": "Bestseller",
+      "features": [
+        "Unbegrenzte Nutzungszeit während der Veranstaltung",
+        "Lieferung, Auf- & Abbau",
+        "Druckflatrate inklusive",
+        "Flat für Digitalfotos",
+        "Fahrtkosten bis 30 km inklusive",
+        "Roter Teppich & edle Absperrgondeln",
+        "Requisiten-Set inklusive",
+        "Goldrahmen für elegantes Design"
+      ]
+    },
+    {
+      "id": "fotobox-komplett",
+      "product": "fotobox",
+      "name": "Fotobox Digital & Print",
+      "short": "Fotobox Digital & Print",
+      "sub": "inkl. Lieferung, Auf- & Abbau",
+      "price": 359,
+      "badge": null,
+      "features": [
+        "Unbegrenzte Nutzungszeit während der Veranstaltung",
+        "Lieferung, Auf- & Abbau",
+        "Druckflatrate inklusive",
+        "Flat für Digitalfotos",
+        "Online-Galerie",
+        "Fahrtkosten bis 30 km inklusive",
+        "Spiegelreflexkamera & Studioblitz",
+        "Requisiten-Set inklusive"
+      ]
+    },
+    {
+      "id": "360-self",
+      "product": "360",
+      "name": "360° Self-Service",
+      "short": "Self-Service",
+      "sub": "Selbstabholung",
+      "price": 249,
+      "badge": null,
+      "features": [
+        "360° Video Booth für bis zu 4 Personen",
+        "Halterung für eigenes Smartphone",
+        "LED-Ringbeleuchtung",
+        "Vielzahl an Requisiten & Gadgets",
+        "Kurze Aufbauanleitung",
+        "Abholung & Rückgabe nach Absprache"
+      ]
+    },
+    {
+      "id": "360-komfort",
+      "product": "360",
+      "name": "360° Komfort",
+      "short": "Komfort",
+      "sub": "inkl. Lieferung, Auf- & Abbau",
+      "price": 299,
+      "badge": "Bestseller",
+      "features": [
+        "360° Video Booth für bis zu 4 Personen",
+        "Halterung für eigenes Smartphone",
+        "LED-Ringbeleuchtung",
+        "Vielzahl an Requisiten & Gadgets",
+        "Kurze Einweisung vor Ort",
+        "Lieferung im Umkreis von 30 km",
+        "Aufbau & Abbau"
+      ]
+    },
+    {
+      "id": "360-premium",
+      "product": "360",
+      "name": "360° Premium",
+      "short": "Premium",
+      "sub": "inkl. Lieferung, Auf- & Abbau",
+      "price": 349,
+      "badge": null,
+      "features": [
+        "360° Video Booth für bis zu 4 Personen",
+        "LED-Ringbeleuchtung",
+        "Professionelles iPad mit Booth-Software",
+        "Automatische Slow Motion & Videoeffekte",
+        "Sofort-Download per QR-Code (WLAN erforderlich)",
+        "Lieferung im Umkreis von 30 km",
+        "Aufbau & Abbau"
+      ]
+    },
+    {
+      "id": "audio-basis",
+      "product": "audio",
+      "name": "Audiogästebuch Basis",
+      "short": "Basis",
+      "sub": "Für unkomplizierte Erinnerungen",
+      "price": 59,
+      "badge": null,
+      "features": [
+        "Retro-Telefon (Audiogästebuch)",
+        "Aufsteller mit Anleitung für die Gäste",
+        "Aufspielen der persönlichen Bandansage",
+        "Alle Audiodateien als Download-Link",
+        "Selbstabholung am Standort"
+      ]
+    },
+    {
+      "id": "audio-komfort",
+      "product": "audio",
+      "name": "Audiogästebuch Komfort",
+      "short": "Komfort",
+      "sub": "Für das gewisse Extra",
+      "price": 79,
+      "badge": "Beliebt",
+      "features": [
+        "Alles aus dem Basis-Paket",
+        "Leuchtschild „Audio Guest Book“",
+        "Karten mit witzigen Anweisungen für die Gäste",
+        "Herz-USB-Stick mit allen Audios",
+        "Selbstabholung am Standort"
+      ],
+      "includes": "audio-basis"
+    },
+    {
+      "id": "audio-premium",
+      "product": "audio",
+      "name": "Audiogästebuch Premium",
+      "short": "Premium",
+      "sub": "Alles inklusive",
+      "price": 109,
+      "badge": null,
+      "features": [
+        "Alles aus dem Komfort-Paket",
+        "Stehtisch mit Husse für stilvolle Präsentation",
+        "Selbstabholung am Standort",
+        "Optional: Lieferung"
+      ],
+      "includes": "audio-komfort"
+    },
+    {
+      "id": "love-abholung",
+      "product": "love",
+      "name": "LOVE XXL Selbstabholung",
+      "short": "Selbstabholung",
+      "sub": "Transport & Aufbau durch dich",
+      "price": 159,
+      "badge": null,
+      "features": [
+        "XXL LOVE Leuchtbuchstaben (110 cm)",
+        "Warmweiße LED-Beleuchtung",
+        "Mietdauer: 1 Veranstaltungstag",
+        "Abholung & Rückgabe nach Absprache"
+      ]
+    },
+    {
+      "id": "love-fullservice",
+      "product": "love",
+      "name": "LOVE XXL Full-Service",
+      "short": "Full-Service",
+      "sub": "Wir kümmern uns um alles",
+      "price": 239,
+      "badge": null,
+      "features": [
+        "XXL LOVE Leuchtbuchstaben (110 cm)",
+        "Warmweiße LED-Beleuchtung",
+        "Mietdauer: 1 Veranstaltungstag",
+        "Lieferung, Aufbau & Abholung im Umkreis von 30 km"
+      ]
+    }
+  ],
+  "extras": [
+    {
+      "id": "betreuung",
+      "name": "Betreuung durch Personal vor Ort",
+      "desc": "Unser Personal sorgt für einen reibungslosen Ablauf und hilft den Gästen.",
+      "price": 199,
+      "from": true,
+      "for": [
+        "spiegel",
+        "fotobox",
+        "360"
+      ],
+      "dbExtraName": "Betreuung vor Ort"
+    },
+    {
+      "id": "live-galerie",
+      "name": "Live-Fotogalerie auf dem Event-Monitor",
+      "desc": "Die neuesten Fotos laufen live auf einem Bildschirm – Gäste schauen zu, lachen mit und stellen sich gleich wieder an.",
+      "price": 99,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Live-Fotogalerie auf dem Event-Monitor"
+    },
+    {
+      "id": "branding",
+      "name": "Corporate Branding",
+      "desc": "Fotolayout, Startbildschirm & Video-Overlay in Ihrem Corporate Design.",
+      "price": 69,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox",
+        "360"
+      ],
+      "businessOnly": true
+    },
+    {
+      "id": "hintergrund",
+      "name": "Hintergrundsystem 2,40 × 2,40 m",
+      "desc": "Stabiles Stativ mit wählbarem Motiv – für einheitliche, professionelle Bilder.",
+      "price": 49,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Hintergrund"
+    },
+    {
+      "id": "premium-layout",
+      "name": "Premium-Layout",
+      "desc": "Zugriff auf hunderte Premium-Vorlagen, individuell angepasst (einmalig).",
+      "price": 25,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ]
+    },
+    {
+      "id": "startbildschirm",
+      "name": "Personalisierter Startbildschirm",
+      "desc": "Eure Gäste werden mit eurem Foto, euren Namen und dem Datum begrüßt – passend zum Fotolayout gestaltet.",
+      "price": 15,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Personalisierter Startbildschirm",
+      "privateOnly": true
+    },
+    {
+      "id": "kabine",
+      "name": "Aufblasbare Fotokabine 2,5 × 2,5 × 2,5 m",
+      "desc": "Weiße Kabine mit LED-Farbwechsel – indoor & outdoor ein Blickfang.",
+      "price": 69,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Aufblasbare Fotokabine — 2,5 × 2,5 × 2,5 m"
+    },
+    {
+      "id": "spiel",
+      "name": "Foto-Spiel",
+      "desc": "Kartenbox mit 50 kreativen Foto-Aufgaben für mehr Spaß vor der Kamera.",
+      "price": 15,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Foto-Spiel"
+    },
+    {
+      "id": "usb",
+      "name": "Personalisierter USB-Stick in Holzbox",
+      "desc": "Alle Fotos auf USB-Stick in gravierter Holzbox – mit Namen & Datum.",
+      "price": 25,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Personalisierte USB-Stick´s mit personalisierter Holzbox"
+    },
+    {
+      "id": "schutzpaket",
+      "name": "Schutzpaket",
+      "desc": "Begrenzt die Selbstbeteiligung bei versehentlichen Schäden auf maximal 150 € – entspannt feiern.",
+      "price": 29,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox"
+      ],
+      "dbExtraName": "Fotobox-Schutzpaket"
+    },
+    {
+      "id": "wlan",
+      "name": "Mobiler WLAN-Router",
+      "desc": "Internet für QR-Download, Online-Galerie und Diashow – auch wenn die Location kein WLAN hat.",
+      "price": 20,
+      "from": false,
+      "for": [
+        "spiegel",
+        "fotobox",
+        "360"
+      ],
+      "dbExtraName": "Mobiler WLAN-Router"
+    },
+    {
+      "id": "audio-versand",
+      "name": "Versand Audiogästebuch",
+      "desc": "Versandpauschale für Hin- und Rücksendung.",
+      "price": 25,
+      "from": false,
+      "for": [
+        "audio"
+      ]
+    },
+    {
+      "id": "audio-lieferung",
+      "name": "Lieferung & Abholung Audiogästebuch",
+      "desc": "Lieferung, Aufbau und Abholung im Umkreis von 30 km um Essen.",
+      "price": 49,
+      "from": false,
+      "for": [
+        "audio"
+      ]
+    }
+  ]
+}

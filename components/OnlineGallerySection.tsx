@@ -7,7 +7,9 @@ export function OnlineGallerySection({
   eventDate,
   galleryUrl,
   clickedAt,
+  sie = false,
 }: {
+  sie?: boolean;
   eventDate: string;
   galleryUrl: string | null;
   clickedAt: string | null;
@@ -24,9 +26,9 @@ export function OnlineGallerySection({
             <GalleryIcon className="h-5 w-5" />
           </span>
           <div>
-            <h2 className="font-serif text-lg font-semibold">Deine Online-Galerie</h2>
+            <h2 className="font-serif text-lg font-semibold">{sie ? "Ihre Online-Galerie" : "Eure Online-Galerie"}</h2>
             <p className="mt-0.5 text-sm text-white/70">
-              Alle Fotos eures Events an einem Ort.
+              {sie ? "Alle Fotos Ihrer Veranstaltung an einem Ort." : "Alle Fotos eures Events an einem Ort."}
             </p>
           </div>
         </div>
@@ -53,14 +55,15 @@ export function OnlineGallerySection({
           </>
         ) : isUnlocked ? (
           <p className="text-sm text-white/70">
-            Eure Galerie wird gerade vorbereitet und ist in Kürze hier verfügbar. Wir melden uns,
-            sobald es so weit ist.
+            {sie
+              ? "Ihre Galerie wird gerade vorbereitet und ist in Kürze hier verfügbar. Wir melden uns, sobald es so weit ist."
+              : "Eure Galerie wird gerade vorbereitet und ist in Kürze hier verfügbar. Wir melden uns, sobald es so weit ist."}
           </p>
         ) : (
           <p className="text-sm text-white/70">
-            Eure Online-Galerie ist ab dem{" "}
+            {sie ? "Ihre" : "Eure"} Online-Galerie ist ab dem{" "}
             <span className="font-medium text-white">{formatDateLocal(unlockDate)}</span>{" "}
-            hier verfügbar — wir brauchen nach eurem Event noch etwas Zeit, um alle Fotos
+            hier verfügbar — wir brauchen nach {sie ? "Ihrer Veranstaltung" : "eurem Event"} noch etwas Zeit, um alle Fotos
             aufzubereiten.
           </p>
         )}

@@ -101,7 +101,9 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
         Lieferung &amp; Abholung
       </h2>
       <p className="mt-1 text-sm text-anthracite-500">
-        Hier seht ihr, wann und von wem eure Fotobox geliefert und wieder abgeholt wird.
+        {booking.customer_type === "business"
+          ? "Hier sehen Sie, wann und von wem die Technik geliefert und wieder abgeholt wird."
+          : "Hier seht ihr, wann und von wem die Technik geliefert und wieder abgeholt wird."}
       </p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">

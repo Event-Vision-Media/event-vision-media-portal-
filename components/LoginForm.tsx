@@ -16,14 +16,14 @@ export function LoginForm() {
           htmlFor="booking_code"
           className="mb-2 block text-sm font-medium text-anthracite-600"
         >
-          Dein Buchungscode oder Passwort
+          Dein Zugangscode oder Passwort
         </label>
         <input
           id="booking_code"
           name="booking_code"
           type="text"
           autoComplete="off"
-          placeholder="z. B. FB-2026-0347"
+          placeholder="z. B. EV-7K4P-9QX2"
           className="input-field text-center text-lg tracking-wide"
           required
         />

@@ -20,7 +20,10 @@ export function LayoutGallery({
   initialExtraWishes,
   hasConsentedBefore,
   premiumIncluded,
+  sie = false,
 }: {
+  /** Businesskunde: Sie-Form und Firmen-Kategorien zuerst. */
+  sie?: boolean;
   inclusiveLayouts: Layout[];
   premiumLayouts: Layout[];
   selectedLayoutId: string | null;
@@ -44,12 +47,17 @@ export function LayoutGallery({
   const [wishesDraft, setWishesDraft] = useState(initialExtraWishes ?? "");
   const [consentDraft, setConsentDraft] = useState(hasConsentedBefore);
 
-  const availableCategories = LAYOUT_CATEGORIES.filter((category) =>
-    premiumLayouts.some((layout) => layout.category === category)
-  );
+  const t = (ihr: string, s: string) => (sie ? s : ihr);
+  // Reihenfolge nach Kundentyp: Firmen sehen Firmen-Designs zuerst
+  const preferred = sie ? ["Firmenevent", "Weihnachtsfeier", "Minimalistisch"] : ["Hochzeit", "Geburtstag"];
+  const rank = (c: string | null) => (c && preferred.includes(c) ? preferred.indexOf(c) : preferred.length);
+  const availableCategories = [...LAYOUT_CATEGORIES]
+    .filter((category) => premiumLayouts.some((layout) => layout.category === category))
+    .sort((a, b) => rank(a) - rank(b));
+  const sortedPremium = [...premiumLayouts].sort((a, b) => rank(a.category) - rank(b.category));
   const visiblePremiumLayouts = activeCategory
-    ? premiumLayouts.filter((layout) => layout.category === activeCategory)
-    : premiumLayouts;
+    ? sortedPremium.filter((layout) => layout.category === activeCategory)
+    : sortedPremium;
 
   function openLayout(layout: Layout) {
     setErrorMessage(null);
@@ -92,7 +100,7 @@ export function LayoutGallery({
 
     if (!consentDraft) {
       setErrorMessage(
-        "Bitte bestätige den Datenschutzhinweis, damit wir deine Angaben speichern dürfen."
+        t("Bitte bestätigt den Datenschutzhinweis, damit wir eure Angaben speichern dürfen.", "Bitte bestätigen Sie den Datenschutzhinweis, damit wir Ihre Angaben speichern dürfen.")
       );
       return;
     }
@@ -128,7 +136,7 @@ export function LayoutGallery({
       {feeNotice && (
         <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
           Layout gewechselt – für den Wechsel wurde ein Aufpreis von{" "}
-          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu eurer Buchung hinzugefügt.
+          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu {t("eurer", "Ihrer")} Buchung hinzugefügt.
         </div>
       )}
 
@@ -136,17 +144,32 @@ export function LayoutGallery({
         <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
           {premiumIncluded ? (
             <>
-              <strong>Premium-Layout ausgewählt</strong> – bei eurer Buchung bereits inklusive,
+              <strong>Premium-Layout ausgewählt</strong> – bei {t("eurer", "Ihrer")} Buchung bereits inklusive,
               es entstehen keine Zusatzkosten.
             </>
           ) : (
             <>
               <strong>Premium-Layout ausgewählt</strong> – die Zusatzkosten von{" "}
-              {formatCurrencyEUR(selectedLayout.extra_price)} werden dir separat in
+              {formatCurrencyEUR(selectedLayout.extra_price)} werden {t("euch", "Ihnen")} separat in
               Rechnung gestellt.
             </>
           )}
         </div>
+      )}
+
+      {premiumLayouts.length > 0 && !selectedLayout?.is_premium && (
+        <a
+          href="#premium-layouts"
+          className="group flex items-center justify-between gap-3 rounded-xl border border-gold-300 bg-gradient-to-r from-gold-50 to-white px-4 py-3 text-sm shadow-sm transition hover:border-gold-500"
+        >
+          <span>
+            <strong className="text-anthracite-800">{t("✨ Lust auf etwas Besonderes?", "Noch mehr Auswahl gewünscht?")}</strong>{" "}
+            <span className="text-anthracite-500">
+              {premiumLayouts.length} Premium-Layouts {premiumIncluded ? t("– bei euch inklusive", "– bei Ihnen inklusive") : "für einmalig +25 €"}
+            </span>
+          </span>
+          <span className="flex-none font-medium text-gold-700 transition group-hover:translate-y-0.5">Ansehen ↓</span>
+        </a>
       )}
 
       <section>
@@ -163,7 +186,7 @@ export function LayoutGallery({
         />
       </section>
 
-      <section>
+      <section id="premium-layouts" className="scroll-mt-24">
         <div className="mb-4 flex items-center gap-2.5">
           <span className="h-5 w-1 rounded-full bg-gold-500" />
           <h2 className="font-serif text-xl font-semibold tracking-tight text-anthracite-800">
@@ -265,13 +288,13 @@ export function LayoutGallery({
                   Layout wechseln?
                 </h3>
                 <p className="mt-3 text-sm text-anthracite-600">
-                  Ihr habt bereits <strong>{selectedLayout?.name ?? "ein anderes Layout"}</strong>{" "}
-                  ausgewählt und dieses wird bereits individuell für euch vorbereitet. Ein
+                  {t("Ihr habt", "Sie haben")} bereits <strong>{selectedLayout?.name ?? "ein anderes Layout"}</strong>{" "}
+                  ausgewählt und dieses wird bereits individuell für {t("euch", "Sie")} vorbereitet. Ein
                   Wechsel zu <strong>{activeLayout.name}</strong> ist möglich, kostet aber
                   einmalig <strong>{formatCurrencyEUR(SELECTION_SWITCH_FEE)}</strong> Aufpreis.
                 </p>
                 <p className="mt-2 text-sm text-anthracite-500">
-                  Änderungswünsche zu eurem aktuellen Layout (z. B. Farben, Texte) sind dagegen
+                  Änderungswünsche zu {t("eurem", "Ihrem")} aktuellen Layout (z. B. Farben, Texte) sind dagegen
                   jederzeit kostenlos über die Layout-Freigabe möglich.
                 </p>
                 <div className="mt-5 flex gap-3">
@@ -289,8 +312,10 @@ export function LayoutGallery({
                   Personalisierung für &quot;{activeLayout.name}&quot;
                 </h3>
                 <p className="mt-1 text-sm text-anthracite-500">
-                  Gib jetzt direkt an, was auf eurer Grafik stehen soll — oder füll das
-                  später auf der Personalisierungs-Seite aus.
+                  {t(
+                    "Gebt jetzt direkt an, was auf eurer Grafik stehen soll — oder füllt das später aus.",
+                    "Geben Sie jetzt direkt an, was auf Ihrer Grafik stehen soll (z. B. Firmenname, Anlass, Datum) — oder ergänzen Sie es später."
+                  )}
                 </p>
 
                 <div className="mt-4 space-y-4">

@@ -58,9 +58,57 @@ export interface Booking {
   access_notes: string | null;
   access_notes_updated_at: string | null;
   custom_login_code: string | null;
+  access_code: string;
+  lifecycle: BookingLifecycle;
+  source: "admin" | "website";
+  customer_type: "business" | "privat" | null;
+  customer_name: string | null;
+  company: string | null;
+  email: string | null;
+  phone: string | null;
+  occasion: string | null;
+  location: string | null;
+  guest_count: number | null;
+  event_days: number;
+  inquiry_items: {
+    packages?: { id: string; product: string; name: string; price: number }[];
+    extras?: { id: string; name: string; price: number; from?: boolean }[];
+    days?: number;
+    total?: number;
+    packagesTotal?: number;
+    isFromPrice?: boolean;
+    shortNotice?: boolean;
+    duration?: string | null;
+    /** Zugang zum Aufstellort (Angabe aus der Anfrage). */
+    access?: AccessInfo | null;
+    /** Gewünschte Abholung (folgetag | abend | nacht | spaetnacht). */
+    pickup?: string | null;
+    /** Entfernung & Fahrtkosten zur Location. */
+    travel?: { km: number | null; price: number | null; status: "ok" | "unknown" | "over"; manual?: boolean } | null;
+  } | null;
+  total_price: number | null;
+  inquiry_message: string | null;
+  confirmed_at: string | null;
+  rest_payment_method?: "ueberweisung" | "bar" | null;
+  deposit_amount?: number | null;
+  deposit_paid_at?: string | null;
+  rest_paid_at?: string | null;
+  deposit_reminder_sent_at?: string | null;
+  rest_reminder_sent_at?: string | null;
+  reminder_sent_at?: string | null;
+  followup_sent_at?: string | null;
   created_at: string;
   updated_at: string;
 }
+
+export type BookingLifecycle = "anfrage" | "reserviert" | "bestaetigt" | "abgelehnt" | "storniert";
+
+/**
+ * Nur mit diesen Lebenszyklen ist der Kunden-Login möglich. Website-Anfragen
+ * sind bis zur Bestätigung durch den Admin nur "vorgemerkt" (reserviert) –
+ * den Zugang gibt es mit der Auftragsbestätigung.
+ */
+export const PORTAL_LIFECYCLES: BookingLifecycle[] = ["bestaetigt"];
 
 export interface ActivityLogEntry {
   id: string;
@@ -262,3 +310,28 @@ export const AUDIO_UPLOAD_ACCEPT = ".mp3,.wav,.m4a,audio/mpeg,audio/wav,audio/x-
 export const AUDIO_UPLOAD_EXTENSIONS = ["mp3", "wav", "m4a"];
 export const AUDIO_MAX_FILE_SIZE_BYTES = 100 * 1024 * 1024; // 100 MB je Datei
 
+
+/** Zugang zum Aufstellort: ebenerdig/Aufzug, einige Stufen oder Treppe/Etage ohne Aufzug. */
+export type AccessLevel = "ebenerdig" | "stufen" | "treppe";
+/** Bei Stufen/Treppe: Kunde stellt eine Tragehilfe oder bucht den Trageservice. */
+export type AccessHelp = "helfer" | "service";
+export interface AccessInfo {
+  level: AccessLevel;
+  help: AccessHelp | null;
+}
+
+export const ACCESS_LABELS: Record<AccessLevel, string> = {
+  ebenerdig: "Ebenerdig / mit Aufzug",
+  stufen: "Einige Stufen (bis ca. 5)",
+  treppe: "Treppe / Etage ohne Aufzug",
+};
+
+/** Kurztext für Admin-Ansichten, z. B. "⚠️ Treppe / Etage ohne Aufzug · Trageservice gebucht". */
+export function accessSummary(a: AccessInfo | null | undefined): { text: string; warn: boolean } | null {
+  if (!a) return null;
+  if (a.level === "ebenerdig") return { text: ACCESS_LABELS.ebenerdig, warn: false };
+  return {
+    text: `${ACCESS_LABELS[a.level]} · ${a.help === "service" ? "Trageservice gebucht – 2. Person mitnehmen" : "Kunde stellt Tragehilfe"}`,
+    warn: true,
+  };
+}

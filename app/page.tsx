@@ -43,8 +43,8 @@ export default async function LoginPage() {
           </Card>
 
           <p className="mt-6 text-center text-sm text-anthracite-400">
-            Deinen Buchungscode oder dein individuelles Passwort findest du in deiner
-            Buchungsbestätigung. Fragen? Melde dich einfach bei uns.
+            Den Zugangscode findest du in der E-Mail mit deiner Auftragsbestätigung.
+            Fragen? Melde dich einfach bei uns – 0176 22748363.
           </p>
         </div>
       </main>

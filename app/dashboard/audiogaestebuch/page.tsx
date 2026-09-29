@@ -21,6 +21,7 @@ function formatDateLocal(date: Date) {
 
 export default async function AudioGuestbookPage() {
   const booking = await requireBooking();
+  const sie = booking.customer_type === "business";
   const supabase = createAdminClient();
 
   const { data: bookedExtras } = await supabase
@@ -29,7 +30,7 @@ export default async function AudioGuestbookPage() {
     .eq("booking_id", booking.id);
   const bookedExtraNames = (bookedExtras ?? []).map((be: any) => be.extras?.name).filter(Boolean);
 
-  if (!bookingHasAudioGuestbook(booking.product_type, bookedExtraNames)) {
+  if (!bookingHasAudioGuestbook(booking.product_type, bookedExtraNames, booking.inquiry_items)) {
     redirect("/dashboard");
   }
 
@@ -90,11 +91,12 @@ export default async function AudioGuestbookPage() {
 
         <div className="mt-3 animate-fade-in-up">
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-anthracite-800 sm:text-3xl">
-            Dein Audiogästebuch
+            {sie ? "Ihr Audiogästebuch" : "Euer Audiogästebuch"}
           </h1>
           <p className="mt-1 mb-6 text-anthracite-500">
-            Lade hier deine persönliche Begrüßungsnachricht für dein Audiogästebuch hoch.
-            Diese Nachricht hören eure Gäste, bevor sie ihre eigene Nachricht aufnehmen.
+            {sie
+              ? "Laden Sie hier Ihre persönliche Begrüßungsnachricht hoch. Diese Nachricht hören Ihre Gäste, bevor sie ihre eigene Nachricht aufnehmen."
+              : "Ladet hier eure persönliche Begrüßungsnachricht hoch. Diese Nachricht hören eure Gäste, bevor sie ihre eigene Nachricht aufnehmen."}
           </p>
         </div>
 
@@ -104,6 +106,7 @@ export default async function AudioGuestbookPage() {
           </h2>
           <AudioGreetingUploader
             eventDate={booking.event_date}
+            sie={sie}
             existingGreeting={
               greeting
                 ? {
@@ -121,17 +124,19 @@ export default async function AudioGuestbookPage() {
         <section className="space-y-4 animate-fade-in-up">
           <div>
             <h2 className="font-serif text-lg font-semibold text-anthracite-800">
-              Eure Nachrichten
+              {sie ? "Ihre Nachrichten" : "Eure Nachrichten"}
             </h2>
             <p className="mt-1 text-sm text-anthracite-500">
-              Hier könnt ihr die persönlichen Nachrichten eurer Gäste anhören und
-              herunterladen.
+              {sie
+                ? "Hier können Sie die persönlichen Nachrichten Ihrer Gäste anhören und herunterladen."
+                : "Hier könnt ihr die persönlichen Nachrichten eurer Gäste anhören und herunterladen."}
             </p>
           </div>
 
           {recordings.length > 0 ? (
             <AudioRecordingsList
               bookingId={booking.id}
+              sie={sie}
               recordings={recordings.map((r) => ({
                 id: r.id,
                 fileName: r.file_name,
@@ -143,16 +148,16 @@ export default async function AudioGuestbookPage() {
             <div className="rounded-2xl border border-anthracite-100 bg-anthracite-50 px-4 py-4 text-sm text-anthracite-600">
               {recordingsUnlockReached ? (
                 <p>
-                  Eure Aufnahmen werden gerade vorbereitet und sind in Kürze hier verfügbar. Wir
+                  {sie ? "Ihre" : "Eure"} Aufnahmen werden gerade vorbereitet und sind in Kürze hier verfügbar. Wir
                   melden uns, sobald es so weit ist.
                 </p>
               ) : (
                 <p>
-                  Eure Nachrichten sind ab dem{" "}
+                  {sie ? "Ihre" : "Eure"} Nachrichten sind ab dem{" "}
                   <span className="font-medium text-anthracite-800">
                     {formatDateLocal(recordingsUnlockDate)}
                   </span>{" "}
-                  hier verfügbar — wir brauchen nach eurem Event noch etwas Zeit, um alle
+                  hier verfügbar — wir brauchen nach {sie ? "Ihrer Veranstaltung" : "eurem Event"} noch etwas Zeit, um alle
                   Aufnahmen aufzubereiten.
                 </p>
               )}

@@ -1,6 +1,6 @@
 import { Card } from "@/components/ui/Card";
 
-export function GoogleReviewSection({ reviewUrl }: { reviewUrl: string | null }) {
+export function GoogleReviewSection({ reviewUrl, sie = false }: { reviewUrl: string | null; sie?: boolean }) {
   if (!reviewUrl) {
     return null;
   }
@@ -11,11 +11,12 @@ export function GoogleReviewSection({ reviewUrl }: { reviewUrl: string | null })
         <StarIcon className="h-5 w-5" />
       </div>
       <h2 className="mt-3 font-serif text-lg font-semibold text-anthracite-800">
-        Gefällt euch, was ihr bisher seht?
+        {sie ? "Waren Sie zufrieden mit uns?" : "Gefällt euch, was ihr bisher seht?"}
       </h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-anthracite-500">
-        Wir würden uns riesig freuen, wenn ihr uns mit einer kurzen Google-Bewertung
-        unterstützt — das hilft uns und anderen Paaren bei der Suche nach der passenden Fotobox.
+        {sie
+          ? "Über eine kurze Google-Bewertung freuen wir uns sehr – sie hilft anderen Unternehmen bei der Wahl des passenden Dienstleisters."
+          : "Wir würden uns riesig freuen, wenn ihr uns mit einer kurzen Google-Bewertung unterstützt — das hilft uns und anderen bei der Suche nach der passenden Fotobox."}
       </p>
       <a
         href="/api/review-redirect"

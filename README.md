@@ -91,3 +91,58 @@ sie sich im Kundenportal unter `/` ein.
 - DSGVO: Auf der Personalisierungs-Seite muss der Gast einer
   Datenschutz-Checkbox zustimmen, bevor Name/Datum gespeichert werden. Es ist
   kein Tracking-Skript eingebaut.
+
+## Website-Anfragen (automatische Buchung)
+
+Das Anfrageformular der Website (fotobox-essen.com) sendet an
+`POST /api/public/inquiry`. Ablauf:
+
+1. Die App berechnet Pakete, Extras und Gesamtpreis **serverseitig** neu
+   (`lib/catalog.ts` – muss mit den Website-Preisen übereinstimmen).
+2. Verfügbarkeit der Geräte wird geprüft (`device_stock` + bestehende
+   Buchungen inkl. Mehrtages-Buchungen und als Extra gebuchter Geräte).
+3. **Termin frei** → Buchung mit `lifecycle = reserviert`, zufälligem
+   Zugangscode (`EV-XXXX-XXXX`) und E-Mail „Reservierung + Portal-Zugang“.
+   **Termin belegt** → `lifecycle = anfrage`, nur Admin-Benachrichtigung.
+4. Im Admin unter **Anfragen** mit einem Klick bestätigen → Auftragsbestätigung
+   per E-Mail. Oder ablehnen (optional mit Absage-Mail).
+
+### Einrichtung
+
+1. Migration `supabase/migrations/0020_website_inquiries.sql` im SQL-Editor
+   ausführen (**vor** dem Deployment dieses Codes – die Buchungsübersicht filtert
+   auf die neue Spalte `lifecycle`).
+2. Gerätebestände in Tabelle `device_stock` prüfen (Standard: je 1 Gerät,
+   4 Audiogästebücher).
+3. Umgebungsvariablen aus `.env.example` (Abschnitt Website-Anfragen) setzen.
+   Ohne `RESEND_API_KEY` funktioniert alles, es werden nur keine Mails verschickt.
+4. Bei Resend die Domain `fotobox-essen.com` verifizieren (DNS-Einträge).
+
+## Sichere Zugangscodes
+
+Buchungscodes (FB-…) sind fortlaufend und damit erratbar. Seit Migration
+`0021_access_codes.sql` hat jede Buchung zusätzlich einen zufälligen
+**Zugangscode** (`EV-XXXX-XXXX`, Spalte `access_code`), der automatisch vergeben wird.
+
+Login-Reihenfolge: Zugangscode → individuelles Passwort → (übergangsweise)
+FB-Buchungscode. Nach 10 Fehlversuchen je IP ist der Login 15 Minuten gesperrt.
+
+Umstellung:
+1. Migration `0021_access_codes.sql` ausführen.
+2. Im Admin unter **Zugangscodes** allen Kunden mit anstehenden Events ihren
+   neuen Code schicken (Button „Per WhatsApp senden“).
+3. `LEGACY_BOOKING_CODE_LOGIN=false` setzen und neu deployen.
+
+## Automatische Kunden-E-Mails & Upsells
+
+- **Upgrade im Kundenportal:** Website-Buchungen sehen im Dashboard das nächsthöhere
+  Paket (z. B. Audiogästebuch Basis → Komfort +15 €) und können es mit zwei Klicks
+  buchen. Preis wird serverseitig neu berechnet, Admin wird benachrichtigt.
+- **Empfehlungen:** „Macht euer Event komplett“ zeigt bis zu 3 verfügbare, noch nicht
+  gebuchte Extras (`lib/recommendations.ts`).
+- **Täglicher Lauf** `/api/cron/daily` (Vercel Cron, 07:00 UTC, `vercel.json`):
+  - Erinnerung ≤ 28 Tage vor dem Event: offene Schritte + 2 passende Extras
+  - Nachher-Mail 7 Tage nach dem Event (Galerie freigeschaltet) + Google-Bewertung
+  - Jede Mail nur einmal (`reminder_sent_at`, `followup_sent_at`, Migration 0022)
+  - Lokal testen: `http://localhost:3000/api/cron/daily?dry=1`
+- Vorschau aller Mails: Admin → **E-Mails**.

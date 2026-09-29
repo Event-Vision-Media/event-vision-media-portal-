@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useMemo, useState, useTransition } from "react";
+import { createContext, useContext, useMemo, useState, useTransition } from "react";
 import {
   confirmExtras,
   confirmNoExtras,
@@ -14,6 +14,13 @@ import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyEUR, formatDateTimeGerman } from "@/lib/format";
 import { formatAvailabilityLabel, type AvailabilityInfo } from "@/lib/availability";
 import type { BookingExtra, Extra, ExtraVariant } from "@/lib/types";
+
+// Firmenkunden: Sie-Form in allen Texten dieses Bereichs
+const SieContext = createContext(false);
+const useT = () => {
+  const sie = useContext(SieContext);
+  return (ihr: string, s: string) => (sie ? s : ihr);
+};
 
 function availabilityTone(status: AvailabilityInfo["status"]) {
   if (status === "ausgebucht") return "danger" as const;
@@ -33,17 +40,24 @@ export function ExtrasSection({
   initialConfirmedAt,
   availabilityByExtraId,
   availabilityByVariantId,
+  autoOpenExtraId,
+  sie = false,
 }: {
+  sie?: boolean;
   extras: Extra[];
   variantsByExtra: Record<string, ExtraVariant[]>;
   initialSelections: BookingExtra[];
   initialConfirmedAt: string | null;
   availabilityByExtraId: Record<string, AvailabilityInfo>;
   availabilityByVariantId: Record<string, AvailabilityInfo>;
+  /** Direkt geöffnetes Extra (Link aus den Empfehlungen im Dashboard). */
+  autoOpenExtraId?: string;
 }) {
   const [selections, setSelections] = useState(initialSelections);
   const [confirmedAt, setConfirmedAt] = useState(initialConfirmedAt);
-  const [activeExtra, setActiveExtra] = useState<Extra | null>(null);
+  const [activeExtra, setActiveExtra] = useState<Extra | null>(
+    () => extras.find((e) => e.id === autoOpenExtraId) ?? null
+  );
   const [isConfirming, setIsConfirming] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -158,6 +172,7 @@ export function ExtrasSection({
   }
 
   return (
+    <SieContext.Provider value={sie}>
     <section>
       <div className="mb-4 flex items-center gap-2.5">
         <span className="h-5 w-1 rounded-full bg-gold-500" />
@@ -328,6 +343,7 @@ export function ExtrasSection({
         />
       )}
     </section>
+    </SieContext.Provider>
   );
 }
 
@@ -359,6 +375,7 @@ function ExtraModal({
   const isLocked = Boolean(selection?.added_by_admin) && !isPendingVariantChoice;
   const isSimpleSoldOut = !extra.has_variants && extraAvailability?.status === "ausgebucht" && !selection;
 
+  const t = useT();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-anthracite-900/70 p-4 backdrop-blur-sm animate-fade-in"
@@ -381,8 +398,10 @@ function ExtraModal({
             <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white">
               ✓
             </span>
-            Diese Option wurde bereits für euch gebucht. Bei Änderungswünschen meldet euch bitte
-            bei uns.
+            {t(
+              "Diese Option wurde bereits für euch gebucht. Bei Änderungswünschen meldet euch bitte bei uns.",
+              "Diese Option wurde bereits für Sie gebucht. Bei Änderungswünschen melden Sie sich bitte bei uns."
+            )}
           </div>
         )}
 
@@ -391,8 +410,10 @@ function ExtraModal({
             <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-gold-500 text-xs font-bold text-white">
               ✓
             </span>
-            Dieses Extra ist für euch bereits gebucht — wählt jetzt eure gewünschte Variante aus,
-            es entstehen keine zusätzlichen Kosten.
+            {t(
+              "Dieses Extra ist für euch bereits gebucht — wählt jetzt eure gewünschte Variante aus, es entstehen keine zusätzlichen Kosten.",
+              "Dieses Extra ist für Sie bereits gebucht — wählen Sie jetzt Ihre gewünschte Variante, es entstehen keine zusätzlichen Kosten."
+            )}
           </div>
         )}
 
@@ -488,7 +509,7 @@ function ExtraModal({
               {extraAvailability && <AvailabilityBadge info={extraAvailability} />}
             </div>
             <p className="mt-1 text-xs text-anthracite-400">
-              wird dir separat in Rechnung gestellt
+              wird mit dem Restbetrag abgerechnet
             </p>
           </div>
         )}
@@ -568,6 +589,7 @@ function ConfirmationModal({
     };
   });
 
+  const t = useT();
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-anthracite-900/70 p-4 backdrop-blur-sm animate-fade-in"
@@ -578,10 +600,10 @@ function ConfirmationModal({
         onClick={(e) => e.stopPropagation()}
       >
         <h3 className="font-serif text-lg font-semibold text-anthracite-800">
-          Eure Auswahl bestätigen
+          {t("Eure Auswahl bestätigen", "Ihre Auswahl bestätigen")}
         </h3>
         <p className="mt-1 mb-4 text-sm text-anthracite-500">
-          Bitte prüft eure gewählten Exclusive Extras noch einmal.
+          {t("Bitte prüft eure gewählten Exclusive Extras noch einmal.", "Bitte prüfen Sie Ihre gewählten Extras noch einmal.")}
         </p>
 
         <ul className="space-y-2">
@@ -610,7 +632,7 @@ function ConfirmationModal({
           </span>
         </div>
         <p className="mt-1 text-xs text-anthracite-400">
-          Wird dir separat in Rechnung gestellt — hier wird nichts bezahlt.
+          Wird mit dem Restbetrag abgerechnet — hier wird nichts bezahlt.
         </p>
 
         {error && (

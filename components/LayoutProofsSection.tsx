@@ -16,14 +16,18 @@ function statusTone(status: LayoutProof["status"]) {
 
 export function LayoutProofsSection({
   groupedProofs,
+  sie = false,
 }: {
   groupedProofs: { layoutName: string; versions: LayoutProof[] }[];
+  sie?: boolean;
 }) {
   if (groupedProofs.length === 0) {
     return (
       <div className="rounded-2xl border border-anthracite-100 bg-white p-6 text-center shadow-card">
         <p className="text-sm text-anthracite-500">
-          Sobald dein Team ein Layout für dich erstellt hat, erscheint es hier zur Freigabe.
+          {sie
+            ? "Sobald unser Team Ihr Layout gestaltet hat, erscheint es hier zur Freigabe."
+            : "Sobald unser Team euer Layout gestaltet hat, erscheint es hier zur Freigabe."}
         </p>
       </div>
     );
@@ -213,7 +217,7 @@ function LayoutProofCard({ layoutName, versions }: { layoutName: string; version
             </div>
           ) : (
             <p className="mt-3 text-xs italic text-gold-600">
-              Noch nicht bearbeitet — dein Team wurde benachrichtigt.
+              Noch nicht bearbeitet — unser Team wurde benachrichtigt.
             </p>
           )}
         </div>

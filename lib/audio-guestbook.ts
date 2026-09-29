@@ -1,11 +1,17 @@
 /**
  * Ermittelt, ob eine Buchung Zugriff auf den Audiogästebuch-Bereich hat -
- * entweder weil "Audiogästebuch" direkt das gebuchte Produkt ist, oder weil
- * es später als Exclusive Extra dazugebucht wurde.
+ * weil "Audiogästebuch" direkt das gebuchte Produkt ist, es als Exclusive
+ * Extra dazugebucht wurde oder als Paket über die Website gebucht wurde.
  */
 export function bookingHasAudioGuestbook(
   productType: string,
-  bookedExtraNames: string[]
+  bookedExtraNames: string[],
+  inquiryItems?: { packages?: { product: string }[] } | null
 ): boolean {
-  return productType === "Audiogästebuch" || bookedExtraNames.includes("Audiogästebuch");
+  return (
+    productType === "Audiogästebuch" ||
+    bookedExtraNames.includes("Audiogästebuch") ||
+    // Website-Buchungen: Audiogästebuch als eigenes Paket (z. B. neben dem Fotospiegel)
+    Boolean(inquiryItems?.packages?.some((p) => p.product === "audio"))
+  );
 }

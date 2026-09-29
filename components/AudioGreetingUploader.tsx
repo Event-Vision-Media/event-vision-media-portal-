@@ -22,7 +22,9 @@ export function AudioGreetingUploader({
   existingGreeting,
   playUrl,
   downloadHref,
+  sie = false,
 }: {
+  sie?: boolean;
   eventDate: string;
   existingGreeting: { fileName: string; fileSize: number; uploadedAt: string } | null;
   playUrl: string | null;
@@ -143,8 +145,12 @@ export function AudioGreetingUploader({
       >
         <p className={`font-medium ${isOverdue || isUrgent ? "" : "text-anthracite-700"}`}>
           {isOverdue
-            ? "Die Frist für eure Begrüßungsnachricht ist bereits verstrichen. Bitte lade sie schnellstmöglich hoch."
-            : `Bitte lade deine Begrüßungsnachricht spätestens ${AUDIO_GREETING_DEADLINE_DAYS} Tage vor deiner Veranstaltung hoch.`}
+            ? sie
+              ? "Die Frist für Ihre Begrüßungsnachricht ist bereits verstrichen. Bitte laden Sie sie schnellstmöglich hoch."
+              : "Die Frist für eure Begrüßungsnachricht ist bereits verstrichen. Bitte ladet sie schnellstmöglich hoch."
+            : sie
+              ? `Bitte laden Sie Ihre Begrüßungsnachricht spätestens ${AUDIO_GREETING_DEADLINE_DAYS} Tage vor Ihrer Veranstaltung hoch.`
+              : `Bitte ladet eure Begrüßungsnachricht spätestens ${AUDIO_GREETING_DEADLINE_DAYS} Tage vor eurem Event hoch.`}
         </p>
         <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1 text-xs">
           <span>Veranstaltungsdatum: {formatDateGerman(eventDate)}</span>

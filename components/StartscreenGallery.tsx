@@ -19,7 +19,9 @@ export function StartscreenGallery({
   isPersonalizedBooked,
   isPersonalizedLocked,
   personalizedExampleImageUrl,
+  sie = false,
 }: {
+  sie?: boolean;
   productType: string;
   homeScreens: HomeScreen[];
   selectedHomeScreenId: string | null;
@@ -103,15 +105,16 @@ export function StartscreenGallery({
       {feeNotice && (
         <div className="animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white px-4 py-4 text-sm text-gold-800 shadow-sm">
           Startbildschirm gewechselt – für den Wechsel wurde ein Aufpreis von{" "}
-          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu eurer Buchung hinzugefügt.
+          {formatCurrencyEUR(SELECTION_SWITCH_FEE)} zu {sie ? "Ihrer" : "eurer"} Buchung hinzugefügt.
         </div>
       )}
 
       <section>
         {homeScreens.length === 0 ? (
           <p className="text-sm text-anthracite-400">
-            Für euer Produkt sind aktuell noch keine Startbildschirme hinterlegt. Meldet euch
-            gerne bei uns.
+            {sie
+              ? "Für Ihr Produkt sind aktuell noch keine Startbildschirme hinterlegt. Melden Sie sich gerne bei uns."
+              : "Für euer Produkt sind aktuell noch keine Startbildschirme hinterlegt. Meldet euch gerne bei uns."}
           </p>
         ) : (
           <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6">
@@ -212,7 +215,7 @@ export function StartscreenGallery({
             <div className="mt-4 animate-fade-in-up rounded-xl border border-gold-300 bg-gradient-to-br from-gold-50 to-white p-4">
               <p className="text-sm text-anthracite-700">
                 Bestätigt hier verbindlich, dass ihr einen individuell für euch gestalteten
-                Startbildschirm bucht. Der Preis wird euch separat in Rechnung gestellt.
+                Startbildschirm bucht. Der Preis wird mit dem Restbetrag abgerechnet.
               </p>
               <div className="mt-3 flex gap-3">
                 <Button
@@ -258,7 +261,7 @@ export function StartscreenGallery({
           )}
           {personalizedBooked && isPersonalizedLocked && (
             <p className="mt-2 text-xs text-anthracite-400">
-              Bereits für euch gebucht. Bei Änderungswünschen meldet euch bitte bei uns.
+              {sie ? "Bereits für Sie gebucht. Bei Änderungswünschen melden Sie sich bitte bei uns." : "Bereits für euch gebucht. Bei Änderungswünschen meldet euch bitte bei uns."}
             </p>
           )}
         </Card>
@@ -311,8 +314,8 @@ export function StartscreenGallery({
                   Startbildschirm wechseln?
                 </h3>
                 <p className="mt-3 text-sm text-anthracite-600">
-                  Ihr habt bereits <strong>{currentHomeScreenName ?? "einen anderen Startbildschirm"}</strong>{" "}
-                  ausgewählt und dieser wird bereits individuell für euch vorbereitet. Ein Wechsel
+                  {sie ? "Sie haben" : "Ihr habt"} bereits <strong>{currentHomeScreenName ?? "einen anderen Startbildschirm"}</strong>{" "}
+                  ausgewählt und dieser wird bereits individuell für {sie ? "Sie" : "euch"} vorbereitet. Ein Wechsel
                   zu <strong>{previewScreen.name}</strong> ist möglich, kostet aber einmalig{" "}
                   <strong>{formatCurrencyEUR(SELECTION_SWITCH_FEE)}</strong> Aufpreis.
                 </p>

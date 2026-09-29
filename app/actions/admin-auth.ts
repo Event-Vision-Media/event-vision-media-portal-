@@ -25,7 +25,7 @@ export async function adminLogin(
     return { error: "Anmeldung fehlgeschlagen. Bitte überprüfe deine Zugangsdaten." };
   }
 
-  redirect("/admin/dashboard");
+  redirect("/admin/uebersicht");
 }
 
 export async function adminLogout() {

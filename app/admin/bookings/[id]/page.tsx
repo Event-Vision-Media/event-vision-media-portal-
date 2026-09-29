@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BookingRowActions } from "@/components/admin/BookingRowActions";
 import { CustomLoginCodeCell } from "@/components/admin/CustomLoginCodeCell";
+import { AccessCodeCell } from "@/components/admin/AccessCodeCell";
 import { PremiumIncludedToggle } from "@/components/admin/PremiumIncludedToggle";
 import { EventUploadedToggle } from "@/components/admin/EventUploadedToggle";
 import { EventCompletedToggle } from "@/components/admin/EventCompletedToggle";
@@ -18,6 +19,15 @@ import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
 import { AudioGuestbookAdminSection } from "@/components/admin/AudioGuestbookAdminSection";
 import { Card } from "@/components/ui/Card";
+import { ContractAdminCard } from "@/components/admin/ContractAdminCard";
+import { getLatestContract } from "@/lib/contract-server";
+import { contractRequired } from "@/lib/contract";
+import { getPaymentSummary } from "@/lib/payments";
+import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
+import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
+import { LogisticsForm } from "@/components/admin/LogisticsForm";
+import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
+import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman } from "@/lib/format";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
@@ -93,6 +103,9 @@ export default async function AdminBookingDetailPage({
   ]);
 
   const booking = bookingData as (Booking & { layouts: any; home_screens: any }) | null;
+  const contract = booking ? await getLatestContract(booking.id) : null;
+  const payment = booking ? await getPaymentSummary(booking) : null;
+  const info = booking ? (await loadBookingInfos([booking]))[0] : null;
 
   if (!booking) {
     return (
@@ -163,7 +176,8 @@ export default async function AdminBookingDetailPage({
 
   const hasAudioGuestbook = bookingHasAudioGuestbook(
     booking.product_type,
-    extraItems.map((e) => e.label)
+    extraItems.map((e) => e.label),
+    booking.inquiry_items
   );
 
   const audioGreeting = audioGreetingData as AudioGuestbookGreeting | null;
@@ -246,6 +260,17 @@ export default async function AdminBookingDetailPage({
             </div>
             <div>
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
+                Zugangscode (sicher)
+              </p>
+              <AccessCodeCell
+                bookingId={booking.id}
+                code={booking.access_code ?? null}
+                customerName={booking.customer_name || booking.couple_names}
+                phone={booking.phone ?? null}
+              />
+            </div>
+            <div>
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
                 Premium-Layout
               </p>
               <PremiumIncludedToggle
@@ -271,6 +296,40 @@ export default async function AdminBookingDetailPage({
             </div>
           </div>
         </Card>
+
+        {info && (
+          <Card>
+            <h2 className="mb-4 font-serif text-lg font-semibold text-anthracite-800">Kunde &amp; Einsatz</h2>
+            <BookingInfoPanel info={info} showTitle={false} />
+            <div className="mt-4 border-t border-anthracite-100 pt-3 text-sm">
+              <Link href={`/admin/lieferung?booking=${booking.id}`} className="font-medium text-gold-700 hover:text-gold-800">
+                Liefer- &amp; Abholzeiten bearbeiten →
+              </Link>
+            </div>
+            {booking.inquiry_items?.packages && (
+              <div className="mt-4 border-t border-anthracite-100 pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Anfahrt &amp; Abholung korrigieren</p>
+                <LogisticsForm
+                  bookingId={booking.id}
+                  km={booking.inquiry_items?.travel?.km ?? null}
+                  pickup={booking.inquiry_items?.pickup ?? null}
+                  locked={Boolean(contract)}
+                />
+              </div>
+            )}
+          </Card>
+        )}
+
+        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
+
+        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} />}
+
+        {(booking as any).layout_draft && (
+          <Card>
+            <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">Layout-Wunsch von der Website</h2>
+            <LayoutDraftCard draft={(booking as any).layout_draft} />
+          </Card>
+        )}
 
         <Card>
           <div className="mb-3 flex items-center justify-between gap-3">

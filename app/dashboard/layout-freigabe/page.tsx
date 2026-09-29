@@ -47,12 +47,13 @@ export default async function LayoutFreigabePage() {
             Layout-Freigabe
           </h1>
           <p className="mt-1 text-anthracite-500">
-            Prüft eure individuell erstellten Layouts und gebt sie frei — oder
-            fordert Änderungen an.
+            {booking.customer_type === "business"
+              ? "Prüfen Sie Ihre individuell erstellten Layouts und geben Sie sie frei – oder fordern Sie Änderungen an."
+              : "Prüft eure individuell erstellten Layouts und gebt sie frei — oder fordert Änderungen an."}
           </p>
         </div>
 
-        <LayoutProofsSection groupedProofs={groupedProofs} />
+        <LayoutProofsSection groupedProofs={groupedProofs} sie={booking.customer_type === "business"} />
       </main>
 
       <Footer />

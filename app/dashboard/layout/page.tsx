@@ -35,11 +35,12 @@ export default async function LayoutSelectionPage() {
 
         <div className="mt-3 animate-fade-in-up">
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-anthracite-800 sm:text-3xl">
-            Wählt euer Foto-Layout
+            {booking.customer_type === "business" ? "Wählen Sie Ihr Foto-Layout" : "Wählt euer Foto-Layout"}
           </h1>
           <p className="mt-1 mb-6 text-anthracite-500">
-            Tippt auf ein Layout für eine größere Vorschau und wählt dann euren
-            Favoriten aus.
+            {booking.customer_type === "business"
+              ? "Tippen Sie auf ein Layout für eine größere Vorschau und wählen Sie dann Ihren Favoriten. Farben, Logo und Texte passen wir an Ihr Corporate Design an."
+              : "Tippt auf ein Layout für eine größere Vorschau und wählt dann euren Favoriten aus."}
           </p>
         </div>
 
@@ -53,6 +54,7 @@ export default async function LayoutSelectionPage() {
           initialExtraWishes={booking.extra_wishes}
           hasConsentedBefore={Boolean(booking.personalization_name)}
           premiumIncluded={booking.premium_layout_included}
+          sie={booking.customer_type === "business"}
         />
       </main>
 

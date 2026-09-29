@@ -21,7 +21,7 @@ export function GuestHeader({ bookingCode }: { bookingCode: string }) {
               Event Vision Media
             </span>
             <span className="text-xs tracking-wide text-anthracite-400">
-              Code: {bookingCode}
+              Buchung {bookingCode}
             </span>
           </span>
         </Link>

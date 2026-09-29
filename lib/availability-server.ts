@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { computeAvailability, type AvailabilityInfo } from "@/lib/availability";
+import { extraNamesCoveredByPackages } from "@/lib/catalog";
 import type { AvailabilityBlock, Extra, ExtraVariant } from "@/lib/types";
 
 export interface AvailabilityBoard {
@@ -33,7 +34,12 @@ export async function getAvailabilityBoard(
     await Promise.all([
       supabase.from("extras").select("*").order("sort_order", { ascending: true }),
       supabase.from("extra_variants").select("*").order("sort_order", { ascending: true }),
-      supabase.from("bookings").select("id").eq("event_date", date),
+      supabase
+        .from("bookings")
+        .select("id, inquiry_items, lifecycle")
+        .eq("event_date", date)
+        // Abgelehnte/stornierte Buchungen und reine Anfragen belegen nichts.
+        .in("lifecycle", ["reserviert", "bestaetigt"]),
       supabase
         .from("availability_blocks")
         .select("*")
@@ -76,6 +82,18 @@ export async function getAvailabilityBoard(
       blockedByVariant.set(b.variant_id, (blockedByVariant.get(b.variant_id) ?? 0) + b.blocked_quantity);
     }
   });
+
+  // Website-Buchungen enthalten Geräte wie das Audiogästebuch als eigenes
+  // Paket (nicht in booking_extras) – diese zählen ebenfalls als gebucht.
+  const extraIdByName = new Map(extras.map((e) => [e.name, e.id]));
+  (bookingsOnDate ?? [])
+    .filter((b: any) => b.id !== excludeBookingId)
+    .forEach((b: any) => {
+      extraNamesCoveredByPackages(b.inquiry_items).forEach((name) => {
+        const id = extraIdByName.get(name);
+        if (id) bookedByExtra.set(id, (bookedByExtra.get(id) ?? 0) + 1);
+      });
+    });
 
   const byExtraId: Record<string, AvailabilityInfo> = {};
   extras.forEach((extra) => {
@@ -121,7 +139,7 @@ export async function getAvailabilityForItem(
 
   const { data: extra } = await supabase
     .from("extras")
-    .select("total_stock")
+    .select("total_stock, name")
     .eq("id", extraId)
     .maybeSingle();
 
@@ -150,12 +168,18 @@ export async function getAvailabilityForItem(
     return computeAvailability(null, 0, blocked);
   }
 
-  const { data: bookingsOnDate } = await supabase.from("bookings").select("id").eq("event_date", date);
-  const bookingIds = (bookingsOnDate ?? [])
-    .map((b) => b.id)
-    .filter((id) => id !== excludeBookingId);
+  const { data: bookingsOnDate } = await supabase
+    .from("bookings")
+    .select("id, inquiry_items")
+    .eq("event_date", date)
+    .in("lifecycle", ["reserviert", "bestaetigt"]);
+  const otherBookings = (bookingsOnDate ?? []).filter((b) => b.id !== excludeBookingId);
+  const bookingIds = otherBookings.map((b) => b.id);
 
-  let booked = 0;
+  // Geräte, die in Website-Buchungen als eigenes Paket gebucht sind
+  let booked = sharedAtExtraLevel && extra?.name
+    ? otherBookings.filter((b) => extraNamesCoveredByPackages(b.inquiry_items).includes(extra.name)).length
+    : 0;
   if (bookingIds.length > 0) {
     let query = supabase
       .from("booking_extras")
@@ -166,7 +190,7 @@ export async function getAvailabilityForItem(
       query = query.eq("variant_id", variantId);
     }
     const { count } = await query;
-    booked = count ?? 0;
+    booked += count ?? 0;
   }
 
   return computeAvailability(total, booked, blocked);

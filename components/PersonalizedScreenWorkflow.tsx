@@ -27,21 +27,25 @@ function statusTone(status: PersonalizedScreenProof["status"]) {
 export function PersonalizedScreenWorkflow({
   initialRequest,
   proofs,
+  sie = false,
 }: {
   initialRequest: PersonalizedScreenRequest | null;
   proofs: PersonalizedScreenProof[];
+  /** Firmenkunde: Logo, Firmenname und Begrüßungstext statt Paar-Foto. */
+  sie?: boolean;
 }) {
   return (
     <div className="space-y-5">
-      <PersonalizationDetailsForm initialRequest={initialRequest} />
+      <PersonalizationDetailsForm initialRequest={initialRequest} sie={sie} />
 
       {proofs.length > 0 ? (
         <PersonalizedScreenProofCard versions={proofs} />
       ) : (
         <div className="rounded-2xl border border-dashed border-anthracite-200 bg-white p-5 text-center">
           <p className="text-sm text-anthracite-500">
-            Sobald wir euren Startbildschirm gestaltet haben, könnt ihr den Entwurf hier prüfen
-            und freigeben.
+            {sie
+              ? "Sobald wir Ihren Startbildschirm gestaltet haben, können Sie den Entwurf hier prüfen und freigeben."
+              : "Sobald wir euren Startbildschirm gestaltet haben, könnt ihr den Entwurf hier prüfen und freigeben."}
           </p>
         </div>
       )}
@@ -51,8 +55,10 @@ export function PersonalizedScreenWorkflow({
 
 function PersonalizationDetailsForm({
   initialRequest,
+  sie,
 }: {
   initialRequest: PersonalizedScreenRequest | null;
+  sie: boolean;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(!initialRequest);
@@ -66,7 +72,7 @@ function PersonalizationDetailsForm({
   function handleSave() {
     setErrorMessage(null);
     if (!nameDraft.trim() || !dateDraft.trim()) {
-      setErrorMessage("Bitte gebt mindestens Name und Datum an.");
+      setErrorMessage(sie ? "Bitte geben Sie mindestens Firmen-/Veranstaltungsname und Datum an." : "Bitte gebt mindestens Name und Datum an.");
       return;
     }
     const formData = new FormData();
@@ -91,7 +97,7 @@ function PersonalizationDetailsForm({
     <Card>
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-medium text-anthracite-800">
-          Eure Angaben für den personalisierten Startbildschirm
+          {sie ? "Ihre Angaben für den Startbildschirm" : "Eure Angaben für den personalisierten Startbildschirm"}
         </h3>
         {!isEditing && (
           <button
@@ -107,7 +113,7 @@ function PersonalizationDetailsForm({
       {!isEditing && initialRequest ? (
         <div className="mt-3 space-y-2 text-sm text-anthracite-700">
           <p>
-            <span className="text-anthracite-400">Name:</span>{" "}
+            <span className="text-anthracite-400">{sie ? "Firma / Veranstaltung:" : "Name:"}</span>{" "}
             {initialRequest.personalization_name}
           </p>
           <p>
@@ -117,7 +123,7 @@ function PersonalizationDetailsForm({
           </p>
           {initialRequest.wish_text && (
             <p>
-              <span className="text-anthracite-400">Wunschtext:</span> {initialRequest.wish_text}
+              <span className="text-anthracite-400">{sie ? "Begrüßungstext:" : "Wunschtext:"}</span> {initialRequest.wish_text}
             </p>
           )}
           {initialRequest.photo_url && (
@@ -137,7 +143,7 @@ function PersonalizationDetailsForm({
                 rel="noreferrer"
                 className="text-xs font-medium text-anthracite-500 underline hover:text-anthracite-800"
               >
-                Bild in voller Größe ansehen
+                {sie ? "Logo in voller Größe ansehen" : "Bild in voller Größe ansehen"}
               </a>
             </div>
           )}
@@ -149,13 +155,13 @@ function PersonalizationDetailsForm({
         <div className="mt-4 space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              Name(n)
+              {sie ? "Firmenname / Veranstaltung" : "Name(n)"}
             </label>
             <input
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              placeholder="z. B. Julia & Marco"
+              placeholder={sie ? "z. B. Muster GmbH · Sommerfest 2027" : "z. B. Julia & Marco"}
               className="input-field"
             />
           </div>
@@ -170,19 +176,22 @@ function PersonalizationDetailsForm({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              Wunschtext / Spruch <span className="text-anthracite-400">(optional)</span>
+              {sie ? "Begrüßungstext / Slogan" : "Wunschtext / Spruch"} <span className="text-anthracite-400">(optional)</span>
             </label>
             <textarea
               value={wishDraft}
               onChange={(e) => setWishDraft(e.target.value)}
               rows={2}
-              placeholder="z. B. euer Lieblingsspruch"
+              placeholder={sie ? "z. B. Willkommen zum Sommerfest!" : "z. B. euer Lieblingsspruch"}
               className="input-field"
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              Bild <span className="text-anthracite-400">(optional, z. B. Brautpaar-Foto)</span>
+              {sie ? "Logo" : "Bild"}{" "}
+              <span className="text-anthracite-400">
+                {sie ? "(am besten PNG mit transparentem Hintergrund)" : "(optional, z. B. Brautpaar-Foto)"}
+              </span>
             </label>
             <input
               type="file"
@@ -286,7 +295,7 @@ function PersonalizedScreenProofCard({ versions }: { versions: PersonalizedScree
   return (
     <div className="rounded-2xl border border-anthracite-100 bg-white p-4 shadow-card sm:p-5">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="font-medium text-anthracite-800">Euer Startbildschirm-Entwurf</h3>
+        <h3 className="font-medium text-anthracite-800">Entwurf Startbildschirm</h3>
         <div className="flex items-center gap-2">
           <Badge tone={statusTone(latest.status)}>{LAYOUT_PROOF_STATUS_LABELS[latest.status]}</Badge>
           <span className="text-xs text-anthracite-400">Version {latest.version}</span>
@@ -392,7 +401,7 @@ function PersonalizedScreenProofCard({ versions }: { versions: PersonalizedScree
             </div>
           ) : (
             <p className="mt-3 text-xs italic text-gold-600">
-              Noch nicht bearbeitet — dein Team wurde benachrichtigt.
+              Noch nicht bearbeitet — unser Team wurde benachrichtigt.
             </p>
           )}
         </div>

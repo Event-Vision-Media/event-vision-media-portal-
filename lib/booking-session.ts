@@ -2,7 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { Booking } from "@/lib/types";
+import { PORTAL_LIFECYCLES, type Booking } from "@/lib/types";
 
 const COOKIE_NAME = "fb_booking_id";
 
@@ -37,6 +37,8 @@ export async function getCurrentBooking(): Promise<Booking | null> {
     .maybeSingle();
 
   if (error || !data) return null;
+  // Abgelehnte/stornierte oder noch nicht freigegebene Anfragen haben keinen Portal-Zugang.
+  if (data.lifecycle && !PORTAL_LIFECYCLES.includes(data.lifecycle)) return null;
   return data as Booking;
 }
 

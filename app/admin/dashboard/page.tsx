@@ -30,7 +30,11 @@ export default async function AdminBookingsPage({
     { data: activityData },
     { data: screenProofsData },
   ] = await Promise.all([
-    supabase.from("bookings").select("*").order("event_date", { ascending: true }),
+    supabase
+      .from("bookings")
+      .select("*")
+      .in("lifecycle", ["bestaetigt", "reserviert"])
+      .order("event_date", { ascending: true }),
     supabase.from("booking_extras").select("booking_id, extras(category)"),
     supabase
       .from("layout_proofs")
@@ -223,6 +227,11 @@ export default async function AdminBookingsPage({
                       >
                         {booking.booking_code}
                       </Link>
+                      {booking.lifecycle === "reserviert" && (
+                        <Link href="/admin/anfragen" className="ml-2 align-middle">
+                          <Badge tone="gold">Reserviert</Badge>
+                        </Link>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-anthracite-800">{booking.couple_names}</td>
                     <td className="whitespace-nowrap px-4 py-3 text-anthracite-600">

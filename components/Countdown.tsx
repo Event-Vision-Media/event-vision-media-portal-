@@ -13,7 +13,7 @@ function getRemaining(targetDate: string) {
   };
 }
 
-export function Countdown({ eventDate }: { eventDate: string }) {
+export function Countdown({ eventDate, sie = false }: { eventDate: string; sie?: boolean }) {
   const [remaining, setRemaining] = useState(() => getRemaining(eventDate));
 
   useEffect(() => {
@@ -26,9 +26,9 @@ export function Countdown({ eventDate }: { eventDate: string }) {
   if (remaining.isPast) {
     return (
       <div className="rounded-2xl bg-anthracite-800 px-6 py-8 text-center text-white shadow-card">
-        <p className="text-lg font-medium">Euer Event hat bereits stattgefunden 🎉</p>
+        <p className="text-lg font-medium">{sie ? "Ihre Veranstaltung hat bereits stattgefunden" : "Euer Event hat bereits stattgefunden 🎉"}</p>
         <p className="mt-1 text-sm text-anthracite-200">
-          Wir hoffen, ihr hattet eine wundervolle Zeit!
+          {sie ? "Vielen Dank, dass wir dabei sein durften!" : "Wir hoffen, ihr hattet eine wundervolle Zeit!"}
         </p>
       </div>
     );
@@ -40,7 +40,7 @@ export function Countdown({ eventDate }: { eventDate: string }) {
       <div className="pointer-events-none absolute -bottom-16 -left-10 h-48 w-48 rounded-full bg-gold-500/10 blur-3xl" />
 
       <p className="relative text-xs font-medium uppercase tracking-[0.2em] text-gold-300">
-        Countdown bis zu eurem Event
+        {sie ? "Countdown bis zu Ihrer Veranstaltung" : "Countdown bis zu eurem Event"}
       </p>
       <div className="relative mt-5 flex items-center justify-center gap-3 sm:gap-5">
         <TimeBlock value={remaining.days} label="Tage" />

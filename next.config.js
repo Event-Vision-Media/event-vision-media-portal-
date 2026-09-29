@@ -8,6 +8,13 @@ const supabaseHostname = (() => {
   }
 })();
 
+// Optional weitere Bild-Hosts (kommagetrennt), z. B. lokal zum Testen mit
+// Bildern aus dem Live-Speicher. In Produktion normalerweise leer.
+const extraImageHosts = (process.env.EXTRA_IMAGE_HOSTS || "")
+  .split(",")
+  .map((h) => h.trim())
+  .filter(Boolean);
+
 const nextConfig = {
   experimental: {
     serverActions: {
@@ -22,6 +29,7 @@ const nextConfig = {
       ...(supabaseHostname
         ? [{ protocol: "https", hostname: supabaseHostname }]
         : []),
+      ...extraImageHosts.map((hostname) => ({ protocol: "https", hostname })),
     ],
   },
 };

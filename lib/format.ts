@@ -13,6 +13,8 @@ export function formatDateTimeGerman(isoString: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    // Server (Vercel) läuft in UTC – Zeiten immer in deutscher Zeit anzeigen
+    timeZone: "Europe/Berlin",
   });
 }
 

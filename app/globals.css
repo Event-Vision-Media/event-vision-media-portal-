@@ -28,3 +28,18 @@
     @apply rounded-2xl border border-anthracite-100/80 bg-white/90 shadow-card backdrop-blur-sm;
   }
 }
+
+/* Druckansicht Mietvertrag: nur der Vertrag, ohne Portal-Navigation */
+@media print {
+  body > div > header,
+  body > div > footer,
+  .print-hidden {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .contract-doc section {
+    break-inside: avoid-page;
+  }
+}

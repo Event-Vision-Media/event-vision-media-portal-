@@ -4,7 +4,9 @@ import { formatFileSize } from "@/lib/format";
 export function AudioRecordingsList({
   bookingId,
   recordings,
+  sie = false,
 }: {
+  sie?: boolean;
   bookingId: string;
   recordings: { id: string; fileName: string; fileSize: number; playUrl: string | null }[];
 }) {
@@ -16,7 +18,7 @@ export function AudioRecordingsList({
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-anthracite-500">
-          {recordings.length} Nachricht{recordings.length === 1 ? "" : "en"} eurer Gäste
+          {recordings.length} Nachricht{recordings.length === 1 ? "" : "en"} {sie ? "Ihrer" : "eurer"} Gäste
         </p>
         <a href={`/api/audio-guestbook/download-all?bookingId=${bookingId}`}>
           <Button variant="secondary">Alle Aufnahmen herunterladen</Button>
