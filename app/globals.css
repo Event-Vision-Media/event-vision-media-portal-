@@ -29,17 +29,61 @@
   }
 }
 
-/* Druckansicht Mietvertrag: nur der Vertrag, ohne Portal-Navigation */
+/* Druckansicht Mietvertrag: nur der Vertrag als echtes Dokument (Text statt Bild).
+   Unschärfe-, Schatten- und feste Hintergrund-Effekte zwingen Browser beim
+   Drucken dazu, Bereiche als Bild einzufügen – deshalb hier komplett aus. */
 @media print {
+  @page {
+    size: A4;
+    margin: 16mm 14mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    background-image: none !important;
+  }
+  *,
+  *::before,
+  *::after {
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    animation: none !important;
+    transition: none !important;
+  }
+  /* nur die Portal-Kopf-/Fußzeilen – der <header> im Vertrag selbst bleibt */
   body > div > header,
   body > div > footer,
+  body > header,
+  body > footer,
   .print-hidden {
     display: none !important;
   }
-  body {
+  main {
+    max-width: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  /* Karten-Optik weg: Vertrag läuft als schlichtes Dokument über die Seiten */
+  .print-plain,
+  main > .rounded-2xl {
+    border: 0 !important;
+    border-radius: 0 !important;
+    padding: 0 !important;
     background: #fff !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+  .contract-doc {
+    font-size: 11pt;
+    color: #000;
   }
   .contract-doc section {
     break-inside: avoid-page;
+  }
+  .contract-doc img {
+    max-height: 60mm;
   }
 }

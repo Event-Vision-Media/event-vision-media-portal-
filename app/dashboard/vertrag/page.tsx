@@ -61,7 +61,7 @@ export default async function ContractPage() {
             </div>
           </div>
 
-          <Card>
+          <Card className="print-plain">
             <ContractDocument doc={signed.snapshot}>
               <SignatureBlock
                 signerName={signed.signer_name}
@@ -104,7 +104,7 @@ export default async function ContractPage() {
         </div>
 
         <Card className="animate-fade-in-up">
-          <div className="max-h-[32rem] overflow-y-auto pr-2">
+          <div className="max-h-[32rem] overflow-y-auto pr-2 print:max-h-none print:overflow-visible">
             <ContractDocument doc={doc} />
           </div>
           <p className="mt-3 border-t border-anthracite-100 pt-3 text-xs text-anthracite-400">
@@ -113,7 +113,7 @@ export default async function ContractPage() {
           </p>
         </Card>
 
-        <Card className="animate-fade-in-up">
+        <Card className="animate-fade-in-up print-hidden">
           <ContractSignForm
             sie={sie}
             isBusiness={doc.isBusiness}

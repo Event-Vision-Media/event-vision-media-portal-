@@ -23,7 +23,7 @@ export default async function AdminContractPage({ params }: { params: { id: stri
         {!contract ? (
           <Card><p className="text-sm text-anthracite-400">Noch kein unterschriebener Vertrag vorhanden.</p></Card>
         ) : (
-          <Card>
+          <Card className="print-plain">
             <ContractDocument doc={contract.snapshot}>
               <SignatureBlock
                 signerName={contract.signer_name}
