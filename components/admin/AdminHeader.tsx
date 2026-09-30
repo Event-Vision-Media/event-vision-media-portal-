@@ -35,6 +35,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
     links: [
       { href: "/admin/verfuegbarkeit", label: "Verfügbarkeit", hint: "Tage & Geräte sperren" },
       { href: "/admin/zugangscodes", label: "Zugangscodes", hint: "Portal-Codes der Kunden" },
+      { href: "/admin/statistik", label: "Statistik", hint: "Anfragen, Abschlussquote, Upsells, Herkunft" },
       { href: "/admin/mail-vorschau", label: "E-Mails", hint: "Alle automatischen Mails ansehen" },
       { href: "/admin/settings", label: "Allgemein", hint: "Bankverbindung, Kalender-Abo, Google" },
     ],

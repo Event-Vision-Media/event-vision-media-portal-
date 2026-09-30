@@ -163,6 +163,8 @@ export interface InquiryInput {
   access?: AccessInfo | null;
   /** Gewünschte Abholung (nur bei Lieferung). */
   pickup?: PickupId | null;
+  /** Herkunft der Anfrage (Statistik). */
+  source?: Record<string, string> | null;
   layoutDraft: Record<string, unknown> | null;
   /** Vorschau-Grafik und Logo aus dem Layout-Designer (werden in den Speicher hochgeladen). */
   layoutFiles?: {
@@ -226,7 +228,7 @@ export async function createBookingFromInquiry(input: InquiryInput): Promise<Inq
         location: input.location,
         guest_count: input.guestCount,
         event_days: priced.days,
-        inquiry_items: { ...priced, duration: input.duration, shortNotice, access: input.access ?? null, pickup: delivered ? input.pickup ?? null : null, travel: delivered ? travel : null },
+        inquiry_items: { ...priced, duration: input.duration, shortNotice, access: input.access ?? null, pickup: delivered ? input.pickup ?? null : null, travel: delivered ? travel : null, source: input.source ?? null },
         total_price: priced.total,
         inquiry_message: input.message,
         layout_draft: input.layoutDraft,

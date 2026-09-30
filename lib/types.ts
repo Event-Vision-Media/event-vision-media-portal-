@@ -85,6 +85,8 @@ export interface Booking {
     pickup?: string | null;
     /** Entfernung & Fahrtkosten zur Location. */
     travel?: { km: number | null; price: number | null; status: "ok" | "unknown" | "over"; manual?: boolean } | null;
+    /** Herkunft der Anfrage (Statistik): vorherige Seite, externe Herkunft, utm-Parameter. */
+    source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string } | null;
   } | null;
   total_price: number | null;
   inquiry_message: string | null;

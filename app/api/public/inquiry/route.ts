@@ -72,6 +72,13 @@ export async function POST(req: NextRequest) {
     phone: str(body.phone, 40) || null,
     message: str(body.message, 3000) || null,
     access: null,
+    source: (() => {
+      const s = body.source && typeof body.source === "object" ? body.source : {};
+      const clean = (v: unknown) => str(v, 80).replace(/[^\w.\-/äöüÄÖÜß]/g, "") || undefined;
+      const out = { page: clean(s.page), ref: clean(s.ref), source: clean(s.source), medium: clean(s.medium), campaign: clean(s.campaign) };
+      const entries = Object.entries(out).filter(([, v]) => v) as [string, string][];
+      return entries.length ? Object.fromEntries(entries) : null;
+    })(),
     pickup: PICKUP_OPTIONS.some((o) => o.id === body.pickup) ? body.pickup : null,
     layoutDraft: body.layoutDraft && typeof body.layoutDraft === "object" ? {
       label: str(body.layoutDraft.label, 200), title: str(body.layoutDraft.title, 60),
