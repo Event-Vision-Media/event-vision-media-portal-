@@ -67,11 +67,15 @@ export async function confirmInquiry(bookingId: string, force = false): Promise<
     .is("countersigned_at", null);
 
   let mailSent = false;
+  let mailId: string | undefined;
   if (b.email) {
     const m = confirmationMail(toMailBooking(b));
-    mailSent = (await sendEmail({ to: b.email, ...m })).sent;
+    const r = await sendEmail({ to: b.email, ...m });
+    mailSent = r.sent;
+    mailId = r.id;
   }
   await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? " – Auftragsbestätigung verschickt" : " (keine E-Mail verschickt)"}`);
+  if (mailId) await logActivity(bookingId, "mail_bestaetigung", mailId);
 
   revalidatePath("/admin/anfragen");
   revalidatePath("/admin/dashboard");

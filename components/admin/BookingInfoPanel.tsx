@@ -58,6 +58,9 @@ export function BookingInfoPanel({ info, showTitle = true }: { info: BookingInfo
             {info.contractNeeded && (
               <Badge tone={c?.countersigned ? "success" : c ? "gold" : "neutral"}>{c?.countersigned ? "Vertrag ✓" : c ? "Vertrag unterschr." : "Vertrag offen"}</Badge>
             )}
+            {b.lifecycle === "bestaetigt" && info.contractNeeded && (
+              <Badge tone={info.lastLogin ? "success" : "neutral"}>{info.lastLogin ? "Im Portal ✓" : "Noch nicht im Portal"}</Badge>
+            )}
             {openAmount != null && (
               <Badge tone={openAmount === 0 ? "success" : "neutral"}>{openAmount === 0 ? "Bezahlt ✓" : `Offen ${formatCurrencyEUR(openAmount)}`}</Badge>
             )}

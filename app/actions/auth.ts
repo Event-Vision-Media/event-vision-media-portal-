@@ -1,5 +1,7 @@
 "use server";
 
+import { logActivity } from "@/lib/activity-log";
+
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -95,6 +97,19 @@ export async function loginWithBookingCode(
 
   failedLogins.delete(ip);
   setBookingSessionCookie(booking.id);
+  // Für den Admin: „Kunde war im Portal“ (höchstens ein Eintrag je 6 Std.)
+  try {
+    const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
+    const { count } = await supabase
+      .from("activity_log")
+      .select("id", { count: "exact", head: true })
+      .eq("booking_id", booking.id)
+      .eq("event_type", "kunde_login")
+      .gte("created_at", since);
+    if (!count) await logActivity(booking.id, "kunde_login", "Kunde hat sich im Kundenportal angemeldet");
+  } catch {
+    // nicht kritisch
+  }
   redirect("/dashboard");
 }
 

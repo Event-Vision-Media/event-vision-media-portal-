@@ -19,7 +19,7 @@ interface MailInput {
   replyTo?: string;
 }
 
-export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error?: string }> {
+export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error?: string; id?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM || `${BRAND} <info@fotobox-essen.com>`;
   // Reservierte Test-Domains (RFC 2606) nie anschreiben – schützt die Absender-Reputation
@@ -50,10 +50,25 @@ export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error
       console.error(`[email] Versand fehlgeschlagen (${res.status}): ${body}`);
       return { sent: false, error: `http_${res.status}` };
     }
-    return { sent: true };
+    const json = (await res.json().catch(() => null)) as { id?: string } | null;
+    return { sent: true, id: json?.id };
   } catch (err) {
     console.error("[email] Versand fehlgeschlagen:", err);
     return { sent: false, error: "network" };
+  }
+}
+
+/** Zustellstatus einer verschickten Mail bei Resend (delivered, bounced, …). */
+export async function mailDeliveryStatus(id: string): Promise<{ status: string; at: string | null } | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey || !/^[\w-]{8,}$/.test(id)) return null;
+  try {
+    const res = await fetch(`https://api.resend.com/emails/${id}`, { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store" });
+    if (!res.ok) return null;
+    const j = (await res.json()) as { last_event?: string; created_at?: string };
+    return { status: j.last_event ?? "unknown", at: j.created_at ?? null };
+  } catch {
+    return null;
   }
 }
 

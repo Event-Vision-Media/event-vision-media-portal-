@@ -43,6 +43,7 @@ export default async function AdminBookingsPage({
     supabase
       .from("activity_log")
       .select("id, message, created_at, read_at, bookings(booking_code)")
+      .neq("event_type", "mail_bestaetigung") // technischer Eintrag (Mail-ID für den Zustellstatus)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase

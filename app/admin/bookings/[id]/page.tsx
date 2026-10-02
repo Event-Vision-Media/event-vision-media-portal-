@@ -26,6 +26,7 @@ import { getPaymentSummary } from "@/lib/payments";
 import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
 import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
+import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
@@ -319,6 +320,8 @@ export default async function AdminBookingDetailPage({
             )}
           </Card>
         )}
+
+        {booking.lifecycle === "bestaetigt" && <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} />}
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
 

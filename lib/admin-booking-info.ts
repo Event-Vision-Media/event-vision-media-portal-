@@ -20,6 +20,8 @@ export interface BookingInfo {
     billing: { address?: string | null; email?: string | null; poNumber?: string | null; costCenter?: string | null } | null;
   } | null;
   contractNeeded: boolean;
+  /** Letzte Anmeldung des Kunden im Portal (aus dem Aktivitätsprotokoll). */
+  lastLogin: string | null;
   payment: PaymentSummary | null;
 }
 
@@ -27,14 +29,22 @@ export async function loadBookingInfos(bookings: Booking[]): Promise<BookingInfo
   if (bookings.length === 0) return [];
   const supabase = createAdminClient();
   const ids = bookings.map((b) => b.id);
-  const [{ data: extras }, { data: contracts }] = await Promise.all([
+  const [{ data: extras }, { data: contracts }, { data: logins }] = await Promise.all([
     supabase.from("booking_extras").select("booking_id, extras(name), extra_variants(name)").in("booking_id", ids),
     supabase
       .from("booking_contracts")
       .select("booking_id, renter_street, renter_zip_city, location_name, location_street, location_zip_city, onsite_contact_name, onsite_contact_phone, handover_window, return_window, countersigned_at, signed_at, billing:snapshot->billing")
       .in("booking_id", ids)
       .order("signed_at", { ascending: false }),
+    supabase
+      .from("activity_log")
+      .select("booking_id, created_at")
+      .eq("event_type", "kunde_login")
+      .in("booking_id", ids)
+      .order("created_at", { ascending: false }),
   ]);
+  const lastLoginBy = new Map<string, string>();
+  for (const l of logins ?? []) if (!lastLoginBy.has(l.booking_id)) lastLoginBy.set(l.booking_id, l.created_at);
 
   const extrasBy = new Map<string, string[]>();
   for (const e of (extras ?? []) as any[]) {
@@ -70,6 +80,7 @@ export async function loadBookingInfos(bookings: Booking[]): Promise<BookingInfo
             }
           : null,
         contractNeeded: contractRequired(b),
+        lastLogin: lastLoginBy.get(b.id) ?? null,
         payment: contractRequired(b) ? await getPaymentSummary(b) : null,
       };
     })
