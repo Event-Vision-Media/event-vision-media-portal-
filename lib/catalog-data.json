@@ -100,7 +100,7 @@
       "product": "spiegel",
       "name": "Firmen-Komplett Spiegel Modern",
       "short": "Spiegel Modern",
-      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
       "price": 789,
       "badge": null,
       "businessOnly": true,
@@ -113,11 +113,11 @@
       "features": [
         "Alles aus dem Paket „Magic Mirror Modern“",
         "Fotospiegel während der gesamten Veranstaltung",
-        "3 Stunden Betreuung durch unser Personal",
+        "Bis zu 5 Stunden Betreuung durch unser Personal",
         "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
         "Hintergrundsystem 2,40 × 2,40 m",
         "Mobiler WLAN-Router für den QR-Download",
-        "Weitere Betreuungsstunden je 59 € zubuchbar"
+        "Ab der 6. Stunde je 59 € zubuchbar"
       ],
       "includes": "spiegel-modern"
     },
@@ -126,7 +126,7 @@
       "product": "spiegel",
       "name": "Firmen-Komplett Spiegel Gold",
       "short": "Spiegel Gold",
-      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
       "price": 849,
       "badge": null,
       "businessOnly": true,
@@ -139,11 +139,11 @@
       "features": [
         "Alles aus dem Paket „Magic Mirror Gold“",
         "Fotospiegel während der gesamten Veranstaltung",
-        "3 Stunden Betreuung durch unser Personal",
+        "Bis zu 5 Stunden Betreuung durch unser Personal",
         "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
         "Hintergrundsystem 2,40 × 2,40 m",
         "Mobiler WLAN-Router für den QR-Download",
-        "Weitere Betreuungsstunden je 59 € zubuchbar"
+        "Ab der 6. Stunde je 59 € zubuchbar"
       ],
       "includes": "spiegel-gold"
     },
@@ -171,7 +171,7 @@
       "product": "fotobox",
       "name": "Firmen-Komplett Fotobox",
       "short": "Firmen-Komplett",
-      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
       "price": 669,
       "badge": null,
       "businessOnly": true,
@@ -184,11 +184,11 @@
       "features": [
         "Alles aus dem Paket „Fotobox Digital & Print“",
         "Fotobox während der gesamten Veranstaltung",
-        "3 Stunden Betreuung durch unser Personal",
+        "Bis zu 5 Stunden Betreuung durch unser Personal",
         "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
         "Hintergrundsystem 2,40 × 2,40 m",
         "Mobiler WLAN-Router für den QR-Download",
-        "Weitere Betreuungsstunden je 59 € zubuchbar"
+        "Ab der 6. Stunde je 59 € zubuchbar"
       ],
       "includes": "fotobox-komplett"
     },

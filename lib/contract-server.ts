@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { EXTRAS as CATALOG_EXTRAS } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames } from "@/lib/catalog";
 import { buildContract, type BankDetails, type ContractDoc, type RenterDetails } from "@/lib/contract";
 import { SELECTION_SWITCH_FEE, type Booking } from "@/lib/types";
 
@@ -55,9 +55,10 @@ export async function contractInputFor(booking: Booking) {
   ]);
 
   const bookedExtraNames = (bookedExtras ?? []).map((be: any) => be.extras?.name).filter(Boolean) as string[];
-  const inquiryExtraNames = new Set(
-    (booking.inquiry_items?.extras ?? []).map((e) => CATALOG_EXTRAS.find((c) => c.id === e.id)?.dbExtraName).filter(Boolean)
-  );
+  const inquiryExtraNames = new Set([
+    ...(booking.inquiry_items?.extras ?? []).map((e) => CATALOG_EXTRAS.find((c) => c.id === e.id)?.dbExtraName).filter(Boolean),
+    ...bundledExtraNames(booking.inquiry_items),
+  ]);
   const laterExtras = (bookedExtras ?? [])
     .filter((be: any) => be.extras?.name && !inquiryExtraNames.has(be.extras.name))
     .map((be: any) => ({
@@ -72,7 +73,13 @@ export async function contractInputFor(booking: Booking) {
   const switches = (booking.layout_switch_count ?? 0) + (booking.home_screen_switch_count ?? 0);
   if (switches > 0) portalFees.push({ name: `Layout-/Startbildschirm-Wechsel (${switches}×)`, price: switches * SELECTION_SWITCH_FEE });
 
-  return { booking, bookedExtraNames, laterExtras, portalFees, bank };
+  // Auswahl bei im Firmen-Komplett enthaltenen Extras (z. B. Hintergrund-Motiv)
+  const bundledNames = new Set(bundledExtraNames(booking.inquiry_items));
+  const includedChoices = (bookedExtras ?? [])
+    .filter((be: any) => bundledNames.has(be.extras?.name) && be.extra_variants?.name)
+    .map((be: any) => `${be.extras.name}: ${be.extra_variants.name}`);
+
+  return { booking, bookedExtraNames, laterExtras, portalFees, bank, includedChoices };
 }
 
 export async function buildContractFor(booking: Booking, renter?: RenterDetails | null): Promise<ContractDoc> {

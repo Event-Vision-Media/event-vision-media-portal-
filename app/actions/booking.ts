@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentBooking } from "@/lib/booking-session";
+import { STAFF_MAX_EXTRA_HOURS, bundledExtraNames, daysUntil, staffFor, staffLabel } from "@/lib/catalog";
 import { getAvailabilityForItem } from "@/lib/availability-server";
 import { logActivity } from "@/lib/activity-log";
 
@@ -237,12 +238,17 @@ export async function selectExtraVariant(
   }
 
   const supabase = createAdminClient();
-  const { data: existing } = await supabase
-    .from("booking_extras")
-    .select("added_by_admin, variant_id")
-    .eq("booking_id", booking.id)
-    .eq("extra_id", extraId)
-    .maybeSingle();
+  const [{ data: existing }, { data: extraRow }] = await Promise.all([
+    supabase
+      .from("booking_extras")
+      .select("added_by_admin, variant_id")
+      .eq("booking_id", booking.id)
+      .eq("extra_id", extraId)
+      .maybeSingle(),
+    supabase.from("extras").select("name").eq("id", extraId).maybeSingle(),
+  ]);
+  // Im Firmen-Komplett enthalten (z. B. Hintergrund): Motiv frei wählbar, ohne Aufpreis
+  const inPackage = Boolean(extraRow?.name && bundledExtraNames(booking.inquiry_items).includes(extraRow.name));
 
   // Ein admin-seitig vorab gebuchtes Extra ohne festgelegte Variante
   // ("Bereits gebucht - Kunde wählt Variante später") bleibt für die
@@ -276,7 +282,7 @@ export async function selectExtraVariant(
       booking_id: booking.id,
       extra_id: extraId,
       variant_id: variantId,
-      price: variant.price,
+      price: inPackage ? 0 : variant.price,
       added_by_admin: existing?.added_by_admin ?? false,
     },
     { onConflict: "booking_id,extra_id" }
@@ -422,5 +428,33 @@ export async function updateAccessNotes(notes: string): Promise<ActionResult> {
   revalidatePath("/dashboard");
   revalidatePath("/admin/lieferung");
   revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+/**
+ * Kunde legt fest, wann unser Personal vor Ort sein soll, und kann weitere
+ * Betreuungsstunden anfragen (die bestätigt der Admin – erst dann ändert sich der Preis).
+ */
+export async function saveStaffTime(start: string, requestedExtra: number): Promise<ActionResult> {
+  const booking = await getCurrentBooking();
+  if (!booking) return { error: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an." };
+  const current = staffFor(booking.inquiry_items);
+  if (!current) return { error: "Für diese Buchung ist keine Betreuung gebucht." };
+  if (daysUntil(booking.event_date) < 2) return { error: "Kurz vor dem Event bitte telefonisch Bescheid geben." };
+  if (!/^([01]\d|2[0-3]):(00|30)$/.test(start)) return { error: "Bitte eine gültige Uhrzeit wählen." };
+  const extra = Math.round(Number(requestedExtra));
+  if (!Number.isFinite(extra) || extra < 0 || extra > STAFF_MAX_EXTRA_HOURS) return { error: "Bitte eine gültige Stundenzahl wählen." };
+
+  const staff = { ...(booking.inquiry_items?.staff ?? {}), start, requestedExtra: extra };
+  const supabase = createAdminClient();
+  const { error } = await supabase
+    .from("bookings")
+    .update({ inquiry_items: { ...booking.inquiry_items, staff } })
+    .eq("id", booking.id);
+  if (error) return { error: "Konnte nicht gespeichert werden. Bitte versuche es erneut." };
+
+  const label = staffLabel({ ...current, start });
+  await logActivity(booking.id, "kunde_betreuung", `Betreuungszeit: ${label}${extra ? ` · ${extra} weitere Std. angefragt – bitte bestätigen` : ""}`);
+  revalidatePath("/dashboard");
   return { success: true };
 }

@@ -87,6 +87,8 @@ export interface Booking {
     travel?: { km: number | null; price: number | null; status: "ok" | "unknown" | "over"; manual?: boolean } | null;
     /** Herkunft der Anfrage (Statistik): vorherige Seite, externe Herkunft, utm-Parameter. */
     source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string } | null;
+    /** Betreuung durch Personal: Startzeit (vom Kunden), bestätigte Stunden, gewünschte Zusatzstunden. */
+    staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null;
   } | null;
   total_price: number | null;
   inquiry_message: string | null;

@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { PICKUP_OPTIONS, PRODUCT_LABELS, handoverFor, type DeviceKey } from "@/lib/catalog";
+import { PICKUP_OPTIONS, PRODUCT_LABELS, handoverFor, staffFor, staffLabel, type DeviceKey } from "@/lib/catalog";
 import { DEVICE_BY_PRODUCT_TYPE } from "@/lib/catalog";
 import { accessSummary, type Booking } from "@/lib/types";
 
@@ -141,10 +141,12 @@ export async function loadCalendar(from: string, to: string): Promise<CalendarEn
     const setupText = b.delivery_time_window || (setupTime ? `${setupTime} Uhr` : c?.handover_window || null);
     out.push({ ...base, id: `${b.id}-a`, date: setupDate, kind: "aufbau", sort: setupTime ?? sortFromText(setupText), timeLabel: setupText, warnings });
 
-    // Veranstaltung (jeder Tag)
+    // Veranstaltung (jeder Tag) – inkl. Betreuungszeit des Personals
+    const staff = staffFor(items);
     for (let i = 0; i < days; i++) {
       out.push({ ...base, id: `${b.id}-e${i}`, date: addDays(b.event_date, i), kind: "event", sort: "99:98",
-        timeLabel: [items?.duration, days > 1 ? `Tag ${i + 1}/${days}` : null].filter(Boolean).join(" · ") || null, warnings: [] });
+        timeLabel: [items?.duration, staff ? `👤 Personal ${staffLabel(staff)}` : null, days > 1 ? `Tag ${i + 1}/${days}` : null].filter(Boolean).join(" · ") || null,
+        warnings: staff && (!staff.start || staff.requestedExtra) ? [staff.start ? "Zusatzstunden bestätigen" : "Betreuungszeit offen"] : [] });
     }
 
     // Abbau / Rückgabe

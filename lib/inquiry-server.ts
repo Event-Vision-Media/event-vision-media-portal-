@@ -8,6 +8,7 @@ import {
   EXTRA_NAME_BY_DEVICE,
   EXTRAS,
   PRODUCT_LABELS,
+  bundledExtraNames,
   PRODUCT_TYPE_BY_DEVICE,
   priceSelection,
   daysUntil,
@@ -22,6 +23,9 @@ import {
 import { logActivity } from "@/lib/activity-log";
 import { accessSummary, type AccessInfo } from "@/lib/types";
 import { adminNotificationMail, inquiryReceivedMail, reservationMail, sendEmail, type MailBooking } from "@/lib/email";
+
+/** Im Firmen-Komplett enthaltene Variante (Teil des Variantennamens in public.extra_variants). */
+const BUNDLE_VARIANT: Record<string, string> = { betreuung: "5 Stunden" };
 
 /** Lebenszyklen, die ein Gerät an einem Datum belegen. */
 const BLOCKING_LIFECYCLES = ["reserviert", "bestaetigt"];
@@ -175,6 +179,7 @@ export interface InquiryInput {
 }
 
 export interface InquiryResult {
+  bookingId: string;
   lifecycle: "reserviert" | "anfrage";
   shortNotice: boolean;
   bookingCode: string;
@@ -188,7 +193,7 @@ export interface InquiryResult {
  * "reserviert" und der Kunde erhält sofort seinen Portal-Zugang; sonst wird
  * sie als "anfrage" für den Admin gespeichert (ohne Portal-Zugang).
  */
-export async function createBookingFromInquiry(input: InquiryInput): Promise<InquiryResult> {
+export async function createBookingFromInquiry(input: InquiryInput, opts: { viaAdmin?: boolean } = {}): Promise<InquiryResult> {
   const supabase = createAdminClient();
   const isBusiness = input.customerType === "business";
   // Fahrtkosten serverseitig ermitteln (nie dem Browser vertrauen)
@@ -200,7 +205,8 @@ export async function createBookingFromInquiry(input: InquiryInput): Promise<Inq
   const devices = priced.packages.map((p) => p.product);
   const { available, busy } = await checkDeviceAvailability(devices, input.eventDate, priced.days);
   const shortNotice = daysUntil(input.eventDate) < MIN_LEAD_DAYS;
-  const lifecycle = available && !shortNotice ? "reserviert" : "anfrage";
+  // Im Admin angelegt (z. B. telefonische Buchung): Vorlauf egal, nur die Verfügbarkeit zählt
+  const lifecycle = available && (!shortNotice || opts.viaAdmin) ? "reserviert" : "anfrage";
 
   const displayName = (isBusiness && input.company) || input.name;
 
@@ -252,19 +258,31 @@ export async function createBookingFromInquiry(input: InquiryInput): Promise<Inq
   // Passende Extras zusätzlich in booking_extras eintragen, damit sie im
   // Kundenbereich unter "Event Highlights" erscheinen (Variante wählt der
   // Kunde bzw. Admin später – wie bei "__pending__" im Admin-Formular).
-  const dbNames = priced.extras
-    .map((e) => EXTRAS.find((c) => c.id === e.id)?.dbExtraName)
-    .filter((n): n is string => Boolean(n));
+  // Im Firmen-Komplett enthaltene Extras (Hintergrund, Betreuung, WLAN) mit 0 €
+  const bundled = new Set(bundledExtraNames(priced));
+  const dbNames = [
+    ...priced.extras.map((e) => EXTRAS.find((c) => c.id === e.id)?.dbExtraName),
+    ...Array.from(bundled),
+  ].filter((n): n is string => Boolean(n));
   if (dbNames.length) {
     const { data: dbExtras } = await supabase.from("extras").select("id, name").in("name", dbNames);
+    // Im Paket ist eine bestimmte Variante enthalten (Betreuung bis 5 Stunden) – fest eintragen, nicht frei wählbar
+    const { data: variants } = await supabase.from("extra_variants").select("id, extra_id, name").in("extra_id", (dbExtras ?? []).map((x) => x.id));
     const rows = (dbExtras ?? []).map((x) => {
       const cat = EXTRAS.find((c) => c.dbExtraName === x.name)!;
-      return { booking_id: booking!.id, extra_id: x.id, variant_id: null, price: cat.price, added_by_admin: true };
+      const hint = bundled.has(x.name) ? BUNDLE_VARIANT[cat.id] : undefined;
+      const variant = hint ? (variants ?? []).find((v) => v.extra_id === x.id && v.name.includes(hint)) : undefined;
+      return { booking_id: booking!.id, extra_id: x.id, variant_id: variant?.id ?? null, price: bundled.has(x.name) ? 0 : cat.price, added_by_admin: true };
     });
     if (rows.length) await supabase.from("booking_extras").insert(rows);
   }
 
   const summary = priced.packages.map((p) => p.name).join(", ");
+  if (opts.viaAdmin) {
+    // Keine Mails beim Anlegen – Zugang und Vertrag gehen mit „Bestätigen“ raus
+    await logActivity(booking.id, "admin_buchung", `Im Admin angelegt: ${displayName} · ${summary}${busy.length ? ` (Termin belegt: ${busy.map((d) => PRODUCT_LABELS[d]).join(", ")})` : ""}`);
+    return { bookingId: booking.id, lifecycle, shortNotice, bookingCode: booking.booking_code, accessCode: null, priced, busy };
+  }
   await logActivity(
     booking.id,
     "website_anfrage",
@@ -318,6 +336,7 @@ export async function createBookingFromInquiry(input: InquiryInput): Promise<Inq
   }
 
   return {
+    bookingId: booking.id,
     lifecycle,
     shortNotice,
     bookingCode: booking.booking_code,

@@ -13,7 +13,8 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { getAudioGreetingDeadline } from "@/lib/types";
-import { EXTRAS as CATALOG_EXTRAS, daysUntil, followupLine, upgradeOffers } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames, daysUntil, followupLine, staffFor, upgradeOffers } from "@/lib/catalog";
+import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
 import { UpsellSection } from "@/components/UpsellSection";
 import { getLatestContract } from "@/lib/contract-server";
@@ -122,11 +123,12 @@ export default async function DashboardPage() {
     .eq("booking_id", booking.id);
 
   // Im Portal nachgebuchte Extras (nicht schon Teil der Website-Anfrage)
-  const inquiryExtraNames = new Set(
-    (booking.inquiry_items?.extras ?? [])
+  const inquiryExtraNames = new Set([
+    ...(booking.inquiry_items?.extras ?? [])
       .map((e) => CATALOG_EXTRAS.find((c) => c.id === e.id)?.dbExtraName)
-      .filter(Boolean)
-  );
+      .filter(Boolean),
+    ...bundledExtraNames(booking.inquiry_items),
+  ]);
   const laterExtras = (bookedExtrasForAudio ?? [])
     .filter((be: any) => be.extras?.name && !inquiryExtraNames.has(be.extras.name))
     .map((be: any) => ({
@@ -136,6 +138,7 @@ export default async function DashboardPage() {
   const bookedExtraNames = (bookedExtrasForAudio ?? [])
     .map((be: any) => be.extras?.name)
     .filter(Boolean);
+  const staff = staffFor(booking.inquiry_items);
   // Günstigstes Upgrade-Angebot (z. B. Audiogästebuch Basis → Komfort)
   const offer = daysUntil(booking.event_date) >= 2
     ? upgradeOffers((booking.inquiry_items?.packages ?? []).map((p) => p.id)).sort((a, b) => a.diff - b.diff)[0]
@@ -529,6 +532,17 @@ export default async function DashboardPage() {
         <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "220ms" }}>
           <DeliveryPickupSection booking={booking} />
         </div>
+
+        {staff && (
+          <div className="mt-4">
+            <StaffTimeCard
+              staff={staff}
+              sie={sie}
+              locked={daysUntil(booking.event_date) < 2}
+              extraHourPrice={CATALOG_EXTRAS.find((e) => e.id === "betreuung-stunde")?.price ?? 59}
+            />
+          </div>
+        )}
 
         <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "260ms" }}>
           <OnlineGallerySection

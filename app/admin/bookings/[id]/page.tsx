@@ -26,6 +26,8 @@ import { getPaymentSummary } from "@/lib/payments";
 import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
 import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
+import { StaffHoursForm } from "@/components/admin/StaffHoursForm";
+import { staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
@@ -316,6 +318,12 @@ export default async function AdminBookingDetailPage({
                   pickup={booking.inquiry_items?.pickup ?? null}
                   locked={Boolean(contract)}
                 />
+              </div>
+            )}
+            {staffFor(booking.inquiry_items) && (
+              <div className="mt-4 border-t border-anthracite-100 pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Betreuung durch Personal</p>
+                <StaffHoursForm bookingId={booking.id} staff={staffFor(booking.inquiry_items)!} locked={Boolean(contract)} />
               </div>
             )}
           </Card>

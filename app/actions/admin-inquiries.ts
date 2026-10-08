@@ -4,10 +4,10 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
-import { checkDeviceAvailability, generateAccessCode } from "@/lib/inquiry-server";
+import { checkDeviceAvailability, createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
 import { isUniqueViolation } from "@/lib/supabase/errors";
 import { confirmationMail, declineMail, sendEmail, type MailBooking } from "@/lib/email";
-import type { DeviceKey } from "@/lib/catalog";
+import { PACKAGES, PICKUP_OPTIONS, PRODUCT_LABELS, normalizeAccess, type DeviceKey, type PickupId } from "@/lib/catalog";
 
 export interface InquiryActionResult {
   success?: boolean;
@@ -130,4 +130,75 @@ export async function regenerateAccessCode(bookingId: string): Promise<InquiryAc
     if (!isUniqueViolation(error)) break;
   }
   return { error: "Zugangscode konnte nicht erzeugt werden." };
+}
+
+export interface AdminPackageBookingInput {
+  customerType: "business" | "privat";
+  company: string;
+  name: string;
+  email: string;
+  phone: string;
+  occasion: string;
+  eventDate: string;
+  days: number;
+  location: string;
+  guestCount: string;
+  packageIds: string[];
+  extraIds: string[];
+  pickup: string;
+  access: { level: string; help: string | null } | null;
+  note: string;
+}
+
+/**
+ * Admin legt eine Buchung mit Paket an (z. B. nach Telefonat) – sie läuft
+ * danach genau wie eine Website-Anfrage: Preis, Mietvertrag, Kundenportal.
+ * Mails gehen erst mit „Bestätigen“ unter Anfragen raus.
+ */
+export async function createAdminPackageBooking(raw: AdminPackageBookingInput): Promise<{ error?: string; bookingId?: string; lifecycle?: string; busy?: string[] }> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const str = (v: unknown, max = 200) => (typeof v === "string" ? v.trim().slice(0, max) : "");
+  const customerType = raw.customerType === "business" ? "business" : "privat";
+  const eventDate = str(raw.eventDate, 10);
+  const packageIds = (Array.isArray(raw.packageIds) ? raw.packageIds : []).map((x) => str(x, 40)).slice(0, 6);
+  const products = packageIds.map((id) => PACKAGES.find((p) => p.id === id)?.product).filter((p): p is DeviceKey => Boolean(p));
+  const guests = Number(raw.guestCount);
+  const input: InquiryInput = {
+    customerType,
+    occasion: str(raw.occasion, 80),
+    packageIds,
+    extraIds: (Array.isArray(raw.extraIds) ? raw.extraIds : []).map((x) => str(x, 40)).slice(0, 12),
+    days: Number(raw.days) || 1,
+    eventDate,
+    location: str(raw.location, 200),
+    guestCount: Number.isFinite(guests) && guests > 0 ? Math.min(Math.round(guests), 100000) : null,
+    duration: null,
+    company: customerType === "business" ? str(raw.company, 120) || null : null,
+    name: str(raw.name, 120),
+    email: str(raw.email, 200).toLowerCase(),
+    phone: str(raw.phone, 40) || null,
+    message: str(raw.note, 3000) || null,
+    access: normalizeAccess(raw.access, products),
+    pickup: PICKUP_OPTIONS.some((o) => o.id === raw.pickup) ? (raw.pickup as PickupId) : null,
+    source: { source: "Admin", medium: "direkt angelegt" },
+    layoutDraft: null,
+  };
+
+  if (!input.name) return { error: "Bitte den Namen angeben." };
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input.email)) return { error: "Bitte eine gültige E-Mail-Adresse angeben." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) return { error: "Bitte das Datum angeben." };
+  if (!input.location) return { error: "Bitte die Adresse der Location angeben." };
+  if (!products.length) return { error: "Bitte mindestens ein Paket wählen." };
+  if (customerType === "business" && !input.company) return { error: "Bitte den Firmennamen angeben." };
+
+  try {
+    const r = await createBookingFromInquiry(input, { viaAdmin: true });
+    revalidatePath("/admin/anfragen");
+    revalidatePath("/admin/dashboard");
+    return { bookingId: r.bookingId, lifecycle: r.lifecycle, busy: r.busy.map((d) => PRODUCT_LABELS[d]) };
+  } catch (err: any) {
+    if (err?.message === "no_packages") return { error: "Das gewählte Paket passt nicht zum Kundentyp." };
+    console.error("[admin-buchung]", err);
+    return { error: "Buchung konnte nicht angelegt werden." };
+  }
 }

@@ -84,11 +84,22 @@ export function includedExtraIds(items: { packages?: { id: string }[] } | null |
   return new Set((items?.packages ?? []).flatMap((p) => PACKAGES.find((x) => x.id === p.id)?.bundle ?? []));
 }
 
+/**
+ * Namen (public.extras) der im Paket enthaltenen Extras. Sie werden bei der
+ * Buchung mit 0 € in booking_extras eingetragen – so wählt der Kunde z. B.
+ * das Hintergrund-Motiv im Portal, ohne dass etwas extra berechnet wird.
+ */
+export function bundledExtraNames(items: { packages?: { id: string }[] } | null | undefined): string[] {
+  return Array.from(includedExtraIds(items))
+    .map((id) => EXTRAS.find((e) => e.id === id)?.dbExtraName)
+    .filter((n): n is string => Boolean(n));
+}
+
 /** Extra-Namen, die eine Buchung bereits als Website-Paket enthält. */
-export function extraNamesCoveredByPackages(items: { packages?: { id: string; product: string }[] } | null | undefined): string[] {
-  const devices = (items?.packages ?? []).map((p) => EXTRA_NAME_BY_DEVICE[p.product as DeviceKey]);
-  const bundled = Array.from(includedExtraIds(items)).map((id) => EXTRAS.find((e) => e.id === id)?.dbExtraName);
-  return [...devices, ...bundled].filter((n): n is string => Boolean(n));
+export function extraNamesCoveredByPackages(items: { packages?: { product: string }[] } | null | undefined): string[] {
+  return (items?.packages ?? [])
+    .map((p) => EXTRA_NAME_BY_DEVICE[p.product as DeviceKey])
+    .filter((n): n is string => Boolean(n));
 }
 
 /** Leistungsumfang eines Pakets – "Alles aus dem …-Paket" wird aufgelöst (für den Mietvertrag). */
@@ -319,6 +330,59 @@ export function priceSelection(
   const total = packagesTotal + extras.reduce((sum, e) => sum + e.price, 0);
 
   return { packages, extras, days: safeDays, packagesTotal, total, isFromPrice: extras.some((e) => e.from) };
+}
+
+/** Betreuung durch Personal: im Paket bzw. im Extra „Betreuung vor Ort“ enthaltene Stunden. */
+export const STAFF_INCLUDED_HOURS = 5;
+export const STAFF_MAX_EXTRA_HOURS = 6;
+
+export interface StaffInfo {
+  /** Gewünschter Beginn "HH:MM" (legt der Kunde im Portal fest). */
+  start: string | null;
+  /** Vereinbarte Stunden insgesamt. */
+  hours: number;
+  /** Vom Kunden gewünschte, noch nicht bestätigte Zusatzstunden. */
+  requestedExtra: number;
+}
+
+type StaffItems = { extras?: { id: string }[]; packages?: { id: string }[]; staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null };
+
+/** Betreuung der Buchung – null, wenn keine Betreuung gebucht ist. */
+export function staffFor(items: StaffItems | null | undefined): StaffInfo | null {
+  const booked = (items?.extras ?? []).some((e) => e.id === "betreuung") || includedExtraIds(items).has("betreuung");
+  if (!booked) return null;
+  const s = items?.staff;
+  return {
+    start: s?.start && /^\d{2}:\d{2}$/.test(s.start) ? s.start : null,
+    hours: s?.hours && s.hours >= STAFF_INCLUDED_HOURS ? s.hours : STAFF_INCLUDED_HOURS,
+    requestedExtra: Math.max(0, Math.min(STAFF_MAX_EXTRA_HOURS, s?.requestedExtra ?? 0)),
+  };
+}
+
+/** "19:00–24:00 Uhr (5 Std.)" bzw. "5 Std., Uhrzeit noch offen". */
+export function staffLabel(st: StaffInfo): string {
+  if (!st.start) return `${st.hours} Std., Uhrzeit noch offen`;
+  const [h, m] = st.start.split(":").map(Number);
+  const end = `${String((h + st.hours) % 24).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  return `${st.start}–${end} Uhr (${st.hours} Std.)`;
+}
+
+/**
+ * Admin bestätigt die Betreuungsdauer: Zusatzstunden werden als eigene
+ * Position (je „Weitere Betreuungsstunde“) berechnet, Gesamtpreis neu.
+ */
+export function withStaffHours<T extends { extras?: { id: string; name: string; price: number; from?: boolean }[]; packagesTotal?: number; total?: number; isFromPrice?: boolean; staff?: StaffItems["staff"] }>(
+  items: T,
+  hours: number
+): T {
+  const extraHours = Math.max(0, hours - STAFF_INCLUDED_HOURS);
+  const unit = EXTRAS.find((e) => e.id === "betreuung-stunde")?.price ?? 59;
+  const extras = (items.extras ?? []).filter((e) => e.id !== "betreuung-stunde").map((e) => ({ ...e, from: Boolean(e.from) }));
+  if (extraHours > 0) {
+    extras.push({ id: "betreuung-stunde", name: `${extraHours} weitere Betreuungsstunde${extraHours > 1 ? "n" : ""} (je ${unit} €)`, price: extraHours * unit, from: false });
+  }
+  const total = (items.packagesTotal ?? 0) + extras.reduce((s, e) => s + e.price, 0);
+  return { ...items, extras, total, isFromPrice: extras.some((e) => e.from), staff: { ...(items.staff ?? {}), hours, requestedExtra: 0 } };
 }
 
 export function formatEuro(value: number): string {

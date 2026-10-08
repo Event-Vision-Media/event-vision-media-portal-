@@ -20,12 +20,15 @@ import {
   TRAVEL,
   packageFeatures,
   includedExtraIds,
+  staffFor,
+  staffLabel,
+  STAFF_INCLUDED_HOURS,
   type DeviceKey,
 } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
 
-export const CONTRACT_VERSION = "2026-10.6";
+export const CONTRACT_VERSION = "2026-10.7";
 
 /** Restzahlung per Überweisung: spätestens so viele Tage vor der Veranstaltung. */
 export const REST_DUE_DAYS = 14;
@@ -167,9 +170,11 @@ export interface ContractInput {
   portalFees: { name: string; price: number }[];
   bank: BankDetails | null;
   renter?: RenterDetails | null;
+  /** Auswahl bei im Paket enthaltenen Extras, z. B. "Hintergrund: Glitzer Gold". */
+  includedChoices?: string[];
 }
 
-export function buildContract({ booking, bookedExtraNames, laterExtras, portalFees, bank, renter }: ContractInput): ContractDoc {
+export function buildContract({ booking, bookedExtraNames, laterExtras, portalFees, bank, renter, includedChoices = [] }: ContractInput): ContractDoc {
   const items = booking.inquiry_items;
   const isBusiness = booking.customer_type === "business";
   // inkl. der Extras, die ein Firmen-Komplettpaket enthält (Betreuung, WLAN …)
@@ -194,13 +199,16 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const pickupOpt = PICKUP_OPTIONS.find((o) => o.id === items?.pickup);
   const hasPhoto = PHOTO_DEVICES.some(has);
   const withStaff = extraIds.has("betreuung");
+  const staff = staffFor(items);
   const powered = deviceList.filter((d) => d !== "audio");
   const all = joinDevices(deviceList);
 
   // ---- Positionen & Beträge ----
   const lines: ContractLine[] = [];
   for (const p of items?.packages ?? []) {
-    lines.push({ name: p.name, price: formatEuro(p.price), features: packageFeatures(p.id) });
+    const bundled = includedExtraIds({ packages: [p] }).size > 0;
+    const choices = bundled ? includedChoices.map((c) => `Gewählt – ${c}`) : [];
+    lines.push({ name: p.name, price: formatEuro(p.price), features: [...packageFeatures(p.id), ...choices] });
   }
   const follow = followupLine(items);
   if (follow) lines.push({ name: follow.label.replace(/^\+ /, ""), price: formatEuro(follow.amount) });
@@ -403,6 +411,11 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     S.push({
       title: "Betreuung durch Personal vor Ort",
       blocks: [
+        {
+          p: staff?.start
+            ? `Vereinbarte Betreuungszeit: ${staffLabel(staff)}. Das Gerät selbst steht während der gesamten Veranstaltung zur Verfügung.`
+            : `Vereinbart sind ${staff?.hours ?? STAFF_INCLUDED_HOURS} Stunden Betreuung; den Beginn legt der Mieter im Kundenportal fest. Das Gerät selbst steht während der gesamten Veranstaltung zur Verfügung. Weitere Stunden sind nach Absprache möglich und werden gesondert berechnet.`,
+        },
         { p: "Ist eine Betreuung vor Ort vereinbart, erhält das Personal des Vermieters während der vereinbarten Betreuungszeit durchgehend Zugang zur Veranstaltung. Der Mieter stellt einen Parkplatz in der Nähe sowie in angemessenem Umfang alkoholfreie Getränke und eine Mahlzeit zur Verfügung." },
         { p: "Das Personal hilft den Gästen bei der Nutzung, achtet auf eine ordnungsgemäße Bedienung und sorgt für die technische Funktionsfähigkeit. Der Mieter unterstützt es dabei, dass Anweisungen des Personals befolgt werden." },
       ],
@@ -439,6 +452,9 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   }
   if (extraIds.has("wlan") || bookedExtraNames.includes("Mobiler WLAN-Router")) {
     media.push({ p: "Mobiler WLAN-Router: Der Vermieter stellt für die Veranstaltung einen mobilen Router bereit. Verfügbarkeit und Geschwindigkeit hängen von der Mobilfunkabdeckung am Veranstaltungsort ab; hierfür übernimmt der Vermieter keine Gewähr." });
+  }
+  if (extraIds.has("branding")) {
+    media.push({ p: "Corporate Branding: Der Mieter stellt Logo, Farben und Texte für Fotolayout und Startbildschirm spätestens 7 Tage vor der Veranstaltung über das Kundenportal bereit. Er versichert, zur Verwendung dieser Inhalte – insbesondere von Marken und Logos – berechtigt zu sein, und stellt den Vermieter von Ansprüchen Dritter frei, die aus ihrer Verwendung entstehen." });
   }
   if (has("360")) media.push({ p: "360° Video Booth: Die Videos werden direkt auf das Smartphone bzw. – im Premium-Paket – per QR-Code zum Download bereitgestellt. Für den Sofort-Download ist ein funktionierendes WLAN bzw. mobiles Internet vor Ort erforderlich, für das der Vermieter keine Gewähr übernimmt." });
   if (has("audio")) media.push({ p: "Audiogästebuch: Die Aufnahmen der Gäste werden nach der Veranstaltung als Download-Link bzw. – sofern im Paket enthalten – auf USB-Stick übergeben. Der Mieter weist die Gäste darauf hin, dass ihre Nachrichten aufgezeichnet werden." });

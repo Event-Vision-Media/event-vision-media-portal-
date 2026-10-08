@@ -104,7 +104,10 @@ export function ExtrasSection({
 
   function handleSelectVariant(extra: Extra, variant: ExtraVariant) {
     setErrorMessage(null);
-    const wasAdminAdded = selectionByExtraId.get(extra.id)?.added_by_admin ?? false;
+    const prev = selectionByExtraId.get(extra.id);
+    const wasAdminAdded = prev?.added_by_admin ?? false;
+    // Im Paket enthalten (0 €): Motivwahl bleibt kostenlos
+    const included = wasAdminAdded && Number(prev?.price) === 0;
     startTransition(async () => {
       const result = await selectExtraVariant(extra.id, variant.id);
       if (result.error) {
@@ -118,7 +121,7 @@ export function ExtrasSection({
           booking_id: "",
           extra_id: extra.id,
           variant_id: variant.id,
-          price: variant.price,
+          price: included ? 0 : variant.price,
           added_by_admin: wasAdminAdded,
         },
       ]);
@@ -242,9 +245,11 @@ export function ExtrasSection({
                   </p>
                 )}
                 <p className="mt-2 text-sm font-medium text-gold-700">
-                  {extra.has_variants
-                    ? `ab ${formatCurrencyEUR(minVariantPrice)}`
-                    : formatCurrencyEUR(extra.price)}
+                  {selection?.added_by_admin && Number(selection.price) === 0
+                    ? "Inklusive"
+                    : extra.has_variants
+                      ? `ab ${formatCurrencyEUR(minVariantPrice)}`
+                      : formatCurrencyEUR(extra.price)}
                 </p>
                 {cardAvailability && (
                   <div className="mt-1.5">
@@ -458,7 +463,7 @@ function ExtraModal({
                           {variant.is_popular && <Badge tone="gold">Beliebt</Badge>}
                         </div>
                         <p className="flex-none font-medium text-gold-700">
-                          {formatCurrencyEUR(variant.price)}
+                          {isPendingVariantChoice ? "Inklusive" : formatCurrencyEUR(variant.price)}
                         </p>
                       </div>
                       {variantAvailability && (
