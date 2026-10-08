@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EXTRAS as CATALOG_EXTRAS, formatEuro } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, formatEuro, includedExtraIds } from "@/lib/catalog";
 
 const BRANDING_PRICE = CATALOG_EXTRAS.find((e) => e.id === "branding")?.price ?? 69;
 import { requireBooking } from "@/lib/booking-session";
@@ -69,7 +69,8 @@ export default async function StartbildschirmPage() {
   const sie = booking.customer_type === "business";
   const t = (ihr: string, s: string) => (sie ? s : ihr);
   // Firmen: Startbildschirm mit Logo ist Teil von "Corporate Branding"
-  const hasBranding = sie && (booking.inquiry_items?.extras ?? []).some((e) => e.id === "branding");
+  const hasBranding =
+    sie && ((booking.inquiry_items?.extras ?? []).some((e) => e.id === "branding") || includedExtraIds(booking.inquiry_items).has("branding"));
   const isPersonalizedBooked = Boolean(personalizedSelection) || hasBranding;
   const isPersonalizedLocked = Boolean(personalizedSelection?.added_by_admin) || hasBranding;
   const personalizedExampleImageUrl =

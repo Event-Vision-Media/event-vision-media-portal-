@@ -19,6 +19,7 @@ import {
   PICKUP_OPTIONS,
   TRAVEL,
   packageFeatures,
+  includedExtraIds,
   type DeviceKey,
 } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
@@ -171,7 +172,8 @@ export interface ContractInput {
 export function buildContract({ booking, bookedExtraNames, laterExtras, portalFees, bank, renter }: ContractInput): ContractDoc {
   const items = booking.inquiry_items;
   const isBusiness = booking.customer_type === "business";
-  const extraIds = new Set((items?.extras ?? []).map((e) => e.id));
+  // inkl. der Extras, die ein Firmen-Komplettpaket enthält (Betreuung, WLAN …)
+  const extraIds = new Set([...(items?.extras ?? []).map((e) => e.id), ...includedExtraIds(items)]);
 
   // ---- Geräte ermitteln ----
   const packageByDevice = new Map<DeviceKey, string>();

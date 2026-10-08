@@ -17,6 +17,10 @@ export interface CatalogPackage {
   product: DeviceKey;
   name: string;
   price: number;
+  /** Nur für Businesskunden wählbar (Firmen-Komplettpakete). */
+  businessOnly?: boolean;
+  /** Extras, die im Paketpreis bereits enthalten sind. */
+  bundle?: string[];
 }
 
 export interface CatalogExtra {
@@ -66,19 +70,26 @@ export const EXTRA_NAME_BY_DEVICE: Partial<Record<DeviceKey, string>> = {
   love: "XXL-LOVE Leuchtbuchstaben",
 };
 
-/** Extra-Namen, die eine Buchung bereits als Website-Paket enthält. */
-export function extraNamesCoveredByPackages(items: { packages?: { product: string }[] } | null | undefined): string[] {
-  return (items?.packages ?? [])
-    .map((p) => EXTRA_NAME_BY_DEVICE[p.product as DeviceKey])
-    .filter((n): n is string => Boolean(n));
-}
-
 export const PACKAGES: CatalogPackage[] = catalogData.packages.map((p) => ({
   id: p.id,
   product: p.product as DeviceKey,
   name: p.name,
   price: p.price,
+  businessOnly: "businessOnly" in p ? Boolean(p.businessOnly) : undefined,
+  bundle: "bundle" in p ? (p.bundle as string[]) : undefined,
 }));
+
+/** IDs der Extras, die in den gebuchten Paketen enthalten sind (z. B. Betreuung im Firmen-Komplett). */
+export function includedExtraIds(items: { packages?: { id: string }[] } | null | undefined): Set<string> {
+  return new Set((items?.packages ?? []).flatMap((p) => PACKAGES.find((x) => x.id === p.id)?.bundle ?? []));
+}
+
+/** Extra-Namen, die eine Buchung bereits als Website-Paket enthält. */
+export function extraNamesCoveredByPackages(items: { packages?: { id: string; product: string }[] } | null | undefined): string[] {
+  const devices = (items?.packages ?? []).map((p) => EXTRA_NAME_BY_DEVICE[p.product as DeviceKey]);
+  const bundled = Array.from(includedExtraIds(items)).map((id) => EXTRAS.find((e) => e.id === id)?.dbExtraName);
+  return [...devices, ...bundled].filter((n): n is string => Boolean(n));
+}
 
 /** Leistungsumfang eines Pakets – "Alles aus dem …-Paket" wird aufgelöst (für den Mietvertrag). */
 export function packageFeatures(id: string): string[] {
@@ -95,6 +106,7 @@ export function packageFeatures(id: string): string[] {
  */
 export const PACKAGE_UPGRADE_PERKS: Record<string, string[]> = {
   "spiegel-gold": ["Prunkvoller goldener Barock-Rahmen", "Der elegante Klassiker – unser Bestseller"],
+  "spiegel-gold-firma": ["Prunkvoller goldener Barock-Rahmen", "Der elegante Klassiker – unser Bestseller"],
   "360-komfort": ["Lieferung, Auf- & Abbau durch uns", "Kurze Einweisung vor Ort"],
   "360-premium": ["Professionelles iPad mit Booth-Software", "Automatische Slow Motion & Effekte", "Sofort-Download per QR-Code"],
   "audio-komfort": ["Leuchtschild „Audio Guest Book“", "Karten mit witzigen Anweisungen", "Herz-USB-Stick mit allen Audios"],
@@ -115,7 +127,8 @@ export function upgradeOffers(bookedPackageIds: string[]): UpgradeOffer[] {
     .map((id) => PACKAGES.find((p) => p.id === id))
     .filter((p): p is CatalogPackage => Boolean(p))
     .map((from) => {
-      const to = PACKAGES.filter((p) => p.product === from.product && p.price > from.price).sort((x, y) => x.price - y.price)[0];
+      const to = PACKAGES.filter((p) => p.product === from.product && p.price > from.price && Boolean(p.businessOnly) === Boolean(from.businessOnly))
+        .sort((x, y) => x.price - y.price)[0];
       return to ? { from, to, diff: to.price - from.price, perks: PACKAGE_UPGRADE_PERKS[to.id] ?? [] } : null;
     })
     .filter((o): o is UpgradeOffer => Boolean(o));
@@ -281,16 +294,18 @@ export function priceSelection(
   const packages = packageIds
     .map((id) => PACKAGES.find((p) => p.id === id))
     .filter((p): p is CatalogPackage => {
-      if (!p || seenProducts.has(p.product)) return false;
+      if (!p || seenProducts.has(p.product) || (p.businessOnly && !isBusiness)) return false;
       seenProducts.add(p.product);
       return true;
     })
     .map((p) => ({ id: p.id, product: p.product, name: p.name, price: p.price }));
 
+  // Im Paket enthaltene Extras nicht zusätzlich berechnen
+  const included = includedExtraIds({ packages });
   const extras = Array.from(new Set(extraIds))
     .map((id) => EXTRAS.find((e) => e.id === id))
     .filter((e): e is CatalogExtra =>
-      Boolean(e) && e!.for.some((k) => seenProducts.has(k)) && (!e!.businessOnly || isBusiness) && (!e!.privateOnly || !isBusiness)
+      Boolean(e) && !included.has(e!.id) && e!.for.some((k) => seenProducts.has(k)) && (!e!.businessOnly || isBusiness) && (!e!.privateOnly || !isBusiness)
     )
     .map((e) => ({ id: e.id, name: e.name, price: e.price, from: Boolean(e.from) }));
   if (access?.help === "service" && access.level !== "ebenerdig" && CARRY_SERVICE.for.some((k) => seenProducts.has(k))) {

@@ -96,6 +96,58 @@
       ]
     },
     {
+      "id": "spiegel-modern-firma",
+      "product": "spiegel",
+      "name": "Firmen-Komplett Spiegel Modern",
+      "short": "Spiegel Modern",
+      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "price": 789,
+      "badge": null,
+      "businessOnly": true,
+      "bundle": [
+        "branding",
+        "betreuung",
+        "hintergrund",
+        "wlan"
+      ],
+      "features": [
+        "Alles aus dem Paket „Magic Mirror Modern“",
+        "Fotospiegel während der gesamten Veranstaltung",
+        "3 Stunden Betreuung durch unser Personal",
+        "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
+        "Hintergrundsystem 2,40 × 2,40 m",
+        "Mobiler WLAN-Router für den QR-Download",
+        "Weitere Betreuungsstunden je 59 € zubuchbar"
+      ],
+      "includes": "spiegel-modern"
+    },
+    {
+      "id": "spiegel-gold-firma",
+      "product": "spiegel",
+      "name": "Firmen-Komplett Spiegel Gold",
+      "short": "Spiegel Gold",
+      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "price": 849,
+      "badge": null,
+      "businessOnly": true,
+      "bundle": [
+        "branding",
+        "betreuung",
+        "hintergrund",
+        "wlan"
+      ],
+      "features": [
+        "Alles aus dem Paket „Magic Mirror Gold“",
+        "Fotospiegel während der gesamten Veranstaltung",
+        "3 Stunden Betreuung durch unser Personal",
+        "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
+        "Hintergrundsystem 2,40 × 2,40 m",
+        "Mobiler WLAN-Router für den QR-Download",
+        "Weitere Betreuungsstunden je 59 € zubuchbar"
+      ],
+      "includes": "spiegel-gold"
+    },
+    {
       "id": "fotobox-komplett",
       "product": "fotobox",
       "name": "Fotobox Digital & Print",
@@ -113,6 +165,32 @@
         "Spiegelreflexkamera & Studioblitz",
         "Requisiten-Set inklusive"
       ]
+    },
+    {
+      "id": "fotobox-firma",
+      "product": "fotobox",
+      "name": "Firmen-Komplett Fotobox",
+      "short": "Firmen-Komplett",
+      "sub": "inkl. Branding, Hintergrund & 3 Std. Betreuung",
+      "price": 669,
+      "badge": null,
+      "businessOnly": true,
+      "bundle": [
+        "branding",
+        "betreuung",
+        "hintergrund",
+        "wlan"
+      ],
+      "features": [
+        "Alles aus dem Paket „Fotobox Digital & Print“",
+        "Fotobox während der gesamten Veranstaltung",
+        "3 Stunden Betreuung durch unser Personal",
+        "Corporate Branding: Fotolayout & Startbildschirm im Firmendesign",
+        "Hintergrundsystem 2,40 × 2,40 m",
+        "Mobiler WLAN-Router für den QR-Download",
+        "Weitere Betreuungsstunden je 59 € zubuchbar"
+      ],
+      "includes": "fotobox-komplett"
     },
     {
       "id": "360-self",
@@ -260,6 +338,19 @@
         "360"
       ],
       "dbExtraName": "Betreuung vor Ort"
+    },
+    {
+      "id": "betreuung-stunde",
+      "name": "Weitere Betreuungsstunde",
+      "desc": "Jede weitere Stunde Betreuung durch unser Personal – die genaue Anzahl stimmen wir im Angebot ab.",
+      "price": 59,
+      "from": true,
+      "for": [
+        "spiegel",
+        "fotobox",
+        "360"
+      ],
+      "businessOnly": true
     },
     {
       "id": "live-galerie",
