@@ -63,7 +63,7 @@
       "name": "Magic Mirror Modern",
       "short": "Magic Mirror Modern",
       "sub": "ohne Goldrahmen · inkl. Lieferung, Auf- & Abbau",
-      "price": 489,
+      "price": 449,
       "badge": null,
       "features": [
         "Unbegrenzte Nutzungszeit während der Veranstaltung",
@@ -82,7 +82,7 @@
       "name": "Magic Mirror Gold",
       "short": "Magic Mirror Gold",
       "sub": "mit Goldrahmen · inkl. Lieferung, Auf- & Abbau",
-      "price": 549,
+      "price": 499,
       "badge": "Bestseller",
       "features": [
         "Unbegrenzte Nutzungszeit während der Veranstaltung",
@@ -101,7 +101,7 @@
       "name": "Firmen-Komplett Spiegel Modern",
       "short": "Spiegel Modern",
       "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
-      "price": 789,
+      "price": 749,
       "badge": null,
       "businessOnly": true,
       "bundle": [
@@ -127,7 +127,7 @@
       "name": "Firmen-Komplett Spiegel Gold",
       "short": "Spiegel Gold",
       "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
-      "price": 849,
+      "price": 799,
       "badge": null,
       "businessOnly": true,
       "bundle": [
@@ -153,7 +153,7 @@
       "name": "Fotobox Digital & Print",
       "short": "Fotobox Digital & Print",
       "sub": "inkl. Lieferung, Auf- & Abbau",
-      "price": 359,
+      "price": 349,
       "badge": null,
       "features": [
         "Unbegrenzte Nutzungszeit während der Veranstaltung",
@@ -172,7 +172,7 @@
       "name": "Firmen-Komplett Fotobox",
       "short": "Firmen-Komplett",
       "sub": "inkl. Branding, Hintergrund & bis 5 Std. Betreuung",
-      "price": 669,
+      "price": 659,
       "badge": null,
       "businessOnly": true,
       "bundle": [
@@ -251,7 +251,7 @@
       "name": "Audiogästebuch Basis",
       "short": "Basis",
       "sub": "Für unkomplizierte Erinnerungen",
-      "price": 59,
+      "price": 55,
       "badge": null,
       "features": [
         "Retro-Telefon (Audiogästebuch)",
@@ -267,7 +267,7 @@
       "name": "Audiogästebuch Komfort",
       "short": "Komfort",
       "sub": "Für das gewisse Extra",
-      "price": 79,
+      "price": 70,
       "badge": "Beliebt",
       "features": [
         "Alles aus dem Basis-Paket",
@@ -284,7 +284,7 @@
       "name": "Audiogästebuch Premium",
       "short": "Premium",
       "sub": "Alles inklusive",
-      "price": 109,
+      "price": 100,
       "badge": null,
       "features": [
         "Alles aus dem Komfort-Paket",
@@ -300,7 +300,7 @@
       "name": "LOVE XXL Selbstabholung",
       "short": "Selbstabholung",
       "sub": "Transport & Aufbau durch dich",
-      "price": 159,
+      "price": 149,
       "badge": null,
       "features": [
         "XXL LOVE Leuchtbuchstaben (110 cm)",
@@ -315,7 +315,7 @@
       "name": "LOVE XXL Full-Service",
       "short": "Full-Service",
       "sub": "Wir kümmern uns um alles",
-      "price": 239,
+      "price": 219,
       "badge": null,
       "features": [
         "XXL LOVE Leuchtbuchstaben (110 cm)",
