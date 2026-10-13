@@ -33,14 +33,20 @@ export function ContractDocument({ doc, children }: { doc: ContractDoc; children
             <span>Gesamtpreis</span>
             <span className="whitespace-nowrap">{doc.total}</span>
           </div>
-          <div className="flex justify-between gap-4 text-anthracite-500">
-            <span>Anzahlung</span>
-            <span className="whitespace-nowrap">{doc.deposit}</span>
-          </div>
-          <div className="flex justify-between gap-4 text-anthracite-500">
-            <span>Restbetrag ({restDueDaysFor(doc.version)} Tage vorher oder bar vor Ort)</span>
-            <span className="whitespace-nowrap">{doc.rest}</span>
-          </div>
+          {doc.depositAmount === 0 ? (
+            <p className="text-anthracite-500">Keine Anzahlung – der Gesamtbetrag wird auf einmal gezahlt (siehe Zahlungsbedingungen).</p>
+          ) : (
+            <>
+              <div className="flex justify-between gap-4 text-anthracite-500">
+                <span>Anzahlung</span>
+                <span className="whitespace-nowrap">{doc.deposit}</span>
+              </div>
+              <div className="flex justify-between gap-4 text-anthracite-500">
+                <span>Restbetrag ({restDueDaysFor(doc.version)} Tage vorher oder bar vor Ort)</span>
+                <span className="whitespace-nowrap">{doc.rest}</span>
+              </div>
+            </>
+          )}
           <p className="pt-1 text-xs text-anthracite-400">{doc.taxNote}</p>
         </div>
       </section>

@@ -26,10 +26,11 @@ export function PaymentCard({
       ? { label: t("Rechnung kommt per E-Mail – bitte innerhalb von 7 Tagen überweisen", "Rechnung folgt per E-Mail – bitte innerhalb von 7 Tagen überweisen"), tone: "text-gold-700" }
       : { label: t("Fällig nach der Vertragsunterschrift", "Fällig nach der Vertragsunterschrift"), tone: "text-anthracite-500" };
 
+  const noDeposit = p.deposit === 0;
   const restStatus = p.restPaid
     ? { label: "Erhalten ✓", tone: "text-emerald-700" }
     : p.method === "bar"
-      ? { label: "Bar bei Lieferung", tone: "text-anthracite-600" }
+      ? { label: p.pickupOnly ? "Bar bei Abholung" : "Bar bei Lieferung", tone: "text-anthracite-600" }
       : p.method === "ueberweisung"
         ? { label: `Überweisung bis ${formatDateGerman(p.restDueDate)}`, tone: "text-anthracite-600" }
         : { label: t("Zahlungsart wählt ihr beim Vertrag", "Zahlungsart wählen Sie beim Vertrag"), tone: "text-anthracite-500" };
@@ -45,8 +46,14 @@ export function PaymentCard({
         )}
       </div>
       <div className="mt-4 divide-y divide-anthracite-100 text-sm">
-        <Row title="Anzahlung" amount={formatCurrencyEUR(p.deposit)} status={depositStatus} />
-        <Row title="Restbetrag" amount={from + formatCurrencyEUR(p.rest)} status={restStatus} />
+        {noDeposit ? (
+          <Row title={t("Gesamtbetrag – keine Anzahlung", "Gesamtbetrag – keine Anzahlung")} amount={from + formatCurrencyEUR(p.rest)} status={restStatus} />
+        ) : (
+          <>
+            <Row title="Anzahlung" amount={formatCurrencyEUR(p.deposit)} status={depositStatus} />
+            <Row title="Restbetrag" amount={from + formatCurrencyEUR(p.rest)} status={restStatus} />
+          </>
+        )}
       </div>
 
       {showBank && (
@@ -66,12 +73,12 @@ export function PaymentCard({
       <p className="mt-3 text-xs text-anthracite-400">
         {hasContract
           ? t(
-              "Die Rechnungen bekommt ihr von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem Restbetrag ab.",
-              "Die Rechnungen erhalten Sie von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem Restbetrag ab."
+              `Die Rechnung bekommt ihr von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`,
+              `Die Rechnung erhalten Sie von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`
             )
           : t(
-              "Die Zahlungsart für den Restbetrag wählt ihr beim Unterschreiben des Mietvertrags.",
-              "Die Zahlungsart für den Restbetrag wählen Sie beim Unterschreiben des Mietvertrags."
+              `Die Zahlungsart für den ${noDeposit ? "Betrag" : "Restbetrag"} wählt ihr beim Unterschreiben des Mietvertrags.`,
+              `Die Zahlungsart für den ${noDeposit ? "Betrag" : "Restbetrag"} wählen Sie beim Unterschreiben des Mietvertrags.`
             )}{" "}
         Endpreise gemäß § 19 UStG ohne Umsatzsteuer.
       </p>

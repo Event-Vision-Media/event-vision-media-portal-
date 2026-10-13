@@ -28,7 +28,7 @@ import {
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
 
-export const CONTRACT_VERSION = "2026-10.7";
+export const CONTRACT_VERSION = "2026-10.8";
 
 /** Restzahlung per Überweisung: spätestens so viele Tage vor der Veranstaltung. */
 export const REST_DUE_DAYS = 14;
@@ -57,9 +57,12 @@ function formatEuro(value: number): string {
 }
 export const DEPOSIT_RATE = 0.2;
 
-/** Anzahlung: 20 % auf volle 50 € gerundet, mindestens 50 € (höchstens der Gesamtpreis). */
+/** Bis zu diesem Gesamtpreis keine Anzahlung – alles auf einmal (z. B. Audiogästebuch bar bei Abholung). */
+export const NO_DEPOSIT_UP_TO = 150;
+
+/** Anzahlung: 20 % auf volle 50 € gerundet, mindestens 50 € (höchstens der Gesamtpreis); bis 150 € keine. */
 export function depositFor(total: number): number {
-  if (total <= 0) return 0;
+  if (total <= NO_DEPOSIT_UP_TO) return 0;
   return Math.min(total, Math.max(50, Math.round((total * DEPOSIT_RATE) / 50) * 50));
 }
 
@@ -127,6 +130,8 @@ export interface ContractDoc {
   devices: DeviceKey[];
   /** Mindestens ein Gerät wird von uns geliefert und aufgebaut. */
   hasDelivery: boolean;
+  /** Alle Geräte werden verschickt – Barzahlung ist dann nicht möglich. */
+  shippedOnly: boolean;
   landlord: string[];
   renter: string[];
   lines: ContractLine[];
@@ -195,6 +200,8 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const delivered = deviceList.filter((d) => handover.get(d) === "lieferung");
   const pickedUp = deviceList.filter((d) => handover.get(d) === "abholung");
   const shipped = deviceList.filter((d) => handover.get(d) === "versand");
+  // Nur verschickte Geräte (z. B. Audiogästebuch per Versand): Barzahlung nicht möglich
+  const shippedOnly = shipped.length > 0 && shipped.length === deviceList.length;
   const has = (d: DeviceKey) => devices.has(d);
   const pickupOpt = PICKUP_OPTIONS.find((o) => o.id === items?.pickup);
   const hasPhoto = PHOTO_DEVICES.some(has);
@@ -222,7 +229,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const from = items?.isFromPrice ? "ab " : "";
   const total = totalNum != null ? from + formatEuro(totalNum) : "laut Auftragsbestätigung";
   const depositNum = totalNum != null ? depositFor(totalNum) : null;
-  const deposit = depositNum != null ? formatEuro(depositNum) : "ca. 20 % des Gesamtpreises (auf volle 50 € gerundet)";
+  const deposit = depositNum === 0 ? "keine" : depositNum != null ? formatEuro(depositNum) : "ca. 20 % des Gesamtpreises (auf volle 50 € gerundet)";
   const rest = totalNum != null && depositNum != null ? from + formatEuro(totalNum - depositNum) : "80 % des Gesamtpreises";
 
   // ---- Vertragsparteien ----
@@ -300,7 +307,18 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     title: "Zahlungsbedingungen",
     blocks: [
       {
-        ul: [
+        ul: depositNum === 0 ? [
+          `Keine Anzahlung (Gesamtpreis bis ${NO_DEPOSIT_UP_TO} €). Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
+          shippedOnly
+            ? `per Überweisung vor dem Versand, spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung. Hierzu erhält der Mieter eine Rechnung.`
+            : renter?.rest_payment_method === "bar"
+              ? `in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe der Mietsache (vom Mieter so gewählt). Der Mieter erhält hierüber eine Rechnung mit Zahlungsvermerk.`
+              : renter?.rest_payment_method === "ueberweisung"
+                ? `per Überweisung spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung (vom Mieter so gewählt). Hierzu erhält der Mieter eine Rechnung.`
+                : `per Überweisung spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung oder in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe. Hierzu erhält der Mieter eine Rechnung.`,
+          "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
+          `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
+        ] : [
           `Anzahlung: ${deposit}, zahlbar innerhalb von 7 Tagen nach Erhalt der Anzahlungsrechnung.`,
           renter?.rest_payment_method === "bar"
             ? `Restbetrag: ${rest}, zahlbar in bar bei Lieferung bzw. Übergabe der Mietsache (vom Mieter so gewählt). Der Mieter erhält hierüber eine Rechnung mit Zahlungsvermerk.`
@@ -574,6 +592,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     rest,
     totalAmount: totalNum,
     depositAmount: depositNum,
+    shippedOnly,
     taxNote: "Alle Preise sind Endpreise. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
     sections: S,
     billing: renter?.billing && Object.values(renter.billing).some(Boolean) ? renter.billing : null,
@@ -626,7 +645,7 @@ export function contractToHtml(doc: ContractDoc, signature?: { signer: string; s
 <h3 style="margin:18px 0 6px;font-family:Georgia,serif;font-size:15px">Leistungsübersicht</h3>
 <table role="presentation" width="100%" style="font-size:13px">${lines}
 <tr><td style="padding:8px 0 0;border-top:1px solid #e4e6e8;font-weight:600">Gesamtpreis</td><td style="padding:8px 0 0;border-top:1px solid #e4e6e8;text-align:right;font-weight:600;white-space:nowrap">${esc(doc.total)}</td></tr>
-<tr><td style="padding:2px 0;color:#6f7882">davon Anzahlung</td><td style="padding:2px 0;text-align:right;color:#6f7882;white-space:nowrap">${esc(doc.deposit)}</td></tr>
+${doc.depositAmount === 0 ? "" : `<tr><td style="padding:2px 0;color:#6f7882">davon Anzahlung</td><td style="padding:2px 0;text-align:right;color:#6f7882;white-space:nowrap">${esc(doc.deposit)}</td></tr>`}
 </table>
 <p style="color:#6f7882;font-size:12px">${esc(doc.taxNote)}</p>
 ${sections}${withdrawal}

@@ -16,16 +16,21 @@ export function PaymentAdminCard({ bookingId, p }: { bookingId: string; p: Payme
         <p className="mb-4 text-sm text-anthracite-500">Für diese Buchung ist kein Preis hinterlegt – Beträge laut deiner Rechnung.</p>
       ) : (
         <dl className="mb-4 space-y-1 text-sm">
-          <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium">{formatCurrencyEUR(p.deposit!)}</dd></div>
+          {p.deposit === 0 ? (
+            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">keine (bis 150 €)</dd></div>
+          ) : (
+            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium">{formatCurrencyEUR(p.deposit!)}</dd></div>
+          )}
           <div className="flex justify-between">
             <dt className="text-anthracite-500">
-              Restbetrag {p.method === "bar" ? "· bar bei Lieferung" : p.method === "ueberweisung" ? `· Überweisung bis ${formatDateGerman(p.restDueDate)}` : ""}
+              {p.deposit === 0 ? "Gesamtbetrag" : "Restbetrag"}{" "}
+              {p.method === "bar" ? `· bar bei ${p.pickupOnly ? "Abholung" : "Lieferung"}` : p.method === "ueberweisung" ? `· Überweisung bis ${formatDateGerman(p.restDueDate)}` : ""}
             </dt>
             <dd className="font-medium">{from}{formatCurrencyEUR(p.rest!)}</dd>
           </div>
         </dl>
       )}
-      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} />
+      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} />
       <p className="mt-3 text-xs text-anthracite-400">
         Rechnungen erstellst du wie gewohnt in Lexware Office (Verwendungszweck: Buchungsnummer). Hier hakst du nur ab, was eingegangen ist –
         offene Anzahlungen werden nach 7 Tagen automatisch freundlich erinnert.

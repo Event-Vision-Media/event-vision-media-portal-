@@ -10,12 +10,15 @@ export function PaymentControls({
   restPaid,
   method,
   compact = false,
+  noDeposit = false,
 }: {
   bookingId: string;
   depositPaid: boolean;
   restPaid: boolean;
   method: "ueberweisung" | "bar" | null;
   compact?: boolean;
+  /** Gesamtpreis bis 150 €: keine Anzahlung, nur ein Haken für den Gesamtbetrag. */
+  noDeposit?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -27,14 +30,14 @@ export function PaymentControls({
 
   return (
     <div className={compact ? "flex flex-wrap items-center gap-2" : "space-y-3"}>
-      <Toggle
+      {!noDeposit && <Toggle
         label="Anzahlung erhalten"
         checked={depositPaid}
         disabled={pending}
         onChange={(v) => run(() => setPaymentReceived(bookingId, "deposit", v))}
-      />
+      />}
       <Toggle
-        label={method === "bar" ? "Rest bar erhalten" : "Rest erhalten"}
+        label={noDeposit ? (method === "bar" ? "Bar erhalten" : "Bezahlt") : method === "bar" ? "Rest bar erhalten" : "Rest erhalten"}
         checked={restPaid}
         disabled={pending}
         onChange={(v) => run(() => setPaymentReceived(bookingId, "rest", v))}
@@ -50,7 +53,7 @@ export function PaymentControls({
           >
             <option value="">noch offen</option>
             <option value="ueberweisung">Überweisung (bis 14 Tage vorher)</option>
-            <option value="bar">Bar bei Lieferung</option>
+            <option value="bar">Bar bei Übergabe (Lieferung/Abholung)</option>
           </select>
         </label>
       )}

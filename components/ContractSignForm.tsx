@@ -25,6 +25,8 @@ export function ContractSignForm({
   hasDelivery,
   carryHelper,
   slots,
+  noDeposit = false,
+  shippedOnly = false,
 }: {
   prefill: ContractPrefill;
   sie: boolean;
@@ -33,6 +35,10 @@ export function ContractSignForm({
   /** Aufstellort nicht ebenerdig und Kunde stellt selbst eine Tragehilfe. */
   carryHelper?: boolean;
   slots: SlotPlan;
+  /** Gesamtpreis bis 150 €: keine Anzahlung, alles auf einmal. */
+  noDeposit?: boolean;
+  /** Alles wird verschickt – nur Überweisung möglich. */
+  shippedOnly?: boolean;
 }) {
   const [state, formAction] = useFormState(signContract, initialState);
   const [signed, setSigned] = useState(false);
@@ -105,20 +111,40 @@ export function ContractSignForm({
 
       <fieldset className="space-y-3">
         <legend className="font-serif text-lg font-semibold text-anthracite-800">3. {t("Bestätigen & unterschreiben", "Bestätigen & unterschreiben")}</legend>
-        {isBusiness ? (
-          <input type="hidden" name="rest_payment_method" value="ueberweisung" />
+        {isBusiness || shippedOnly ? (
+          <>
+            <input type="hidden" name="rest_payment_method" value="ueberweisung" />
+            {shippedOnly && !isBusiness && (
+              <p className="rounded-xl border border-anthracite-100 bg-sand-50 p-4 text-sm text-anthracite-600">
+                Da wir euch alles zuschicken, zahlt ihr {noDeposit ? "den Betrag" : "den Restbetrag"} per Überweisung vor dem Versand – die Rechnung kommt per E-Mail.
+              </p>
+            )}
+          </>
         ) : (
           <div className="rounded-xl border border-anthracite-100 bg-sand-50 p-4">
-            <p className="text-sm font-medium text-anthracite-700">Wie möchtet ihr den Restbetrag zahlen? <span className="text-gold-600">*</span></p>
-            <p className="mt-0.5 text-xs text-anthracite-500">Die Anzahlung überweist ihr nach der Unterschrift – die Rechnung kommt per E-Mail.</p>
+            <p className="text-sm font-medium text-anthracite-700">
+              {noDeposit ? "Wie möchtet ihr bezahlen?" : "Wie möchtet ihr den Restbetrag zahlen?"} <span className="text-gold-600">*</span>
+            </p>
+            <p className="mt-0.5 text-xs text-anthracite-500">
+              {noDeposit
+                ? "Keine Anzahlung nötig – ihr zahlt alles auf einmal."
+                : "Die Anzahlung überweist ihr nach der Unterschrift – die Rechnung kommt per E-Mail."}
+            </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
               <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
-              <Radio name="rest_payment_method" value="bar" title="Bar bei Lieferung" text="bequem vor Ort bei der Übergabe" />
+              <Radio
+                name="rest_payment_method"
+                value="bar"
+                title={hasDelivery ? "Bar bei Lieferung" : "Bar bei Abholung"}
+                text={hasDelivery ? "bequem vor Ort bei der Übergabe" : "einfach bei der Abholung bei uns"}
+              />
             </div>
           </div>
         )}
         <Check name="location_confirmed" required>
-          {t("Ich habe Standort, Aufbau und Abholung mit der Location abgesprochen.", "Standort, Aufbau und Abholung sind mit der Location abgesprochen.")}
+          {hasDelivery
+            ? t("Ich habe Standort, Aufbau und Abholung mit der Location abgesprochen.", "Standort, Aufbau und Abholung sind mit der Location abgesprochen.")
+            : t("Ich hole die Mietsache zum vereinbarten Termin ab und bringe sie pünktlich und vollständig zurück.", "Die Mietsache wird zum vereinbarten Termin abgeholt und pünktlich und vollständig zurückgebracht.")}
         </Check>
         {carryHelper && (
           <Check name="carry_helper" required>

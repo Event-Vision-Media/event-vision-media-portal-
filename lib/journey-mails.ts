@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getRecommendations } from "@/lib/recommendations";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { daysUntil } from "@/lib/catalog";
-import { contractRequired, restDueDaysFor } from "@/lib/contract";
+import { contractRequired, depositFor, restDueDaysFor } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
 import { rebookingMail, waitingInquiriesMail, cashReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
@@ -221,8 +221,10 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     const signedAt = signedAtBy.get(b.id);
     // Restbetrag per Überweisung: Erinnerung 3 Tage vor bis zur Fälligkeit (14 bzw. bei alten Verträgen 7 Tage vorher)
     let kind: "anzahlung" | "rest_ueberweisung" | "rest_bar" | null = null;
+    // Ohne Anzahlung (Gesamtpreis bis 150 €) entfällt die Anzahlungs-Erinnerung
+    const noDeposit = b.deposit_amount != null ? Number(b.deposit_amount) === 0 : b.total_price != null && depositFor(Number(b.total_price)) === 0;
     // Anzahlungsrechnung geht nach der Vertragsunterschrift raus – Erinnerung 7 Tage danach
-    if (!b.deposit_paid_at && !b.deposit_reminder_sent_at && signedAt && signedAt <= confirmedCutoff) kind = "anzahlung";
+    if (!noDeposit && !b.deposit_paid_at && !b.deposit_reminder_sent_at && signedAt && signedAt <= confirmedCutoff) kind = "anzahlung";
     else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "ueberweisung" && signedAt && days >= dueDaysBy.get(b.id)! && days <= dueDaysBy.get(b.id)! + 3) kind = "rest_ueberweisung";
     else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "bar" && days >= 1 && days <= 2) kind = "rest_bar";
     if (!kind) continue;
@@ -237,7 +239,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
           ? depositReminderMail(mb, p.deposit, p.bank)
           : kind === "rest_ueberweisung"
             ? restTransferReminderMail(mb, p.rest, p.restDueDate, p.bank)
-            : cashReminderMail(mb, p.rest);
+            : cashReminderMail(mb, p.rest, { pickup: p.pickupOnly, full: p.deposit === 0 });
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         const column = kind === "anzahlung" ? "deposit_reminder_sent_at" : "rest_reminder_sent_at";

@@ -1,6 +1,7 @@
 import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
+import { depositFor } from "@/lib/contract";
 
 /**
  * E-Mail-Versand über die Resend-API (https://resend.com) – ohne zusätzliche
@@ -208,16 +209,17 @@ ${details(b)}
 
 export function confirmationMail(b: MailBooking) {
   const url = portalUrl();
+  const noDeposit = b.total_price != null && depositFor(Number(b.total_price)) === 0;
   const t = isSie(b)
     ? {
         title: "Ihre Buchung ist bestätigt",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen Ihnen Ihren Termin. Wir freuen uns auf Ihr Event!",
-        next: "<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. Danach erhalten Sie die Rechnung über die Anzahlung. Im Portal wählen Sie außerdem Ihr Layout und sehen jederzeit den Stand Ihrer Buchung.",
+        next: `<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. ${noDeposit ? "Eine Anzahlung ist nicht nötig." : "Danach erhalten Sie die Rechnung über die Anzahlung."} Im Portal wählen Sie außerdem Ihr Layout und sehen jederzeit den Stand Ihrer Buchung.`,
       }
     : {
         title: "Deine Buchung ist bestätigt 🎉",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen dir deinen Termin. Wir freuen uns riesig auf dein Event!",
-        next: "<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. Danach bekommst du die Rechnung über die Anzahlung. Im Portal wählst du außerdem dein Layout und siehst jederzeit den Stand deiner Buchung.",
+        next: `<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. ${noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal." : "Danach bekommst du die Rechnung über die Anzahlung."} Im Portal wählst du außerdem dein Layout und siehst jederzeit den Stand deiner Buchung.`,
       };
   return {
     subject: `Auftragsbestätigung ${b.booking_code} – ${BRAND}`,
@@ -331,12 +333,12 @@ ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/anfragen" style="
  * Nach der Unterschrift: vollständiger Vertragstext per E-Mail – so hat der
  * Kunde den Vertrag inkl. Widerrufsbelehrung auf einem dauerhaften Datenträger.
  */
-export function contractSignedMail(b: MailBooking, contractHtml: string, contractText: string) {
+export function contractSignedMail(b: MailBooking, contractHtml: string, contractText: string, noDeposit = false) {
   const sie = isSie(b);
   const url = portalUrl();
   const intro = sie
-    ? "vielen Dank – Ihr Mietvertrag ist unterschrieben und damit abgeschlossen. Nachfolgend finden Sie Ihr Exemplar zur Aufbewahrung. Die Rechnung über die Anzahlung erhalten Sie in Kürze gesondert per E-Mail."
-    : "danke – dein Mietvertrag ist unterschrieben und damit abgeschlossen! Nachfolgend findest du dein Exemplar zum Aufbewahren. Die Rechnung über die Anzahlung bekommst du in Kürze gesondert per E-Mail.";
+    ? `vielen Dank – Ihr Mietvertrag ist unterschrieben und damit abgeschlossen. Nachfolgend finden Sie Ihr Exemplar zur Aufbewahrung. ${noDeposit ? "Eine Anzahlung ist nicht nötig – die Rechnung über den Gesamtbetrag erhalten Sie gesondert." : "Die Rechnung über die Anzahlung erhalten Sie in Kürze gesondert per E-Mail."}`
+    : `danke – dein Mietvertrag ist unterschrieben und damit abgeschlossen! Nachfolgend findest du dein Exemplar zum Aufbewahren. ${noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal, so wie im Vertrag gewählt." : "Die Rechnung über die Anzahlung bekommst du in Kürze gesondert per E-Mail."}`;
   return {
     subject: `${sie ? "Ihr" : "Dein"} Mietvertrag ${b.booking_code} – ${BRAND}`,
     html: layout(
@@ -349,7 +351,7 @@ ${url ? `<p style="margin:16px 0"><a href="${esc(url)}/dashboard/vertrag" style=
   };
 }
 
-export function contractAdminMail(b: MailBooking, signer: string) {
+export function contractAdminMail(b: MailBooking, signer: string, noDeposit = false) {
   const url = portalUrl();
   return {
     subject: `Mietvertrag unterschrieben: ${b.booking_code} · ${formatDateGerman(b.event_date)}`,
@@ -357,7 +359,7 @@ export function contractAdminMail(b: MailBooking, signer: string) {
       "Mietvertrag unterschrieben",
       `<p style="line-height:1.6"><strong>${esc(signer)}</strong> hat den Mietvertrag für <strong>${esc(b.booking_code)}</strong> (${esc(formatDateGerman(b.event_date))}) digital unterschrieben.</p>
 ${details(b)}
-<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> Anzahlungsrechnung in Lexware Office schreiben – Verwendungszweck ${esc(b.booking_code)}.</p>
+<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${noDeposit ? "Keine Anzahlung (bis 150 €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben" : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
 ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/zahlungen" style="color:#a87731;font-weight:600">Zu den Zahlungen →</a></p>` : ""}`
     ),
     text: `${signer} hat den Mietvertrag für ${b.booking_code} (${formatDateGerman(b.event_date)}) unterschrieben.${url ? `\n${url}/admin/anfragen` : ""}`,
@@ -482,14 +484,16 @@ export function restTransferReminderMail(b: MailBooking, amount: number, dueDate
   };
 }
 
-/** Barzahlung bei Lieferung – kurzer Hinweis 1–2 Tage vorher. */
-export function cashReminderMail(b: MailBooking, amount: number) {
+/** Barzahlung bei Lieferung bzw. Abholung – kurzer Hinweis 1–2 Tage vorher. */
+export function cashReminderMail(b: MailBooking, amount: number, opts: { pickup?: boolean; full?: boolean } = {}) {
   const sie = isSie(b);
+  const what = opts.full ? "den Betrag" : "den Restbetrag";
+  const when = opts.pickup ? "bei der Abholung" : "bei der Lieferung";
   const intro = sie
-    ? `morgen bzw. übermorgen ist es so weit – wir freuen uns auf Ihr Event! Wie vereinbart zahlen Sie den Restbetrag von <strong>${esc(euro2(amount))}</strong> bar bei der Lieferung. Bitte halten Sie den Betrag möglichst passend bereit bzw. geben Sie ihn Ihrem Ansprechpartner vor Ort mit. Sie erhalten dafür selbstverständlich eine Rechnung mit Zahlungsvermerk.`
-    : `bald ist es so weit – wir freuen uns auf dein Event! Wie vereinbart zahlst du den Restbetrag von <strong>${esc(euro2(amount))}</strong> bar bei der Lieferung. Bitte halte den Betrag möglichst passend bereit oder gib ihn deinem Ansprechpartner vor Ort mit. Du bekommst dafür natürlich eine Rechnung mit Zahlungsvermerk.`;
+    ? `morgen bzw. übermorgen ist es so weit – wir freuen uns auf Ihr Event! Wie vereinbart zahlen Sie ${what} von <strong>${esc(euro2(amount))}</strong> bar ${when}. Bitte halten Sie den Betrag möglichst passend bereit${opts.pickup ? "" : " bzw. geben Sie ihn Ihrem Ansprechpartner vor Ort mit"}. Sie erhalten dafür selbstverständlich eine Rechnung mit Zahlungsvermerk.`
+    : `bald ist es so weit – wir freuen uns auf dein Event! Wie vereinbart zahlst du ${what} von <strong>${esc(euro2(amount))}</strong> bar ${when}. Bitte halte den Betrag möglichst passend bereit${opts.pickup ? "" : " oder gib ihn deinem Ansprechpartner vor Ort mit"}. Du bekommst dafür natürlich eine Rechnung mit Zahlungsvermerk.`;
   return {
-    subject: sie ? `Bald ist es so weit – Restbetrag bar bei Lieferung` : `Bald ist es so weit! Kurzer Hinweis zur Barzahlung`,
+    subject: sie ? `Bald ist es so weit – Zahlung bar ${when}` : `Bald ist es so weit! Kurzer Hinweis zur Barzahlung`,
     html: layout(sie ? "Bald ist es so weit" : "Bald ist es so weit 🎉", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>`),
     text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${BRAND}`,
   };

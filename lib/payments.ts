@@ -9,6 +9,8 @@ export interface PaymentSummary {
   deposit: number | null;
   rest: number | null;
   method: "ueberweisung" | "bar" | null;
+  /** Kein Lieferservice: Übergabe bei Abholung (für Texte „bar bei Abholung“). */
+  pickupOnly: boolean;
   depositPaid: boolean;
   restPaid: boolean;
   /** Fälligkeit der Restzahlung per Überweisung (YYYY-MM-DD), 14 Tage vor dem Event (ältere Verträge: 7). */
@@ -41,7 +43,9 @@ export async function getPaymentSummary(booking: Booking): Promise<PaymentSummar
     deposit,
     rest: total != null && deposit != null ? round(total - deposit) : null,
     method: booking.rest_payment_method ?? null,
-    depositPaid: Boolean(booking.deposit_paid_at),
+    pickupOnly: !doc.hasDelivery,
+    // Ohne Anzahlung (Gesamtpreis bis 150 €) gibt es nichts anzuzahlen
+    depositPaid: Boolean(booking.deposit_paid_at) || deposit === 0,
     restPaid: Boolean(booking.rest_paid_at),
     restDueDate: minusDays(booking.event_date, restDueDays),
     restDueDays,

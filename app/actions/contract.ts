@@ -166,10 +166,10 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
   const mb = toMailBooking(booking);
   if (booking.email) {
     const html = contractToHtml(doc, { signer: signerName, signedAt: formatDateTimeGerman(signedAt) });
-    await sendEmail({ to: booking.email, ...contractSignedMail(mb, html, contractToText(doc)) });
+    await sendEmail({ to: booking.email, ...contractSignedMail(mb, html, contractToText(doc), doc.depositAmount === 0) });
   }
   if (process.env.ADMIN_EMAIL) {
-    await sendEmail({ to: process.env.ADMIN_EMAIL, ...contractAdminMail(mb, signerName), replyTo: booking.email ?? undefined });
+    await sendEmail({ to: process.env.ADMIN_EMAIL, ...contractAdminMail(mb, signerName, doc.depositAmount === 0), replyTo: booking.email ?? undefined });
   }
 
   revalidatePath("/dashboard");

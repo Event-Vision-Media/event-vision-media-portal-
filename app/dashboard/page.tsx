@@ -13,7 +13,10 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { getAudioGreetingDeadline } from "@/lib/types";
-import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames, daysUntil, followupLine, staffFor, upgradeOffers } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, MIN_LEAD_DAYS, PACKAGES, bundledExtraNames, daysUntil, followupLine, staffFor, upgradeOffers } from "@/lib/catalog";
+import { bookingDevices } from "@/lib/audience";
+import { checkDeviceAvailability } from "@/lib/inquiry-server";
+import { DeviceCrossSell, type CrossSellOffer } from "@/components/DeviceCrossSell";
 import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
 import { UpsellSection } from "@/components/UpsellSection";
@@ -159,10 +162,51 @@ export default async function DashboardPage() {
   }
   const audioGreetingDeadline = getAudioGreetingDeadline(booking.event_date);
 
+  // Was gebucht ist, bestimmt die Schritte: Startbildschirm/Layout nur bei Fotospiegel oder Fotobox
+  const devices = bookingDevices(booking);
+  const photo = devices.has("spiegel") || devices.has("fotobox");
+
+  // Ohne Fotogerät: zeigen, ob Fotospiegel/Fotobox am Eventtag noch frei sind
+  let crossSell: CrossSellOffer[] = [];
+  if (!photo && ["reserviert", "bestaetigt"].includes(booking.lifecycle) && daysUntil(booking.event_date) >= MIN_LEAD_DAYS) {
+    const days = booking.inquiry_items?.days ?? booking.event_days ?? 1;
+    const CROSS = [
+      { id: "spiegel-gold", img: "/geraete/spiegel-gold.jpg", tagline: "Der Bestseller im Goldrahmen" },
+      { id: "spiegel-modern", img: "/geraete/spiegel-modern.jpg", tagline: "Modern mit LED-Rand" },
+      { id: "fotobox-komplett", img: "/geraete/fotobox.jpg", tagline: "Profikamera & Studioblitz" },
+    ];
+    const [mirror, box] = await Promise.all([
+      checkDeviceAvailability(["spiegel"], booking.event_date, days, booking.id),
+      checkDeviceAvailability(["fotobox"], booking.event_date, days, booking.id),
+    ]);
+    const state = { spiegel: mirror, fotobox: box } as const;
+    crossSell = CROSS.flatMap((c) => {
+      const pkg = PACKAGES.find((p) => p.id === c.id);
+      if (!pkg) return [];
+      const st = state[pkg.product as "spiegel" | "fotobox"];
+      if (!st.available) return [];
+      return [{ ...c, name: pkg.name, price: pkg.price, lastOne: st.lastOne.length > 0 }];
+    });
+  }
+
   const contract = await getLatestContract(booking.id);
   const showContract = contractRequired(booking) || Boolean(contract);
   const payment = contractRequired(booking) ? await getPaymentSummary(booking) : null;
   const contractMissing = contractRequired(booking) && !contract && daysUntil(booking.event_date) >= 0;
+
+  // Fortschritt passend zur Buchung
+  const steps: { label: string; done: boolean; detail?: string }[] = [
+    ...(showContract ? [{ label: "Mietvertrag", done: Boolean(contract) }] : []),
+    ...(photo
+      ? [
+          { label: "Startbildschirm", done: homeScreenDone, detail: selectedHomeScreenName ?? undefined },
+          { label: "Layout ausgewählt", done: layoutDone, detail: selectedLayoutName ?? undefined },
+          { label: "Layout abgestimmt", done: approvalDone },
+        ]
+      : []),
+    ...(hasAudioGuestbook ? [{ label: "Bandansage", done: !audioGreetingMissing }] : []),
+    { label: "Event Highlights", done: extrasDone },
+  ];
 
   return (
     <div className="min-h-screen">
@@ -326,6 +370,8 @@ export default async function DashboardPage() {
 
         {upgrade && <UpgradeCard offer={upgrade} sie={booking.customer_type === "business"} />}
 
+        {crossSell.length > 0 && <DeviceCrossSell offers={crossSell} dateLabel={formatDateGerman(booking.event_date)} sie={sie} />}
+
         <UpsellSection booking={booking} />
 
         <Card className="animate-fade-in-up" style={{ animationDelay: "140ms" }}>
@@ -333,32 +379,9 @@ export default async function DashboardPage() {
             {t("Euer Fortschritt", "Ihr Fortschritt")}
           </h2>
           <div className="mt-5 flex items-start gap-0">
-            <StepItem
-              done={homeScreenDone}
-              index={1}
-              label="Startbildschirm"
-              detail={selectedHomeScreenName ?? undefined}
-              isLast={false}
-            />
-            <StepItem
-              done={layoutDone}
-              index={2}
-              label="Layout ausgewählt"
-              detail={selectedLayoutName ?? undefined}
-              isLast={false}
-            />
-            <StepItem
-              done={approvalDone}
-              index={3}
-              label="Layout abgestimmt"
-              isLast={false}
-            />
-            <StepItem
-              done={extrasDone}
-              index={4}
-              label="Event Highlights"
-              isLast
-            />
+            {steps.map((st, i) => (
+              <StepItem key={st.label} done={st.done} index={i + 1} label={st.label} detail={st.detail} isLast={i === steps.length - 1} />
+            ))}
           </div>
         </Card>
 
@@ -366,6 +389,7 @@ export default async function DashboardPage() {
           className="grid grid-cols-1 gap-4 sm:grid-cols-2 animate-fade-in-up"
           style={{ animationDelay: "200ms" }}
         >
+          {photo && (<>
           <Card className="group flex flex-col justify-between transition-shadow duration-300 hover:shadow-card-hover">
             <div>
               <div className="mb-3 flex items-center justify-between">
@@ -446,6 +470,7 @@ export default async function DashboardPage() {
             </Link>
           </Card>
 
+          </>)}
           <Card className="group flex flex-col justify-between transition-shadow duration-300 hover:shadow-card-hover">
             <div>
               <div className="mb-3 flex items-center justify-between">

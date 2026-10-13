@@ -118,6 +118,8 @@ export default async function ContractPage() {
             sie={sie}
             isBusiness={doc.isBusiness}
             hasDelivery={hasDelivery}
+            noDeposit={doc.depositAmount === 0}
+            shippedOnly={doc.shippedOnly}
             carryHelper={hasDelivery && booking.inquiry_items?.access?.help === "helfer"}
             slots={slots}
             prefill={{

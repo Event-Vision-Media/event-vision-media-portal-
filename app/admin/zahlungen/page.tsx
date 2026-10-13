@@ -79,10 +79,12 @@ export default async function AdminPaymentsPage() {
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 text-sm">
                   <span className="text-anthracite-600">
-                    Anzahlung {p.deposit != null ? formatCurrencyEUR(p.deposit) : "–"} · Rest {p.rest != null ? formatCurrencyEUR(p.rest) : "–"}
+                    {p.deposit === 0
+                      ? `Keine Anzahlung · Gesamt ${p.rest != null ? formatCurrencyEUR(p.rest) : "–"}`
+                      : `Anzahlung ${p.deposit != null ? formatCurrencyEUR(p.deposit) : "–"} · Rest ${p.rest != null ? formatCurrencyEUR(p.rest) : "–"}`}
                     {p.method === "ueberweisung" ? " per Überweisung" : p.method === "bar" ? " bar" : ""}
                   </span>
-                  <PaymentControls bookingId={b.id} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} compact />
+                  <PaymentControls bookingId={b.id} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} compact />
                 </div>
               </Card>
             );
