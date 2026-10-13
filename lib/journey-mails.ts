@@ -2,10 +2,11 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRecommendations } from "@/lib/recommendations";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
-import { daysUntil } from "@/lib/catalog";
+import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } from "@/lib/catalog";
+import { dateFromText } from "@/lib/calendar";
 import { contractRequired, depositFor, restDueDaysFor } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
-import { rebookingMail, waitingInquiriesMail, cashReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, type Booking } from "@/lib/types";
 
@@ -24,6 +25,8 @@ export interface JourneyRunResult {
   followups: { booking: string; sent: boolean }[];
   contractReminders: { booking: string; sent: boolean }[];
   paymentReminders: { booking: string; kind: "anzahlung" | "rest_ueberweisung" | "rest_bar"; sent: boolean }[];
+  /** Selbstabholung: Erinnerung am Tag vor der Abholung. */
+  pickupReminders: { booking: string; sent: boolean }[];
   /** Anfragen, die seit über 24 Stunden auf deine Bestätigung warten (Sammel-Mail an dich). */
   waitingInquiries: string[];
   adminDigestSent: boolean;
@@ -76,7 +79,10 @@ async function openStepsFor(b: Booking): Promise<string[]> {
       .eq("booking_id", b.id);
     if (!count) steps.push(sie ? "Begrüßungsansage für das Audiogästebuch hochladen" : "Deine Begrüßungsansage fürs Audiogästebuch aufnehmen");
   }
-  if (!b.access_notes) steps.push(sie ? "Hinweise zu Anfahrt & Zugang der Location hinterlegen" : "Hinweise zu Anfahrt & Zugang deiner Location hinterlegen");
+  // Hinweise zur Location nur, wenn wir liefern (nicht bei Selbstabholung/Versand)
+  const pk = (b.inquiry_items?.packages ?? []) as { id: string; product: DeviceKey }[];
+  const delivered = pk.length ? hasDelivery(pk, (b.inquiry_items?.extras ?? []).map((e) => e.id)) : true;
+  if (delivered && !b.access_notes) steps.push(sie ? "Hinweise zu Anfahrt & Zugang der Location hinterlegen" : "Hinweise zu Anfahrt & Zugang deiner Location hinterlegen");
   return steps;
 }
 
@@ -92,7 +98,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [] };
+  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [] };
 
   // ---- Für dich: Anfragen, die seit über 24 Stunden unbeantwortet sind ----
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
@@ -191,6 +197,57 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       }
     }
     result.followups.push({ booking: b.booking_code, sent });
+  }
+
+  // ---- Selbstabholung: Erinnerung am Tag vor der Abholung (inkl. Barbetrag) ----
+  const { data: pickupCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("source", "website")
+    .eq("lifecycle", "bestaetigt")
+    .not("email", "is", null)
+    .gte("event_date", addDays(1))
+    .lte("event_date", addDays(4))
+    .limit(MAX_PER_RUN);
+  const pickupIds = (pickupCandidates ?? []).map((b) => b.id);
+  if (pickupIds.length) {
+    const [{ data: windows }, { data: done }] = await Promise.all([
+      supabase.from("booking_contracts").select("booking_id, handover_window, return_window, signed_at").in("booking_id", pickupIds).order("signed_at", { ascending: false }),
+      supabase.from("activity_log").select("booking_id").eq("event_type", "abhol_erinnerung").in("booking_id", pickupIds),
+    ]);
+    const sentBefore = new Set((done ?? []).map((r) => r.booking_id));
+    const contractBy = new Map<string, { handover_window: string | null; return_window: string | null }>();
+    for (const w of windows ?? []) if (!contractBy.has(w.booking_id)) contractBy.set(w.booking_id, w);
+    for (const b of (pickupCandidates ?? []) as Booking[]) {
+      if (sentBefore.has(b.id)) continue;
+      const pk = (b.inquiry_items?.packages ?? []) as { id: string; product: DeviceKey }[];
+      const extraIds = new Set((b.inquiry_items?.extras ?? []).map((e) => e.id));
+      // Nur, wenn alle Geräte bei uns abgeholt werden (kein Lieferservice, kein Versand)
+      if (!pk.length || !pk.every((p) => handoverFor(p.product, p.id, extraIds) === "abholung")) continue;
+      const c = contractBy.get(b.id);
+      const handoverText = b.delivery_time_window || c?.handover_window || null;
+      const handoverDate = b.delivery_date ?? dateFromText(handoverText, b.event_date);
+      if (!handoverText || handoverDate !== addDays(1)) continue;
+
+      const p = await getPaymentSummary(b);
+      const cash = p.method === "bar" && !p.restPaid && p.rest ? p.rest : null;
+      let sent = false;
+      if (!dryRun) {
+        const mail = pickupReminderMail(toMailBooking(b), {
+          devices: pk.map((x) => PRODUCT_LABELS[x.product]).join(" und "),
+          handover: handoverText,
+          ret: b.pickup_time_window || c?.return_window || null,
+          cash,
+        });
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) {
+          await logActivity(b.id, "abhol_erinnerung", `Erinnerung an die Abholung verschickt${cash ? ` (inkl. Hinweis Barzahlung ${cash} €)` : ""}`);
+          // Barbetrag steht schon drin – keine zweite Mail zur Barzahlung
+          if (cash) await supabase.from("bookings").update({ rest_reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
+        }
+      }
+      result.pickupReminders.push({ booking: b.booking_code, sent });
+    }
   }
 
   // ---- Zahlungen ----

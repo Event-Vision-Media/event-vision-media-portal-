@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
 
@@ -39,6 +39,10 @@ export default async function AdminMailPreviewPage({ searchParams }: { searchPar
     { title: "4b · Erinnerung Anzahlung (7 Tage nach Vertragsunterschrift, falls nicht abgehakt)", mail: depositReminderMail(sample, depositFor(sample.total_price ?? 0), { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4c · Erinnerung Restzahlung per Überweisung (ca. 17 Tage vor dem Event, fällig 14 Tage vorher)", mail: restTransferReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0), "2027-05-29", { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4d · Hinweis Barzahlung bei Lieferung (1–2 Tage vorher)", mail: cashReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0)) },
+    {
+      title: "4e · Erinnerung Selbstabholung (Tag vor der Abholung, inkl. Barbetrag)",
+      mail: pickupReminderMail(sample, { devices: "Audiogästebuch", handover: "Fr., 11.12.2026, 17:00–19:00 Uhr", ret: "So., 13.12.2026, 10:00–12:00 Uhr", cash: 70 }),
+    },
     { title: "5 · Absage (optional beim Ablehnen)", mail: declineMail(sample, "An dem Tag sind leider bereits alle Spiegel vergeben.") },
     {
       title: "6 · Erinnerung 4 Wochen vor dem Event (automatisch)",

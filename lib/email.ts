@@ -1,7 +1,7 @@
 import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
-import { depositFor } from "@/lib/contract";
+import { LANDLORD, depositFor } from "@/lib/contract";
 
 /**
  * E-Mail-Versand über die Resend-API (https://resend.com) – ohne zusätzliche
@@ -481,6 +481,33 @@ export function restTransferReminderMail(b: MailBooking, amount: number, dueDate
     subject: sie ? `Restzahlung für Ihr Event am ${formatDateGerman(b.event_date)}` : `Restzahlung für dein Event am ${formatDateGerman(b.event_date)}`,
     html: layout("Restzahlung", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${box.html}`),
     text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${box.text}\n\n${BRAND}`,
+  };
+}
+
+/** Selbstabholung: Erinnerung am Tag vor der Abholung – Zeit, Adresse, Rückgabe, ggf. Barbetrag. */
+export function pickupReminderMail(b: MailBooking, o: { devices: string; handover: string; ret: string | null; cash: number | null }) {
+  const sie = isSie(b);
+  const address = `${LANDLORD.street}, ${LANDLORD.zipCity}`;
+  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+  const intro = sie
+    ? `morgen holen Sie bei uns ab: <strong>${esc(o.devices)}</strong>. Hier noch einmal alles Wichtige:`
+    : `morgen holst du bei uns ab: <strong>${esc(o.devices)}</strong>. Hier noch einmal alles Wichtige:`;
+  const rows = [
+    ["Abholung", o.handover],
+    ["Adresse", address],
+    ...(o.ret ? [["Rückgabe", o.ret]] : []),
+    ...(o.cash ? [["Bitte bar mitbringen", euro2(o.cash)]] : []),
+  ];
+  const table = `<table role="presentation" width="100%" style="margin:14px 0;font-size:14px">${rows
+    .map(([k, v]) => `<tr><td style="padding:6px 0;color:#6f7882;width:42%">${esc(k)}</td><td style="padding:6px 0;font-weight:600">${k === "Adresse" ? `<a href="${maps}" style="color:#a87731">${esc(v)}</a>` : esc(v)}</td></tr>`)
+    .join("")}</table>`;
+  const outro = sie
+    ? `Sie werden kurz eingewiesen – das dauert nur ein paar Minuten. Falls sich etwas verschiebt, rufen Sie uns gern an: ${esc(LANDLORD.phone)}.`
+    : `Wir zeigen dir kurz, wie alles funktioniert – das dauert nur ein paar Minuten. Falls sich etwas verschiebt, ruf uns einfach an: ${esc(LANDLORD.phone)}.`;
+  return {
+    subject: sie ? `Morgen: Abholung ${o.devices} (${b.booking_code})` : `Morgen holst du ${o.devices} ab 📦`,
+    html: layout(sie ? "Erinnerung an die Abholung" : "Morgen ist Abholung", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${table}<p style="color:#6f7882;font-size:13px;line-height:1.6">${outro}</p>`),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\n${stripTags(outro)}\n\n${BRAND}`,
   };
 }
 
