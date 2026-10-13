@@ -18,6 +18,7 @@ export const EXTRA_PRIORITY: Record<"business" | "privat", string[]> = {
   ],
   privat: [
     "Audiogästebuch",
+    "Herz-USB-Stick",
     "Personalisierte USB-Stick´s mit personalisierter Holzbox",
     "XXL-LOVE Leuchtbuchstaben",
     "Aufblasbare Fotokabine — 2,5 × 2,5 × 2,5 m",

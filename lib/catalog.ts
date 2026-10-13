@@ -120,7 +120,7 @@ export const PACKAGE_UPGRADE_PERKS: Record<string, string[]> = {
   "spiegel-gold-firma": ["Prunkvoller goldener Barock-Rahmen", "Der elegante Klassiker – unser Bestseller"],
   "360-komfort": ["Lieferung, Auf- & Abbau durch uns", "Kurze Einweisung vor Ort"],
   "360-premium": ["Professionelles iPad mit Booth-Software", "Automatische Slow Motion & Effekte", "Sofort-Download per QR-Code"],
-  "audio-komfort": ["Leuchtschild „Audio Guest Book“", "Karten mit witzigen Anweisungen", "Herz-USB-Stick mit allen Audios"],
+  "audio-komfort": ["Leuchtschild „Audio Guest Book“", "Karten mit witzigen Anweisungen"],
   "audio-premium": ["Stehtisch mit Husse für stilvolle Präsentation", "Alles aus dem Komfort-Paket"],
   "love-fullservice": ["Lieferung, Aufbau & Abholung durch uns", "Kein Transport und kein Aufbau nötig"],
 };

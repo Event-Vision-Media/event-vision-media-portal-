@@ -56,6 +56,8 @@ function formatEuro(value: number): string {
   return `${value.toLocaleString("de-DE", { minimumFractionDigits: cents ? 2 : 0, maximumFractionDigits: 2 })} €`;
 }
 export const DEPOSIT_RATE = 0.2;
+/** Ab hier ist der Herz-USB-Stick ein eigenes Extra (vorher in Audiogästebuch Komfort/Premium enthalten). */
+export const AUDIO_USB_EXTRA_SINCE = "2026-10-14";
 
 /** Bis zu diesem Gesamtpreis keine Anzahlung – alles auf einmal (z. B. Audiogästebuch bar bei Abholung). */
 export const NO_DEPOSIT_UP_TO = 150;
@@ -214,8 +216,10 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const lines: ContractLine[] = [];
   for (const p of items?.packages ?? []) {
     const bundled = includedExtraIds({ packages: [p] }).size > 0;
+    // Bis 13.10.2026 war der Herz-USB-Stick im Audiogästebuch Komfort/Premium enthalten – ältere Buchungen behalten ihn
+    const legacyUsb = (p.id === "audio-komfort" || p.id === "audio-premium") && booking.created_at < AUDIO_USB_EXTRA_SINCE;
     const choices = bundled ? includedChoices.map((c) => `Gewählt – ${c}`) : [];
-    lines.push({ name: p.name, price: formatEuro(p.price), features: [...packageFeatures(p.id), ...choices] });
+    lines.push({ name: p.name, price: formatEuro(p.price), features: [...packageFeatures(p.id), ...(legacyUsb ? ["Herz-USB-Stick mit allen Audios"] : []), ...choices] });
   }
   const follow = followupLine(items);
   if (follow) lines.push({ name: follow.label.replace(/^\+ /, ""), price: formatEuro(follow.amount) });
@@ -475,7 +479,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     media.push({ p: "Corporate Branding: Der Mieter stellt Logo, Farben und Texte für Fotolayout und Startbildschirm spätestens 7 Tage vor der Veranstaltung über das Kundenportal bereit. Er versichert, zur Verwendung dieser Inhalte – insbesondere von Marken und Logos – berechtigt zu sein, und stellt den Vermieter von Ansprüchen Dritter frei, die aus ihrer Verwendung entstehen." });
   }
   if (has("360")) media.push({ p: "360° Video Booth: Die Videos werden direkt auf das Smartphone bzw. – im Premium-Paket – per QR-Code zum Download bereitgestellt. Für den Sofort-Download ist ein funktionierendes WLAN bzw. mobiles Internet vor Ort erforderlich, für das der Vermieter keine Gewähr übernimmt." });
-  if (has("audio")) media.push({ p: "Audiogästebuch: Die Aufnahmen der Gäste werden nach der Veranstaltung als Download-Link bzw. – sofern im Paket enthalten – auf USB-Stick übergeben. Der Mieter weist die Gäste darauf hin, dass ihre Nachrichten aufgezeichnet werden." });
+  if (has("audio")) media.push({ p: "Audiogästebuch: Die Aufnahmen der Gäste werden nach der Veranstaltung als Download-Link im Kundenportal bzw. – sofern gebucht – zusätzlich auf USB-Stick übergeben. Der Mieter weist die Gäste darauf hin, dass ihre Nachrichten aufgezeichnet werden." });
   media.push({ p: "Aufnahmen von Personen unterliegen dem Urheber- und Persönlichkeitsrecht. Der Vermieter stellt ausschließlich die Technik zur Verfügung und ist für die Inhalte der Aufnahmen nicht verantwortlich. Der Mieter stellt sicher, dass durch die Nutzung und die Verwendung der Aufnahmen keine Rechte Dritter verletzt werden, und stellt den Vermieter von Ansprüchen Dritter frei, die auf einer solchen Rechtsverletzung beruhen, einschließlich angemessener Kosten der Rechtsverteidigung." });
   S.push({ title: "Aufnahmen und Rechte", blocks: media });
 

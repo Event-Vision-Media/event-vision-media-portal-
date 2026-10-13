@@ -273,7 +273,6 @@
         "Alles aus dem Basis-Paket",
         "Leuchtschild „Audio Guest Book“",
         "Karten mit witzigen Anweisungen für die Gäste",
-        "Herz-USB-Stick mit allen Audios",
         "Selbstabholung am Standort"
       ],
       "includes": "audio-basis"
@@ -473,6 +472,17 @@
         "360"
       ],
       "dbExtraName": "Mobiler WLAN-Router"
+    },
+    {
+      "id": "audio-usb",
+      "name": "Herz-USB-Stick mit allen Aufnahmen",
+      "desc": "Alle Audios zusätzlich auf einem USB-Stick in Herzform – schön zum Aufbewahren und Verschenken.",
+      "price": 15,
+      "from": false,
+      "for": [
+        "audio"
+      ],
+      "dbExtraName": "Herz-USB-Stick"
     },
     {
       "id": "audio-versand",
