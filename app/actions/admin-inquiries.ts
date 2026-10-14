@@ -148,6 +148,8 @@ export interface AdminPackageBookingInput {
   pickup: string;
   access: { level: string; help: string | null } | null;
   note: string;
+  /** Abweichungen laut schriftlichem Angebot (optional). */
+  offer?: { number: string; freeExtraIds: string[]; travelIncluded: boolean; adjustmentLabel: string; adjustmentAmount: string } | null;
 }
 
 /**
@@ -182,6 +184,18 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
     pickup: PICKUP_OPTIONS.some((o) => o.id === raw.pickup) ? (raw.pickup as PickupId) : null,
     source: { source: "Admin", medium: "direkt angelegt" },
     layoutDraft: null,
+    offer: (() => {
+      const o = raw.offer;
+      if (!o) return null;
+      const amount = Math.round(Number(String(o.adjustmentAmount ?? "").replace(",", ".")) * 100) / 100;
+      const terms = {
+        number: str(o.number, 40) || null,
+        freeExtraIds: (Array.isArray(o.freeExtraIds) ? o.freeExtraIds : []).map((x) => str(x, 40)).slice(0, 12),
+        travelIncluded: Boolean(o.travelIncluded),
+        adjustment: Number.isFinite(amount) && amount !== 0 && Math.abs(amount) <= 5000 ? { label: str(o.adjustmentLabel, 120), amount } : null,
+      };
+      return terms.number || terms.freeExtraIds.length || terms.travelIncluded || terms.adjustment ? terms : null;
+    })(),
   };
 
   if (!input.name) return { error: "Bitte den Namen angeben." };

@@ -295,7 +295,9 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     blocks: [
       { p: `Der Vermieter überlässt dem Mieter für die Veranstaltung ${deviceList.length > 1 ? "folgende Mietsachen" : "folgende Mietsache"}: ${all} – zu den in der Leistungsübersicht genannten Paketen, Extras und Preisen (siehe oben). Die Leistungsübersicht ist Bestandteil dieses Vertrags.` },
       { p: "Alle Preise sind Endpreise. Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer berechnet." },
-      ...(delivered.length
+      ...(items?.offer?.number ? [{ p: `Grundlage dieses Vertrags ist das Angebot ${items.offer.number}; die dort vereinbarten Konditionen sind in der Leistungsübersicht berücksichtigt.` }] : []),
+      ...(items?.offer?.travelIncluded ? [{ p: "Die Anfahrt ist laut Angebot im Preis enthalten." }] : []),
+      ...(delivered.length && !items?.offer?.travelIncluded
         ? [{ p: `Fahrtkosten sind bis ${TRAVEL.includedKm} km Fahrstrecke (einfach, kürzeste Strecke laut Routenplaner ab ${LANDLORD.street}, ${LANDLORD.zipCity}) inklusive. Darüber gilt: ${TRAVEL.tiers.map((t, i) => `bis ${t.upToKm} km ${formatEuro(t.price)}`).join(", ")}; bei weiteren Entfernungen der vorab vereinbarte Aufpreis.${items?.travel?.km != null ? ` Für diese Veranstaltung wurden ca. ${items.travel.km} km zugrunde gelegt.` : ""} Weicht die tatsächliche Adresse der Location von der Angabe in der Anfrage ab, werden die Fahrtkosten entsprechend angepasst.` }]
         : []),
       ...(items?.isFromPrice ? [{ p: "Mit „ab“ gekennzeichnete Preise richten sich nach dem tatsächlichen Aufwand (z. B. Dauer der Betreuung) und werden vor der Veranstaltung verbindlich abgestimmt." }] : []),

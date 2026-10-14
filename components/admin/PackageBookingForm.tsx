@@ -7,6 +7,7 @@ import { createAdminPackageBooking } from "@/app/actions/admin-inquiries";
 import {
   CARRY_SERVICE,
   EXTRAS,
+  applyOffer,
   PICKUP_OPTIONS,
   PRODUCT_LABELS,
   formatEuro,
@@ -37,6 +38,13 @@ export function PackageBookingForm() {
   const [pickup, setPickup] = useState("folgetag");
   const [level, setLevel] = useState("ebenerdig");
   const [carry, setCarry] = useState(false);
+  // Laut Angebot (z. B. Angebote aus der Zeit vor dem Portal)
+  const [offerOn, setOfferOn] = useState(false);
+  const [offerNo, setOfferNo] = useState("");
+  const [freeExtras, setFreeExtras] = useState<string[]>([]);
+  const [travelIncluded, setTravelIncluded] = useState(false);
+  const [adjLabel, setAdjLabel] = useState("");
+  const [adjAmount, setAdjAmount] = useState("");
   const biz = typ === "business";
 
   const packagesFor = (d: DeviceKey) => catalogData.packages.filter((p) => p.product === d && (biz || !("businessOnly" in p && p.businessOnly)));
@@ -49,9 +57,22 @@ export function PackageBookingForm() {
   const extraIds = extras.filter((id) => visibleExtras.some((e) => e.id === id));
   const withAccess = products.some((p) => CARRY_SERVICE.for.includes(p));
   const access = withAccess ? { level, help: level === "ebenerdig" ? null : carry ? "service" : "helfer" } : null;
+  const offer = offerOn
+    ? { number: offerNo, freeExtraIds: freeExtras.filter((id) => extraIds.includes(id)), travelIncluded, adjustmentLabel: adjLabel, adjustmentAmount: adjAmount }
+    : null;
+  const adjNum = Number(adjAmount.replace(",", "."));
   const priced = useMemo(
-    () => priceSelection(packageIds, extraIds, days, biz, access as any, { pickup: pickup as any, travel: null }),
-    [packageIds.join(), extraIds.join(), days, biz, level, carry, pickup]
+    () =>
+      applyOffer(
+        priceSelection(packageIds, extraIds, days, biz, access as any, { pickup: pickup as any, travel: null }),
+        offer && {
+          number: offer.number,
+          freeExtraIds: offer.freeExtraIds,
+          travelIncluded: offer.travelIncluded,
+          adjustment: Number.isFinite(adjNum) && adjNum ? { label: adjLabel, amount: adjNum } : null,
+        }
+      ),
+    [packageIds.join(), extraIds.join(), days, biz, level, carry, pickup, offerOn, freeExtras.join(), travelIncluded, adjLabel, adjAmount, offerNo]
   );
   const delivered = hasDelivery(priced.packages, extraIds);
 
@@ -103,6 +124,7 @@ export function PackageBookingForm() {
         pickup: delivered ? pickup : "",
         access,
         note: String(fd.get("note") ?? ""),
+        offer,
       });
       if (r.error || !r.bookingId) return setError(r.error ?? "Unbekannter Fehler.");
       router.push(`/admin/bookings/${r.bookingId}`);
@@ -178,15 +200,27 @@ export function PackageBookingForm() {
         <section>
           <h3 className="mb-2 font-semibold text-anthracite-800">Extras</h3>
           <div className="grid gap-1.5 sm:grid-cols-2">
-            {visibleExtras.map((e) => (
-              <label key={e.id} className="flex items-center justify-between gap-2 rounded-lg border border-anthracite-100 px-3 py-2">
-                <span className="flex items-center gap-2">
-                  <input type="checkbox" checked={extras.includes(e.id)} onChange={() => setExtras((x) => (x.includes(e.id) ? x.filter((y) => y !== e.id) : [...x, e.id]))} />
-                  {e.name}
-                </span>
-                <span className="flex-none text-anthracite-500">{e.from ? "ab " : ""}{formatEuro(e.price)}</span>
-              </label>
-            ))}
+            {visibleExtras.map((e) => {
+              const on = extras.includes(e.id);
+              const free = offerOn && on && freeExtras.includes(e.id);
+              return (
+                <div key={e.id} className="flex items-center justify-between gap-2 rounded-lg border border-anthracite-100 px-3 py-2">
+                  <label className="flex flex-1 items-center gap-2">
+                    <input type="checkbox" checked={on} onChange={() => setExtras((x) => (x.includes(e.id) ? x.filter((y) => y !== e.id) : [...x, e.id]))} />
+                    {e.name}
+                  </label>
+                  <span className="flex flex-none items-center gap-2 text-anthracite-500">
+                    {offerOn && on && (
+                      <label className="flex items-center gap-1 text-[11px] text-emerald-700">
+                        <input type="checkbox" checked={freeExtras.includes(e.id)} onChange={() => setFreeExtras((x) => (x.includes(e.id) ? x.filter((y) => y !== e.id) : [...x, e.id]))} />
+                        inkl.
+                      </label>
+                    )}
+                    <span className={free ? "line-through" : ""}>{e.from ? "ab " : ""}{formatEuro(e.price)}</span>
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </section>
       )}
@@ -219,6 +253,23 @@ export function PackageBookingForm() {
           )}
         </section>
       )}
+
+      <section className="rounded-xl border border-anthracite-100 p-3">
+        <label className="flex items-center gap-2 font-semibold text-anthracite-800">
+          <input type="checkbox" checked={offerOn} onChange={(e) => setOfferOn(e.target.checked)} /> Laut schriftlichem Angebot (abweichende Konditionen)
+        </label>
+        {offerOn && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <label><span className={label}>Angebotsnummer</span><input value={offerNo} onChange={(e) => setOfferNo(e.target.value)} className="input-field" placeholder="z. B. AG0166" /></label>
+            <label className="flex items-center gap-2 self-end pb-2 text-anthracite-700">
+              <input type="checkbox" checked={travelIncluded} onChange={(e) => setTravelIncluded(e.target.checked)} /> Anfahrt laut Angebot inklusive
+            </label>
+            <label><span className={label}>Preisanpassung – Text</span><input value={adjLabel} onChange={(e) => setAdjLabel(e.target.value)} className="input-field" placeholder="z. B. Nachlass laut Angebot AG0166" /></label>
+            <label><span className={label}>Betrag in € (minus = Nachlass)</span><input value={adjAmount} onChange={(e) => setAdjAmount(e.target.value)} className="input-field" inputMode="decimal" placeholder="z. B. -50" /></label>
+            <p className="text-xs text-anthracite-500 sm:col-span-2">Extras, die laut Angebot im Preis enthalten sind, oben bei „inkl.“ anhaken – sie stehen dann mit 0 € und „laut Angebot inklusive“ im Vertrag.</p>
+          </div>
+        )}
+      </section>
 
       <label className="block"><span className={label}>Notiz (intern, erscheint als Kundennachricht)</span><textarea name="note" rows={3} className="input-field" /></label>
 

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
-import { PICKUP_OPTIONS, STAFF_INCLUDED_HOURS, STAFF_MAX_EXTRA_HOURS, staffFor, travelFor, withLogistics, withStaffHours } from "@/lib/catalog";
+import { PICKUP_OPTIONS, STAFF_INCLUDED_HOURS, STAFF_MAX_EXTRA_HOURS, staffFor, travelFor, withLogistics, withStaffHours, applyOffer } from "@/lib/catalog";
 
 export interface LogisticsActionResult {
   success?: boolean;
@@ -33,7 +33,7 @@ export async function updateLogistics(bookingId: string, formData: FormData): Pr
   const pickup = PICKUP_OPTIONS.some((o) => o.id === pickupRaw) ? pickupRaw : null;
 
   const travel = km == null ? travelFor(null) : { ...travelFor(km), manual: true };
-  const items = withLogistics(b.inquiry_items, pickup, travel);
+  const items = applyOffer(withLogistics(b.inquiry_items, pickup, travel), b.inquiry_items.offer);
   const { error } = await supabase.from("bookings").update({ inquiry_items: items, total_price: items.total }).eq("id", bookingId);
   if (error) return { error: "Konnte nicht gespeichert werden." };
   await logActivity(bookingId, "logistik_geaendert", `Anfahrt ${km == null ? "offen" : `${Math.round(km)} km`}, Abholung ${PICKUP_OPTIONS.find((o) => o.id === pickup)?.short ?? "offen"}`);

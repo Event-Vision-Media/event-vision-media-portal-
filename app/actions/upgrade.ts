@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentBooking } from "@/lib/booking-session";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { logActivity } from "@/lib/activity-log";
-import { MIN_LEAD_DAYS, PACKAGES, PRODUCT_LABELS, daysUntil, formatEuro, priceSelection, upgradeOffers, type PickupId } from "@/lib/catalog";
+import { MIN_LEAD_DAYS, PACKAGES, PRODUCT_LABELS, applyOffer, daysUntil, formatEuro, priceSelection, upgradeOffers, type PickupId } from "@/lib/catalog";
 import { checkDeviceAvailability } from "@/lib/inquiry-server";
 import { travelForAddress } from "@/lib/distance";
 import { sendEmail } from "@/lib/email";
@@ -30,14 +30,14 @@ export async function upgradePackage(fromId: string, toId: string): Promise<Upgr
   if (!offer) return { error: "Dieses Upgrade ist nicht verfügbar." };
 
   const newPackageIds = packageIds.map((id) => (id === fromId ? toId : id));
-  const repriced = priceSelection(
+  const repriced = applyOffer(priceSelection(
     newPackageIds,
     (items?.extras ?? []).map((e) => e.id),
     items?.days ?? booking.event_days ?? 1,
     booking.customer_type === "business",
     items?.access ?? null,
     { pickup: (items?.pickup as PickupId | null) ?? null, travel: items?.travel ?? null }
-  );
+  ), items?.offer);
 
   const supabase = createAdminClient();
   const { error } = await supabase
@@ -89,7 +89,7 @@ export async function addDevicePackage(packageId: string): Promise<UpgradeResult
   // Bisher evtl. nur Selbstabholung – jetzt liefern wir: Anfahrt berechnen, Abholung am Folgetag
   const travel = items?.travel ?? (booking.location ? await travelForAddress(booking.location) : null);
   const pickup = ((items?.pickup as PickupId | null) ?? "folgetag") as PickupId;
-  const repriced = priceSelection([...packageIds, pkg.id], (items?.extras ?? []).map((e) => e.id), days, business, items?.access ?? null, { pickup, travel });
+  const repriced = applyOffer(priceSelection([...packageIds, pkg.id], (items?.extras ?? []).map((e) => e.id), days, business, items?.access ?? null, { pickup, travel }), items?.offer);
   if (!repriced.packages.some((p) => p.id === pkg.id)) return { error: "Dieses Paket ist nicht verfügbar." };
 
   const supabase = createAdminClient();

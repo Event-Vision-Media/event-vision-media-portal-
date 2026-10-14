@@ -8,6 +8,7 @@ import {
   EXTRA_NAME_BY_DEVICE,
   EXTRAS,
   PRODUCT_LABELS,
+  applyOffer,
   bundledExtraNames,
   PRODUCT_TYPE_BY_DEVICE,
   priceSelection,
@@ -21,7 +22,7 @@ import {
   type PricedSelection,
 } from "@/lib/catalog";
 import { logActivity } from "@/lib/activity-log";
-import { accessSummary, type AccessInfo } from "@/lib/types";
+import { accessSummary, type AccessInfo, type OfferTerms } from "@/lib/types";
 import { adminNotificationMail, inquiryReceivedMail, reservationMail, sendEmail, type MailBooking } from "@/lib/email";
 
 /** Im Firmen-Komplett enthaltene Variante (Teil des Variantennamens in public.extra_variants). */
@@ -169,6 +170,8 @@ export interface InquiryInput {
   pickup?: PickupId | null;
   /** Herkunft der Anfrage (Statistik). */
   source?: Record<string, string> | null;
+  /** Abweichungen laut schriftlichem Angebot (nur bei Anlage im Admin). */
+  offer?: OfferTerms | null;
   layoutDraft: Record<string, unknown> | null;
   /** Vorschau-Grafik und Logo aus dem Layout-Designer (werden in den Speicher hochgeladen). */
   layoutFiles?: {
@@ -198,7 +201,7 @@ export async function createBookingFromInquiry(input: InquiryInput, opts: { viaA
   const isBusiness = input.customerType === "business";
   // Fahrtkosten serverseitig ermitteln (nie dem Browser vertrauen)
   const travel = await travelForAddress(input.location);
-  const priced = priceSelection(input.packageIds, input.extraIds, input.days, isBusiness, input.access, { pickup: input.pickup, travel });
+  const priced = applyOffer(priceSelection(input.packageIds, input.extraIds, input.days, isBusiness, input.access, { pickup: input.pickup, travel }), input.offer);
   const delivered = hasDelivery(priced.packages, input.extraIds);
   if (priced.packages.length === 0) throw new Error("no_packages");
 
@@ -234,7 +237,7 @@ export async function createBookingFromInquiry(input: InquiryInput, opts: { viaA
         location: input.location,
         guest_count: input.guestCount,
         event_days: priced.days,
-        inquiry_items: { ...priced, duration: input.duration, shortNotice, access: input.access ?? null, pickup: delivered ? input.pickup ?? null : null, travel: delivered ? travel : null, source: input.source ?? null },
+        inquiry_items: { ...priced, duration: input.duration, shortNotice, access: input.access ?? null, pickup: delivered ? input.pickup ?? null : null, travel: delivered ? travel : null, source: input.source ?? null, offer: input.offer ?? null },
         total_price: priced.total,
         inquiry_message: input.message,
         layout_draft: input.layoutDraft,
@@ -272,7 +275,8 @@ export async function createBookingFromInquiry(input: InquiryInput, opts: { viaA
       const cat = EXTRAS.find((c) => c.dbExtraName === x.name)!;
       const hint = bundled.has(x.name) ? BUNDLE_VARIANT[cat.id] : undefined;
       const variant = hint ? (variants ?? []).find((v) => v.extra_id === x.id && v.name.includes(hint)) : undefined;
-      return { booking_id: booking!.id, extra_id: x.id, variant_id: variant?.id ?? null, price: bundled.has(x.name) ? 0 : cat.price, added_by_admin: true };
+      const freeByOffer = (input.offer?.freeExtraIds ?? []).includes(cat.id);
+      return { booking_id: booking!.id, extra_id: x.id, variant_id: variant?.id ?? null, price: bundled.has(x.name) || freeByOffer ? 0 : cat.price, added_by_admin: true };
     });
     if (rows.length) await supabase.from("booking_extras").insert(rows);
   }

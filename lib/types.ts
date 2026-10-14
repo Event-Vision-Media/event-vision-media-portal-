@@ -89,6 +89,8 @@ export interface Booking {
     source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string } | null;
     /** Betreuung durch Personal: Startzeit (vom Kunden), bestätigte Stunden, gewünschte Zusatzstunden. */
     staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null;
+    /** Abweichungen laut schriftlichem Angebot (z. B. aus der Zeit vor dem Portal). */
+    offer?: OfferTerms | null;
   } | null;
   total_price: number | null;
   inquiry_message: string | null;
@@ -338,4 +340,16 @@ export function accessSummary(a: AccessInfo | null | undefined): { text: string;
     text: `${ACCESS_LABELS[a.level]} · ${a.help === "service" ? "Trageservice gebucht – 2. Person mitnehmen" : "Kunde stellt Tragehilfe"}`,
     warn: true,
   };
+}
+
+/** Abweichungen laut Angebot – werden bei jeder Neuberechnung wieder angewendet. */
+export interface OfferTerms {
+  /** Angebotsnummer, z. B. "AG0166". */
+  number?: string | null;
+  /** Extras, die laut Angebot inklusive sind (0 €). */
+  freeExtraIds?: string[];
+  /** Anfahrt laut Angebot inklusive. */
+  travelIncluded?: boolean;
+  /** Preisanpassung laut Angebot (negativ = Nachlass). */
+  adjustment?: { label: string; amount: number } | null;
 }

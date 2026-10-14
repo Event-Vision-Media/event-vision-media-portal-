@@ -385,6 +385,30 @@ export function withStaffHours<T extends { extras?: { id: string; name: string; 
   return { ...items, extras, total, isFromPrice: extras.some((e) => e.from), staff: { ...(items.staff ?? {}), hours, requestedExtra: 0 } };
 }
 
+type OfferLine = { id: string; name: string; price: number; from?: boolean };
+
+/**
+ * Wendet Abweichungen laut Angebot an (Extras inklusive, Anfahrt inklusive,
+ * Preisanpassung) und berechnet den Gesamtpreis neu. Idempotent – darf nach
+ * jeder Neuberechnung (Upgrade, Logistik) erneut aufgerufen werden.
+ */
+export function applyOffer<T extends { extras?: OfferLine[]; packagesTotal?: number; total?: number; isFromPrice?: boolean }>(
+  items: T,
+  offer: { number?: string | null; freeExtraIds?: string[]; travelIncluded?: boolean; adjustment?: { label: string; amount: number } | null } | null | undefined
+): T {
+  if (!offer) return items;
+  const free = new Set(offer.freeExtraIds ?? []);
+  const suffix = " (laut Angebot inklusive)";
+  const extras = (items.extras ?? [])
+    .filter((e) => e.id !== "angebot" && !(offer.travelIncluded && e.id === "anfahrt"))
+    .map((e) => (free.has(e.id) ? { ...e, price: 0, from: false, name: e.name.endsWith(suffix) ? e.name : e.name + suffix } : { ...e, from: Boolean(e.from) }));
+  if (offer.adjustment && offer.adjustment.amount) {
+    extras.push({ id: "angebot", name: offer.adjustment.label || `Anpassung laut Angebot${offer.number ? ` ${offer.number}` : ""}`, price: offer.adjustment.amount, from: false });
+  }
+  const total = (items.packagesTotal ?? 0) + extras.reduce((s, e) => s + e.price, 0);
+  return { ...items, extras, total: Math.max(0, total), isFromPrice: extras.some((e) => e.from) };
+}
+
 export function formatEuro(value: number): string {
   return `${value.toLocaleString("de-DE")} €`;
 }
