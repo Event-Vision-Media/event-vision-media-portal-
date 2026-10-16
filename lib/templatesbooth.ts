@@ -57,12 +57,53 @@ function walk(value: Json, path = "", out: [string, unknown][] = []): [string, u
 const lastKey = (path: string) => path.replace(/\[\d+\]/g, "").split(".").pop() ?? "";
 const isImageUrl = (s: string) => /^https:\/\/\S+\.(png|jpe?g|webp)(\?\S*)?$/i.test(s);
 
+/** Testversand aus TemplatesBooth („Send test“) – wird nicht gespeichert. */
+export function isTestDelivery(payload: Json): boolean {
+  return Boolean(payload && typeof payload === "object" && (payload as Record<string, unknown>).test === true);
+}
+
+const text = (v: unknown) => (typeof v === "string" && v.trim() ? v.trim() : null);
+const imageUrl = (v: unknown): string | null => {
+  const s = text(v) ?? (v && typeof v === "object" ? text((v as Record<string, unknown>).url) : null);
+  return s && /^https:\/\//.test(s) ? s : null;
+};
+
 /**
- * Liest die wichtigsten Angaben aus der Einsendung. Das genaue Format dokumentiert
- * TemplatesBooth nicht („full submission as JSON“) – deshalb wird nach typischen
- * Feldnamen gesucht; die komplette Nutzlast wird zusätzlich gespeichert.
+ * Liest die wichtigsten Angaben aus der Einsendung. Format laut Testversand (10/2026):
+ * { event, request: { id, customer{name,email}, event{date}, brief{notes},
+ *   selections[{ title, layout, thumb, preview, wording{line1…} }] } }.
+ * Fällt das Format einmal anders aus, wird nach typischen Feldnamen gesucht;
+ * die komplette Nutzlast wird ohnehin gespeichert.
  */
 export function extractFields(payload: Json): SubmissionFields {
+  const req = (payload as any)?.request;
+  if (req && typeof req === "object" && req.customer) {
+    const selections: any[] = Array.isArray(req.selections) ? req.selections : [];
+    const designName =
+      selections
+        .map((s) => {
+          const title = text(s?.title);
+          const wording = s?.wording && typeof s.wording === "object" ? Object.values(s.wording).map(text).filter(Boolean).join(" · ") : "";
+          return title ? (wording ? `${title} („${wording}“)` : title) : null;
+        })
+        .filter(Boolean)
+        .join(" + ") || null;
+    const previewUrl = selections.map((s) => imageUrl(s?.preview) ?? imageUrl(s?.thumb)).find(Boolean) ?? null;
+    const date = text(req.event?.date)?.match(/^\d{4}-\d{2}-\d{2}/)?.[0] ?? null;
+    return {
+      externalId: text(req.id),
+      name: text(req.customer.name),
+      email: text(req.customer.email)?.toLowerCase() ?? null,
+      eventDate: date,
+      designName,
+      previewUrl,
+      bookingCode: JSON.stringify(req).match(/\bFB-\d{4}-\d{3,5}\b/i)?.[0]?.toUpperCase() ?? null,
+    };
+  }
+  return extractGeneric(payload);
+}
+
+function extractGeneric(payload: Json): SubmissionFields {
   const pairs = walk(payload).filter(([, v]) => typeof v === "string" || typeof v === "number") as [string, string | number][];
   const str = (v: string | number) => String(v).trim();
   const find = (test: (key: string, path: string, value: string) => boolean) => {

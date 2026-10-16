@@ -1,5 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { verifySignature } from "@/lib/templatesbooth";
+import { isTestDelivery, verifySignature } from "@/lib/templatesbooth";
 import { storeSubmission } from "@/lib/templatesbooth-server";
 
 export const dynamic = "force-dynamic";
@@ -26,6 +26,11 @@ export async function POST(req: NextRequest) {
     payload = JSON.parse(raw);
   } catch {
     return NextResponse.json({ ok: false, error: "invalid json" }, { status: 400 });
+  }
+
+  // „Send test“ aus TemplatesBooth: Verbindung ok, aber nichts speichern.
+  if (isTestDelivery(payload)) {
+    return NextResponse.json({ ok: true, test: true });
   }
 
   try {
