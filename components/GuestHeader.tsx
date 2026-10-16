@@ -7,13 +7,13 @@ export function GuestHeader({ bookingCode }: { bookingCode: string }) {
     <header className="sticky top-0 z-40 border-b border-anthracite-100/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-3 leading-tight">
-          <span className="relative flex h-9 w-9 flex-none items-center justify-center rounded-xl bg-anthracite-900 p-1.5 shadow-sm">
+          <span className="relative flex h-11 w-11 flex-none overflow-hidden rounded-xl bg-black shadow-sm">
             <Image
-              src="/logo-mark.png"
+              src="/logo-tile.png"
               alt="Event Vision Media"
               fill
-              sizes="36px"
-              className="object-contain"
+              sizes="44px"
+              className="object-cover"
             />
           </span>
           <span className="flex flex-col">

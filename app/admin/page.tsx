@@ -20,13 +20,13 @@ export default async function AdminLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-anthracite-900 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="relative mx-auto mb-3 h-16 w-16">
+          <div className="relative mx-auto mb-3 h-20 w-20 overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
             <Image
-              src="/logo-mark.png"
+              src="/logo-tile-lg.png"
               alt="Event Vision Media"
               fill
-              sizes="64px"
-              className="object-contain"
+              sizes="80px"
+              className="object-cover"
               priority
             />
           </div>

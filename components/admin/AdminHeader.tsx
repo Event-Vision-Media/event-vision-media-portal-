@@ -70,8 +70,8 @@ export function AdminHeader() {
     <header className="sticky top-0 z-40 border-b border-anthracite-700 bg-anthracite-900 print:hidden">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <Link href="/admin/uebersicht" className="flex flex-none items-center gap-2.5">
-          <span className="relative h-8 w-8 flex-none">
-            <Image src="/logo-mark.png" alt="Event Vision Media" fill sizes="32px" className="object-contain" />
+          <span className="relative h-9 w-9 flex-none overflow-hidden rounded-lg bg-black ring-1 ring-white/10">
+            <Image src="/logo-tile.png" alt="Event Vision Media" fill sizes="36px" className="object-cover" />
           </span>
           <span className="font-serif text-lg font-semibold text-white">
             Event Vision <span className="hidden text-gold-300 xl:inline">· Admin</span>

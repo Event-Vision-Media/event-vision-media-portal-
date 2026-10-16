@@ -18,13 +18,13 @@ export default async function LoginPage() {
 
         <div className="relative w-full max-w-md animate-fade-in-up">
           <div className="mb-8 text-center">
-            <div className="relative mx-auto mb-4 flex h-24 w-24 items-center justify-center rounded-3xl bg-anthracite-900 p-4 shadow-glow">
+            <div className="relative mx-auto mb-4 flex h-28 w-28 overflow-hidden rounded-3xl bg-black shadow-glow">
               <Image
-                src="/logo-mark.png"
+                src="/logo-tile-lg.png"
                 alt="Event Vision Media"
                 fill
-                sizes="96px"
-                className="object-contain"
+                sizes="112px"
+                className="object-cover"
                 priority
               />
             </div>
