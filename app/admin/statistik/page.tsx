@@ -4,6 +4,8 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Card } from "@/components/ui/Card";
 import { formatCurrencyEUR } from "@/lib/format";
 import type { Booking } from "@/lib/types";
+import { getAdSpend, isPaidGoogle } from "@/lib/ads";
+import { AdSpendForm } from "@/components/admin/AdSpendForm";
 
 export const dynamic = "force-dynamic";
 
@@ -29,6 +31,7 @@ const PAGE_LABELS: Record<string, string> = {
   "hochzeit-feiern.html": "Hochzeit & Feiern",
   "firmenevents.html": "Firmenevents",
   "layout-designer.html": "Layout-Designer",
+  "weihnachtsfeier.html": "Weihnachtsfeier (Landingpage)",
 };
 
 function pageLabel(p: string): string {
@@ -99,6 +102,28 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
   const cities = count(all, (b) => cityOf(b.location));
   const withSource = all.filter((b) => b.inquiry_items?.source).length;
 
+  // ---- Werbung: Google Ads & Kampagnen ----
+  const spendByMonth = await getAdSpend();
+  const sinceMonth = since.slice(0, 7);
+  const spend = Object.entries(spendByMonth).filter(([m]) => m >= sinceMonth).reduce((sum, [, v]) => sum + v, 0);
+  const ads = all.filter((b) => isPaidGoogle(b.inquiry_items?.source));
+  const adsOk = ads.filter((b) => b.lifecycle === "bestaetigt");
+  const adsRevenue = adsOk.reduce((sum, b) => sum + Number(b.total_price ?? 0), 0);
+  const campaigns = new Map<string, { n: number; ok: number; eur: number }>();
+  for (const b of all) {
+    const src = b.inquiry_items?.source;
+    if (!src?.source && !src?.gclid) continue;
+    const key = [src.source ?? "google", src.medium ?? (src.gclid ? "cpc" : ""), src.campaign ?? "–"].filter(Boolean).join(" / ");
+    const c = campaigns.get(key) ?? { n: 0, ok: 0, eur: 0 };
+    c.n++;
+    if (b.lifecycle === "bestaetigt") {
+      c.ok++;
+      c.eur += Number(b.total_price ?? 0);
+    }
+    campaigns.set(key, c);
+  }
+  const terms = count(ads, (b) => b.inquiry_items?.source?.term ?? null);
+
   return (
     <div className="min-h-screen bg-sand-50">
       <AdminHeader />
@@ -128,6 +153,47 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
           <Kpi label="Ø Auftragswert" value={confirmed.length ? formatCurrencyEUR(avg) : "–"} />
           <Kpi label="Ø Vorlauf" value={avgLead != null ? `${avgLead} Tage` : "–"} hint="Anfrage bis Event" />
         </div>
+
+        <Card className="mt-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">Werbung &amp; Kampagnen</h2>
+            <a href="/api/admin/ads-conversions" className="text-xs font-medium text-gold-700 hover:text-gold-800">Bestätigte Buchungen für Google Ads herunterladen (CSV) →</a>
+          </div>
+          <p className="mt-1 text-xs text-anthracite-400">
+            Zählt Anfragen über Google-Anzeigen (Klick-Kennung bzw. utm_source=google &amp; utm_medium=cpc). Werbekosten trägst du unten pro Monat ein – aus Google Ads → Kampagnen → Kosten.
+          </p>
+          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+            <Kpi label="Werbekosten" value={spend ? formatCurrencyEUR(spend) : "–"} hint="im Zeitraum" />
+            <Kpi label="Anfragen (Ads)" value={String(ads.length)} hint={spend && ads.length ? `${formatCurrencyEUR(spend / ads.length)} pro Anfrage` : undefined} />
+            <Kpi label="Buchungen (Ads)" value={String(adsOk.length)} hint={pct(adsOk.length, ads.length) + " Abschluss"} />
+            <Kpi label="Umsatz (Ads)" value={formatCurrencyEUR(adsRevenue)} />
+            <Kpi label="Kosten pro Buchung" value={spend && adsOk.length ? formatCurrencyEUR(spend / adsOk.length) : "–"} />
+            <Kpi label="Umsatz pro 1 € Werbung" value={spend ? `${(adsRevenue / spend).toLocaleString("de-DE", { maximumFractionDigits: 1 })} €` : "–"} hint="über 5 € ist sehr gut" />
+          </div>
+          {campaigns.size > 0 && (
+            <table className="mt-5 w-full text-sm">
+              <thead className="text-left text-xs text-anthracite-400">
+                <tr><th className="pb-2 font-medium">Quelle / Medium / Kampagne</th><th className="pb-2 text-right font-medium">Anfragen</th><th className="pb-2 text-right font-medium">Buchungen</th><th className="pb-2 text-right font-medium">Umsatz</th></tr>
+              </thead>
+              <tbody className="divide-y divide-anthracite-50">
+                {Array.from(campaigns.entries()).sort((a, b) => b[1].n - a[1].n).map(([k, c]) => (
+                  <tr key={k}>
+                    <td className="py-1.5 text-anthracite-700">{k}</td>
+                    <td className="py-1.5 text-right">{c.n}</td>
+                    <td className="py-1.5 text-right">{c.ok} <span className="text-xs text-anthracite-400">({pct(c.ok, c.n)})</span></td>
+                    <td className="py-1.5 text-right">{formatCurrencyEUR(c.eur)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {terms.length > 0 && (
+            <p className="mt-3 text-xs text-anthracite-500">Suchbegriffe mit Anfrage: {terms.slice(0, 10).map(([t, n]) => `${t} (${n})`).join(" · ")}</p>
+          )}
+          <div className="mt-5 border-t border-anthracite-100 pt-4">
+            <AdSpendForm spend={spendByMonth} />
+          </div>
+        </Card>
 
         {all.length === 0 ? (
           <Card className="mt-6"><p className="text-center text-sm text-anthracite-400">In diesem Zeitraum gibt es noch keine Website-Anfragen.</p></Card>

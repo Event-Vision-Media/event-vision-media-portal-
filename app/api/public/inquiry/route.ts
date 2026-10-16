@@ -75,7 +75,9 @@ export async function POST(req: NextRequest) {
     source: (() => {
       const s = body.source && typeof body.source === "object" ? body.source : {};
       const clean = (v: unknown) => str(v, 80).replace(/[^\w.\-/äöüÄÖÜß]/g, "") || undefined;
-      const out = { page: clean(s.page), ref: clean(s.ref), source: clean(s.source), medium: clean(s.medium), campaign: clean(s.campaign) };
+      // Google-Klick-Kennung (nur mit Einwilligung von der Website gesendet) – für den Conversion-Import
+      const click = str(s.gclid, 200).replace(/[^\w\-]/g, "") || undefined;
+      const out = { page: clean(s.page), ref: clean(s.ref), source: clean(s.source), medium: clean(s.medium), campaign: clean(s.campaign), term: clean(s.term), gclid: click };
       const entries = Object.entries(out).filter(([, v]) => v) as [string, string][];
       return entries.length ? Object.fromEntries(entries) : null;
     })(),

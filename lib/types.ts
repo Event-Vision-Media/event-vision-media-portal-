@@ -86,7 +86,7 @@ export interface Booking {
     /** Entfernung & Fahrtkosten zur Location. */
     travel?: { km: number | null; price: number | null; status: "ok" | "unknown" | "over"; manual?: boolean } | null;
     /** Herkunft der Anfrage (Statistik): vorherige Seite, externe Herkunft, utm-Parameter. */
-    source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string } | null;
+    source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string; term?: string; gclid?: string } | null;
     /** Betreuung durch Personal: Startzeit (vom Kunden), bestätigte Stunden, gewünschte Zusatzstunden. */
     staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null;
     /** Abweichungen laut schriftlichem Angebot (z. B. aus der Zeit vor dem Portal). */
