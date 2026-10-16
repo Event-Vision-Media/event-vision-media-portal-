@@ -4,20 +4,29 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { GuestHeader } from "@/components/GuestHeader";
 import { Footer } from "@/components/Footer";
 import { LayoutGallery } from "@/components/LayoutGallery";
+import { TemplatesBoothCard } from "@/components/TemplatesBoothCard";
+import { TB_LAYOUT_NAME, templatesboothLink } from "@/lib/templatesbooth";
+import { SUBMISSION_COLUMNS, type TemplateSubmission } from "@/lib/templatesbooth-server";
 import type { Layout } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function LayoutSelectionPage() {
+export default async function LayoutSelectionPage({ searchParams }: { searchParams: { design?: string } }) {
   const booking = await requireBooking();
 
   const supabase = createAdminClient();
-  const { data: layouts } = await supabase
-    .from("layouts")
-    .select("*")
-    .order("sort_order", { ascending: true });
+  const [{ data: layouts }, { data: submissions }] = await Promise.all([
+    supabase.from("layouts").select("*").order("sort_order", { ascending: true }),
+    supabase
+      .from("template_submissions")
+      .select(SUBMISSION_COLUMNS)
+      .eq("booking_id", booking.id)
+      .order("received_at", { ascending: false }),
+  ]);
 
-  const allLayouts = (layouts ?? []) as Layout[];
+  // Das Platzhalter-Layout für TemplatesBooth-Designs ist kein auswählbares Layout.
+  const allLayouts = ((layouts ?? []) as Layout[]).filter((l) => l.name !== TB_LAYOUT_NAME);
+  const sie = booking.customer_type === "business";
   const inclusiveLayouts = allLayouts.filter((l) => !l.is_premium);
   const premiumLayouts = allLayouts.filter((l) => l.is_premium);
 
@@ -42,6 +51,19 @@ export default async function LayoutSelectionPage() {
               ? "Tippen Sie auf ein Layout für eine größere Vorschau und wählen Sie dann Ihren Favoriten. Farben, Logo und Texte passen wir an Ihr Corporate Design an."
               : "Tippt auf ein Layout für eine größere Vorschau und wählt dann euren Favoriten aus."}
           </p>
+        </div>
+
+        <div className="mb-10">
+          <TemplatesBoothCard
+            link={templatesboothLink(process.env.PORTAL_URL || "https://portal.fotobox-essen.com")}
+            email={booking.email}
+            bookingCode={booking.booking_code}
+            eventDate={booking.event_date}
+            premiumIncluded={booking.premium_layout_included}
+            submissions={(submissions ?? []) as TemplateSubmission[]}
+            justSent={searchParams.design === "gesendet"}
+            sie={sie}
+          />
         </div>
 
         <LayoutGallery

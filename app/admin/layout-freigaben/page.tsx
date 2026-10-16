@@ -5,7 +5,9 @@ import { BookingSelect } from "@/components/admin/BookingSelect";
 import { NewLayoutProofForm } from "@/components/admin/NewLayoutProofForm";
 import { LayoutProofGroup } from "@/components/admin/LayoutProofGroup";
 import { SelectedLayoutSummary } from "@/components/admin/SelectedLayoutSummary";
+import { TemplateSubmissions } from "@/components/admin/TemplateSubmissions";
 import { Card } from "@/components/ui/Card";
+import { SUBMISSION_COLUMNS, type TemplateSubmission } from "@/lib/templatesbooth-server";
 import type { LayoutProof } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -16,16 +18,22 @@ export default async function AdminLayoutProofsPage({
   searchParams: { booking?: string };
 }) {
   const supabase = createAdminClient();
-  const { data: bookings } = await supabase
-    .from("bookings")
-    .select("id, booking_code, couple_names")
-    .order("event_date", { ascending: true });
+  const [{ data: bookings }, { data: openSubmissions }] = await Promise.all([
+    supabase.from("bookings").select("id, booking_code, couple_names").order("event_date", { ascending: true }),
+    supabase
+      .from("template_submissions")
+      .select(SUBMISSION_COLUMNS)
+      .is("booking_id", null)
+      .order("received_at", { ascending: false })
+      .limit(20),
+  ]);
 
   const allBookings = bookings ?? [];
   const selectedBookingId = searchParams.booking;
   const selectedBooking = allBookings.find((b) => b.id === selectedBookingId);
 
   let proofs: LayoutProof[] = [];
+  let bookingSubmissions: TemplateSubmission[] = [];
   let selectedLayoutInfo: {
     layout: { name: string; preview_image_url: string; extra_price: number } | null;
     isPremiumSelected: boolean;
@@ -35,7 +43,7 @@ export default async function AdminLayoutProofsPage({
     extraWishes: string | null;
   } | null = null;
   if (selectedBookingId) {
-    const [{ data }, { data: bookingDetail }] = await Promise.all([
+    const [{ data }, { data: bookingDetail }, { data: subs }] = await Promise.all([
       supabase
         .from("layout_proofs")
         .select("*")
@@ -48,8 +56,14 @@ export default async function AdminLayoutProofsPage({
         )
         .eq("id", selectedBookingId)
         .maybeSingle(),
+      supabase
+        .from("template_submissions")
+        .select(SUBMISSION_COLUMNS)
+        .eq("booking_id", selectedBookingId)
+        .order("received_at", { ascending: false }),
     ]);
     proofs = (data ?? []) as LayoutProof[];
+    bookingSubmissions = (subs ?? []) as TemplateSubmission[];
     selectedLayoutInfo = bookingDetail
       ? {
           layout: (bookingDetail as any).layouts ?? null,
@@ -85,6 +99,14 @@ export default async function AdminLayoutProofsPage({
           Lade individuelle Layout-Entwürfe hoch und verfolge die Freigabe durch den Kunden.
         </p>
 
+        <div className="mb-6">
+          <TemplateSubmissions
+            title="Neue Designs aus der Galerie – noch keiner Buchung zugeordnet"
+            submissions={(openSubmissions ?? []) as TemplateSubmission[]}
+            bookings={allBookings}
+          />
+        </div>
+
         <BookingSelect bookings={allBookings} selectedId={selectedBookingId} />
 
         {selectedBooking && (
@@ -103,6 +125,7 @@ export default async function AdminLayoutProofsPage({
                   extraWishes={selectedLayoutInfo.extraWishes}
                 />
               )}
+              <TemplateSubmissions title="Design aus der Galerie (TemplatesBooth)" submissions={bookingSubmissions} />
               {layoutNames.length === 0 && (
                 <p className="text-sm text-anthracite-400">Noch keine Layouts hochgeladen.</p>
               )}

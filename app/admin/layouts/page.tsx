@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { TB_LAYOUT_NAME } from "@/lib/templatesbooth";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { NewLayoutForm } from "@/components/admin/NewLayoutForm";
 import { LayoutListItem } from "@/components/admin/LayoutListItem";
@@ -13,6 +14,7 @@ export default async function AdminLayoutsPage() {
   const { data: layouts } = await supabase
     .from("layouts")
     .select("*")
+    .neq("name", TB_LAYOUT_NAME)
     .order("sort_order", { ascending: true });
 
   const allLayouts = (layouts ?? []) as Layout[];
