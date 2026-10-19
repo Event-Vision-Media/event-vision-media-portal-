@@ -43,6 +43,8 @@ export function ContractSignForm({
   const [state, formAction] = useFormState(signContract, initialState);
   const [signed, setSigned] = useState(false);
   const t = (du: string, s: string) => (sie ? s : du);
+  // Kleiner Betrag zur Selbstabholung: Barzahlung bei Abholung vorausgewählt, Überweisung bleibt möglich.
+  const cashFirst = noDeposit && !hasDelivery;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -126,18 +128,29 @@ export function ContractSignForm({
               {noDeposit ? "Wie möchtet ihr bezahlen?" : "Wie möchtet ihr den Restbetrag zahlen?"} <span className="text-gold-600">*</span>
             </p>
             <p className="mt-0.5 text-xs text-anthracite-500">
-              {noDeposit
+              {cashFirst
+                ? "Keine Anzahlung nötig – am einfachsten zahlt ihr alles bar, wenn ihr abholt."
+                : noDeposit
                 ? "Keine Anzahlung nötig – ihr zahlt alles auf einmal."
                 : "Die Anzahlung überweist ihr nach der Unterschrift – die Rechnung kommt per E-Mail."}
             </p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
-              <Radio
-                name="rest_payment_method"
-                value="bar"
-                title={hasDelivery ? "Bar bei Lieferung" : "Bar bei Abholung"}
-                text={hasDelivery ? "bequem vor Ort bei der Übergabe" : "einfach bei der Abholung bei uns"}
-              />
+              {cashFirst ? (
+                <>
+                  <Radio name="rest_payment_method" value="bar" title="Bar bei Abholung" text="einfach bei der Abholung bei uns" defaultChecked />
+                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
+                </>
+              ) : (
+                <>
+                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
+                  <Radio
+                    name="rest_payment_method"
+                    value="bar"
+                    title={hasDelivery ? "Bar bei Lieferung" : "Bar bei Abholung"}
+                    text={hasDelivery ? "bequem vor Ort bei der Übergabe" : "einfach bei der Abholung bei uns"}
+                  />
+                </>
+              )}
             </div>
           </div>
         )}
@@ -222,10 +235,10 @@ function Input({ label, name, ...props }: React.InputHTMLAttributes<HTMLInputEle
   );
 }
 
-function Radio({ name, value, title, text }: { name: string; value: string; title: string; text: string }) {
+function Radio({ name, value, title, text, defaultChecked }: { name: string; value: string; title: string; text: string; defaultChecked?: boolean }) {
   return (
     <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-anthracite-100 bg-white p-3 text-sm transition hover:border-gold-300 has-[:checked]:border-gold-500 has-[:checked]:bg-gold-50">
-      <input type="radio" name={name} value={value} required className="mt-0.5 h-4 w-4 flex-none accent-gold-600" />
+      <input type="radio" name={name} value={value} required defaultChecked={defaultChecked} className="mt-0.5 h-4 w-4 flex-none accent-gold-600" />
       <span>
         <span className="block font-medium text-anthracite-800">{title}</span>
         <span className="block text-xs text-anthracite-500">{text}</span>
