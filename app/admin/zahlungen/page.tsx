@@ -29,7 +29,11 @@ export default async function AdminPaymentsPage() {
     .limit(100);
 
   const bookings = (data ?? []) as Booking[];
-  const rows = await Promise.all(bookings.map(async (b) => ({ b, p: await getPaymentSummary(b) })));
+  const [rows, { data: invoiceRows }] = await Promise.all([
+    Promise.all(bookings.map(async (b) => ({ b, p: await getPaymentSummary(b) }))),
+    supabase.from("booking_invoices").select("booking_id, kind").in("booking_id", bookings.map((b) => b.id)),
+  ]);
+  const invoiced = (bookingId: string, kinds: string[]) => (invoiceRows ?? []).some((i) => i.booking_id === bookingId && kinds.includes(i.kind));
   const openSum = rows.reduce(
     (sum, { p }) => sum + (p.depositPaid ? 0 : p.deposit ?? 0) + (p.restPaid ? 0 : p.rest ?? 0),
     0
@@ -43,7 +47,7 @@ export default async function AdminPaymentsPage() {
           <div>
             <h1 className="font-serif text-2xl font-semibold text-anthracite-800">Offene Zahlungen</h1>
             <p className="mt-1 text-sm text-anthracite-500">
-              Bestätigte Buchungen, bei denen noch etwas offen ist. Rechnungen erstellst du in Lexware Office – hier nur abhaken.
+              Bestätigte Buchungen, bei denen noch etwas offen ist. Rechnungen erstellst du in Lexware Office und lädst sie in der Buchung hoch – hier abhaken, was eingegangen ist.
             </p>
           </div>
           <div className="text-right">
@@ -60,6 +64,9 @@ export default async function AdminPaymentsPage() {
             const days = daysUntil(b.event_date);
             const depositLate = !p.depositPaid && b.confirmed_at && Date.now() - Date.parse(b.confirmed_at) > 7 * 86_400_000;
             const restLate = !p.restPaid && p.method === "ueberweisung" && days < 7;
+            // Hinweis, wenn noch keine Rechnung hochgeladen ist (Anzahlung sofort, Rest ab 4 Wochen vorher)
+            const depositInvoiceMissing = p.deposit !== 0 && !p.depositPaid && !invoiced(b.id, ["anzahlung", "gesamt"]);
+            const restInvoiceMissing = !p.restPaid && p.method === "ueberweisung" && days <= 28 && !invoiced(b.id, ["rest", "gesamt"]);
             return (
               <Card key={b.id} className="space-y-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -72,6 +79,8 @@ export default async function AdminPaymentsPage() {
                     </p>
                   </div>
                   <div className="flex flex-wrap gap-1.5">
+                    {depositInvoiceMissing && <Badge tone="gold">Anzahlungsrechnung fehlt</Badge>}
+                    {restInvoiceMissing && <Badge tone="gold">Restrechnung fehlt</Badge>}
                     {depositLate && <Badge tone="danger">Anzahlung überfällig</Badge>}
                     {restLate && <Badge tone="danger">Rest überfällig</Badge>}
                     {p.method === "bar" && !p.restPaid && <Badge tone="gold">Bar mitnehmen: {p.rest != null ? formatCurrencyEUR(p.rest) : "–"}</Badge>}

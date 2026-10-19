@@ -18,6 +18,8 @@ interface MailInput {
   html: string;
   text: string;
   replyTo?: string;
+  /** Dateianhänge, Inhalt base64-kodiert (z. B. Rechnungs-PDF). */
+  attachments?: { filename: string; content: string }[];
 }
 
 export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error?: string; id?: string }> {
@@ -43,6 +45,7 @@ export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error
         html: mail.html,
         text: mail.text,
         reply_to: mail.replyTo ?? process.env.ADMIN_EMAIL ?? undefined,
+        ...(mail.attachments?.length ? { attachments: mail.attachments } : {}),
       }),
       cache: "no-store",
     });
@@ -467,6 +470,43 @@ export function depositReminderMail(b: MailBooking, amount: number, bank: MailBa
     subject: sie ? `Erinnerung: Anzahlung für ${b.booking_code}` : `Kurze Erinnerung: Anzahlung für ${b.booking_code}`,
     html: layout("Kurze Erinnerung zur Anzahlung", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${box.html}<p style="color:#6f7882;font-size:13px;line-height:1.6">${outro}</p>`),
     text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${box.text}\n\n${outro}\n\n${BRAND}`,
+  };
+}
+
+/**
+ * Neue Rechnung (PDF im Anhang, liegt auch im Kundenportal). Mit Überweisung: Bankverbindung;
+ * bei Barzahlung nur der Hinweis, dass bei Abholung/Lieferung bezahlt wird.
+ */
+export function invoiceMail(
+  b: MailBooking,
+  o: { title: string; amount: number | null; pay: "ueberweisung" | "bar_abholung" | "bar_lieferung" | "bezahlt"; dueText: string | null; bank: MailBank | null }
+) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const intro = sie
+    ? `anbei erhalten Sie die <strong>${esc(o.title)}</strong> für Ihr Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Sie finden sie außerdem jederzeit in Ihrem Kundenportal unter „Zahlung“.`
+    : `anbei bekommst du die <strong>${esc(o.title)}</strong> für dein Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Du findest sie außerdem jederzeit in deinem Kundenportal unter „Zahlung“.`;
+  const box =
+    o.pay === "ueberweisung" && o.amount != null
+      ? bankBox(b, o.bank, o.amount)
+      : { html: "", text: "" };
+  const payLine =
+    o.pay === "ueberweisung"
+      ? o.dueText
+        ? sie ? `Bitte überweisen Sie den Betrag ${esc(o.dueText)}.` : `Bitte überweise den Betrag ${esc(o.dueText)}.`
+        : ""
+      : o.pay === "bezahlt"
+        ? "Der Betrag ist bereits bezahlt – vielen Dank!"
+        : sie
+          ? `Wie vereinbart zahlen Sie ${o.amount != null ? `den Betrag von <strong>${esc(euro2(o.amount))}</strong> ` : ""}bar bei der ${o.pay === "bar_abholung" ? "Abholung" : "Lieferung"}.`
+          : `Wie vereinbart zahlst du ${o.amount != null ? `den Betrag von <strong>${esc(euro2(o.amount))}</strong> ` : ""}bar bei der ${o.pay === "bar_abholung" ? "Abholung" : "Lieferung"}.`;
+  const portal = url
+    ? `<p style="margin:18px 0"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kundenportal</a></p>`
+    : "";
+  return {
+    subject: `${o.title} · ${b.booking_code}`,
+    html: layout(o.title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${payLine ? `<p style="line-height:1.6">${payLine}</p>` : ""}${box.html}${portal}<p style="color:#6f7882;font-size:13px;line-height:1.6">${esc(TAX)}</p>`),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${payLine ? stripTags(payLine) + "\n\n" : ""}${box.text ? box.text + "\n\n" : ""}${url ? `Kundenportal: ${url}\n\n` : ""}${TAX}\n\n${BRAND}`,
   };
 }
 

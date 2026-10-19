@@ -24,6 +24,7 @@ import { getLatestContract } from "@/lib/contract-server";
 import { contractRequired } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
+import { listInvoices } from "@/lib/invoices";
 import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
 import { StaffHoursForm } from "@/components/admin/StaffHoursForm";
@@ -107,7 +108,7 @@ export default async function AdminBookingDetailPage({
 
   const booking = bookingData as (Booking & { layouts: any; home_screens: any }) | null;
   const contract = booking ? await getLatestContract(booking.id) : null;
-  const payment = booking ? await getPaymentSummary(booking) : null;
+  const [payment, invoices] = booking ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
 
   if (!booking) {
@@ -333,7 +334,7 @@ export default async function AdminBookingDetailPage({
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
 
-        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} />}
+        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
 
         {(booking as any).layout_draft && (
           <Card>

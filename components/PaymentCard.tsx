@@ -9,7 +9,9 @@ export function PaymentCard({
   confirmed,
   bookingCode,
   hasContract,
+  invoices = [],
 }: {
+  invoices?: { id: string; kind: string; title: string; amount: number | null; date: string }[];
   p: PaymentSummary;
   sie: boolean;
   confirmed: boolean;
@@ -23,7 +25,9 @@ export function PaymentCard({
   const depositStatus = p.depositPaid
     ? { label: "Erhalten ✓", tone: "text-emerald-700" }
     : hasContract
-      ? { label: t("Rechnung kommt per E-Mail – bitte innerhalb von 7 Tagen überweisen", "Rechnung folgt per E-Mail – bitte innerhalb von 7 Tagen überweisen"), tone: "text-gold-700" }
+      ? invoices.some((i) => i.kind === "anzahlung")
+        ? { label: "Rechnung liegt unten bereit – bitte innerhalb von 7 Tagen überweisen", tone: "text-gold-700" }
+        : { label: t("Rechnung kommt per E-Mail – bitte innerhalb von 7 Tagen überweisen", "Rechnung folgt per E-Mail – bitte innerhalb von 7 Tagen überweisen"), tone: "text-gold-700" }
       : { label: t("Fällig nach der Vertragsunterschrift", "Fällig nach der Vertragsunterschrift"), tone: "text-anthracite-500" };
 
   const noDeposit = p.deposit === 0;
@@ -56,6 +60,28 @@ export function PaymentCard({
         )}
       </div>
 
+      {invoices.length > 0 && (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wide text-anthracite-400">{t("Eure Rechnungen", "Ihre Rechnungen")}</p>
+          <ul className="mt-2 space-y-1.5">
+            {invoices.map((i) => (
+              <li key={i.id}>
+                <a
+                  href={`/api/invoices/${i.id}`}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-anthracite-100 bg-white px-3 py-2.5 text-sm transition hover:border-gold-300"
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate font-medium text-anthracite-800">📄 {i.title}</span>
+                    <span className="block text-xs text-anthracite-400">vom {formatDateGerman(i.date.slice(0, 10))}{i.amount != null && ` · ${formatCurrencyEUR(i.amount)}`}</span>
+                  </span>
+                  <span className="flex-none text-xs font-semibold text-gold-700">PDF ↓</span>
+                </a>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {showBank && (
         <div className="mt-4 rounded-xl bg-sand-50 p-4 text-sm">
           <p className="font-medium text-anthracite-700">Bankverbindung</p>
@@ -73,8 +99,8 @@ export function PaymentCard({
       <p className="mt-3 text-xs text-anthracite-400">
         {hasContract
           ? t(
-              `Die Rechnung bekommt ihr von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`,
-              `Die Rechnung erhalten Sie von uns per E-Mail. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`
+              `Die Rechnung bekommt ihr von uns per E-Mail und findet sie hier im Portal. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`,
+              `Die Rechnung erhalten Sie von uns per E-Mail und finden sie hier im Portal. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`
             )
           : t(
               `Die Zahlungsart für den ${noDeposit ? "Betrag" : "Restbetrag"} wählt ihr beim Unterschreiben des Mietvertrags.`,
