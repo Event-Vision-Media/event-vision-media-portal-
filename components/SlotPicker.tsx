@@ -10,13 +10,20 @@ export function SlotPicker({
   initial,
   range,
   hint,
+  hours,
 }: {
   name: "handover" | "return";
   label: string;
   initial: Slot;
   range: [string, string];
   hint?: string;
+  /** Nur Zeiten in diesem Rahmen anbieten (z. B. Selbstabholung 09:00–19:00). */
+  hours?: [string, string];
 }) {
+  const options = hours ? TIME_OPTIONS.filter((t) => t >= hours[0] && t <= hours[1]) : TIME_OPTIONS;
+  // Vorab geplante Zeiten außerhalb des Rahmens bleiben wählbar.
+  const fromOptions = [...new Set([...options.slice(0, -1), initial.from])].sort();
+  const toOptions = [...new Set([...options, initial.to])].sort();
   const [from, setFrom] = useState(initial.from);
   const [to, setTo] = useState(initial.to);
   return (
@@ -36,17 +43,17 @@ export function SlotPicker({
             value={from}
             onChange={(e) => {
               setFrom(e.target.value);
-              if (to <= e.target.value) setTo(TIME_OPTIONS[Math.min(TIME_OPTIONS.indexOf(e.target.value) + 4, TIME_OPTIONS.length - 1)]);
+              if (to <= e.target.value) setTo(toOptions[Math.min(toOptions.indexOf(e.target.value) + 4, toOptions.length - 1)]);
             }}
             className="input-field px-2"
           >
-            {TIME_OPTIONS.slice(0, -1).map((t) => <option key={t} value={t}>{t}</option>)}
+            {fromOptions.map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
         <label className="block">
           <span className="mb-1 block text-xs text-anthracite-400">bis</span>
           <select name={`${name}_to`} value={to} onChange={(e) => setTo(e.target.value)} className="input-field px-2">
-            {TIME_OPTIONS.filter((t) => t > from).map((t) => <option key={t} value={t}>{t}</option>)}
+            {toOptions.filter((t) => t > from).map((t) => <option key={t} value={t}>{t}</option>)}
           </select>
         </label>
       </div>

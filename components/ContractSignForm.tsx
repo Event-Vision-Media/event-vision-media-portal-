@@ -6,7 +6,7 @@ import { signContract, type ContractActionResult } from "@/app/actions/contract"
 import { SignaturePad } from "@/components/SignaturePad";
 import { Button } from "@/components/ui/Button";
 import { SlotPicker } from "@/components/SlotPicker";
-import type { SlotPlan } from "@/lib/slots";
+import { SELF_PICKUP_HOURS, type SlotPlan } from "@/lib/slots";
 
 export interface ContractPrefill {
   renter_name: string;
@@ -45,6 +45,7 @@ export function ContractSignForm({
   const t = (du: string, s: string) => (sie ? s : du);
   // Kleiner Betrag zur Selbstabholung: Barzahlung bei Abholung vorausgewählt, Überweisung bleibt möglich.
   const cashFirst = noDeposit && !hasDelivery;
+  const pickupHoursHint = `Täglich (Mo–So) zwischen ${Number(SELF_PICKUP_HOURS[0].slice(0, 2))} und ${Number(SELF_PICKUP_HOURS[1].slice(0, 2))} Uhr.`;
 
   return (
     <form action={formAction} className="space-y-6">
@@ -90,19 +91,21 @@ export function ContractSignForm({
             label={hasDelivery ? "Lieferung & Aufbau" : "Abholung bei uns (Übergabe)"}
             initial={slots.handover}
             range={slots.handoverRange}
-            hint={hasDelivery ? t("Wann können wir in die Location? Der Aufbau dauert ca. 45 Min. je Gerät.", "Wann ist die Location für uns zugänglich? Der Aufbau dauert ca. 45 Min. je Gerät.") : undefined}
+            hours={hasDelivery ? undefined : SELF_PICKUP_HOURS}
+            hint={hasDelivery ? t("Wann können wir in die Location? Der Aufbau dauert ca. 45 Min. je Gerät.", "Wann ist die Location für uns zugänglich? Der Aufbau dauert ca. 45 Min. je Gerät.") : pickupHoursHint}
           />
           <SlotPicker
             name="return"
             label={hasDelivery ? "Abbau & Abholung" : "Rückgabe bei uns"}
             initial={slots.ret}
             range={slots.retRange}
+            hours={hasDelivery ? undefined : SELF_PICKUP_HOURS}
             hint={
               hasDelivery
                 ? slots.nightBooked
                   ? "Nachtabholung ist gebucht."
-                  : t("Bis 22 Uhr oder am Folgetag kostenlos – später ist eine Nachtabholung (Aufpreis).", "Bis 22 Uhr oder am Folgetag kostenlos – später ist eine Nachtabholung (Aufpreis).")
-                : undefined
+                  : "Bis 22 Uhr oder am Folgetag kostenlos – später ist eine Nachtabholung (Aufpreis)."
+                : pickupHoursHint
             }
           />
         </div>

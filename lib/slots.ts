@@ -22,6 +22,9 @@ export interface SlotPlan {
 /** 00:00 … 24:00 in 30-Minuten-Schritten. */
 export const TIME_OPTIONS: string[] = Array.from({ length: 49 }, (_, i) => `${String(Math.floor(i / 2)).padStart(2, "0")}:${i % 2 ? "30" : "00"}`);
 
+/** Selbstabholung und Rückgabe bei uns: täglich (Mo–So) in diesem Zeitraum. */
+export const SELF_PICKUP_HOURS: [string, string] = ["09:00", "19:00"];
+
 export function shiftDate(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
@@ -92,6 +95,17 @@ export function validateSlots(plan: SlotPlan, h: Slot, r: Slot, sie: boolean): s
   if (r.date < plan.retRange[0] || r.date > plan.retRange[1])
     return t("Das Datum für Abbau/Rückgabe passt nicht zu deinem Eventtermin.", "Das Datum für Abbau/Rückgabe passt nicht zu Ihrem Veranstaltungstermin.");
   if (`${r.date} ${r.from}` <= `${h.date} ${h.to}`) return t("Der Abbau muss nach dem Aufbau liegen.", "Der Abbau muss nach dem Aufbau liegen.");
+  if (!plan.delivered) {
+    const [open, close] = SELF_PICKUP_HOURS;
+    // Von uns vorab geplante Zeiten (Admin) gelten auch außerhalb der üblichen Zeiten.
+    const ok = (s: Slot, planned: Slot) => (s.from >= open && s.to <= close) || (s.date === planned.date && s.from === planned.from && s.to === planned.to);
+    if (!ok(h, plan.handover) || !ok(r, plan.ret)) {
+      return t(
+        `Abholung und Rückgabe sind täglich zwischen ${Number(open.slice(0, 2))} und ${Number(close.slice(0, 2))} Uhr möglich. Bitte wähle ein Zeitfenster in dieser Zeit.`,
+        `Abholung und Rückgabe sind täglich zwischen ${Number(open.slice(0, 2))} und ${Number(close.slice(0, 2))} Uhr möglich. Bitte wählen Sie ein Zeitfenster in dieser Zeit.`
+      );
+    }
+  }
   if (plan.delivered) {
     const lateSameDay = r.date === plan.lastDay && r.to > "22:00";
     const earlyNextDay = r.date === shiftDate(plan.lastDay, 1) && r.from < "06:00";
