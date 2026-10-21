@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { formatCurrencyEUR } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { getAdSpend, isPaidGoogle } from "@/lib/ads";
+import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 
 export const dynamic = "force-dynamic";
@@ -123,6 +124,21 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
     campaigns.set(key, c);
   }
   const terms = count(ads, (b) => b.inquiry_items?.source?.term ?? null);
+  // Welches Produkt bringt die Werbung? Eine Anfrage mit zwei Geräten zählt bei beiden; Umsatz = Paketpreis.
+  const adProducts = new Map<DeviceKey, { n: number; ok: number; eur: number }>();
+  for (const b of ads) {
+    for (const pkg of b.inquiry_items?.packages ?? []) {
+      const key = pkg.product as DeviceKey;
+      if (!PRODUCT_LABELS[key]) continue;
+      const c = adProducts.get(key) ?? { n: 0, ok: 0, eur: 0 };
+      c.n++;
+      if (b.lifecycle === "bestaetigt") {
+        c.ok++;
+        c.eur += Number(pkg.price ?? 0);
+      }
+      adProducts.set(key, c);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -179,6 +195,23 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
                 {Array.from(campaigns.entries()).sort((a, b) => b[1].n - a[1].n).map(([k, c]) => (
                   <tr key={k}>
                     <td className="py-1.5 text-anthracite-700">{k}</td>
+                    <td className="py-1.5 text-right">{c.n}</td>
+                    <td className="py-1.5 text-right">{c.ok} <span className="text-xs text-anthracite-400">({pct(c.ok, c.n)})</span></td>
+                    <td className="py-1.5 text-right">{formatCurrencyEUR(c.eur)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+          {adProducts.size > 0 && (
+            <table className="mt-5 w-full text-sm">
+              <thead className="text-left text-xs text-anthracite-400">
+                <tr><th className="pb-2 font-medium">Produkt (über Anzeigen)</th><th className="pb-2 text-right font-medium">Anfragen</th><th className="pb-2 text-right font-medium">Buchungen</th><th className="pb-2 text-right font-medium">Umsatz (Paket)</th></tr>
+              </thead>
+              <tbody className="divide-y divide-anthracite-50">
+                {Array.from(adProducts.entries()).sort((a, b) => b[1].n - a[1].n).map(([k, c]) => (
+                  <tr key={k}>
+                    <td className="py-1.5 text-anthracite-700">{PRODUCT_LABELS[k]}</td>
                     <td className="py-1.5 text-right">{c.n}</td>
                     <td className="py-1.5 text-right">{c.ok} <span className="text-xs text-anthracite-400">({pct(c.ok, c.n)})</span></td>
                     <td className="py-1.5 text-right">{formatCurrencyEUR(c.eur)}</td>
