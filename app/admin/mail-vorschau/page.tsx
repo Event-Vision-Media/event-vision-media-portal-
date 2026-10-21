@@ -3,6 +3,8 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
+import { weeklyPlanMail } from "@/lib/email";
+import { SAMPLE_WEEKLY_PLAN } from "@/lib/weekly-plan-sample";
 
 export const dynamic = "force-dynamic";
 
@@ -74,6 +76,7 @@ export default async function AdminMailPreviewPage({ searchParams }: { searchPar
       { booking_code: sample.booking_code, customer_name: sample.customer_name, couple_names: sample.couple_names, event_date: sample.event_date, lifecycle: "reserviert" },
     ]),
   });
+  mails.push({ title: "9b · An dich: Wochenplan (jeden Sonntagabend)", mail: weeklyPlanMail(SAMPLE_WEEKLY_PLAN) });
   if (business) {
     mails.push({
       title: "7b · Nur Firmen: „Nächstes Jahr wieder?“ (ca. 3 Monate vor dem Jahrestag)",
