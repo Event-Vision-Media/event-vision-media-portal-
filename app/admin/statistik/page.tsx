@@ -6,6 +6,7 @@ import { formatCurrencyEUR } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { getAdSpend, isPaidGoogle } from "@/lib/ads";
 import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
+import { FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 
 export const dynamic = "force-dynamic";
@@ -140,6 +141,19 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
     }
   }
 
+  // ---- Besucher-Trichter (anonym gezählt auf der Website) ----
+  const { data: funnelRows } = await createAdminClient()
+    .from("funnel_events")
+    .select("step, channel")
+    .gte("created_at", since)
+    .limit(100000);
+  const funnel = new Map<string, { ads: number; sonst: number }>(FUNNEL_STEPS.map((k) => [k, { ads: 0, sonst: 0 }]));
+  for (const r of funnelRows ?? []) {
+    const f = funnel.get(r.step);
+    if (f) f[r.channel === "ads" ? "ads" : "sonst"]++;
+  }
+  const mainSteps = FUNNEL_STEPS.filter((k) => k !== "whatsapp" && k !== "telefon");
+
   return (
     <div className="min-h-screen bg-sand-50">
       <AdminHeader />
@@ -226,6 +240,51 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
           <div className="mt-5 border-t border-anthracite-100 pt-4">
             <AdSpendForm spend={spendByMonth} />
           </div>
+        </Card>
+
+        <Card className="mt-6">
+          <h2 className="font-serif text-lg font-semibold text-anthracite-800">Besucher-Trichter: Wie weit kommen Besucher?</h2>
+          <p className="mt-1 text-xs text-anthracite-400">
+            Anonym gezählt auf der Website (ohne Cookies) – jeder Schritt einmal pro Seitenaufruf. „Google Ads“ = über eine Anzeige gekommen.
+            Die Prozentzahl zeigt, wie viele vom vorherigen Schritt weitergemacht haben; wo sie stark fällt, springen Besucher ab.
+          </p>
+          {(funnelRows ?? []).length === 0 ? (
+            <p className="mt-4 text-sm text-anthracite-400">Noch keine Daten in diesem Zeitraum – die Zählung läuft seit dem 25.10.2026.</p>
+          ) : (
+            <table className="mt-4 w-full text-sm">
+              <thead className="text-left text-xs text-anthracite-400">
+                <tr><th className="pb-2 font-medium">Schritt</th><th className="pb-2 text-right font-medium">Google Ads</th><th className="pb-2 text-right font-medium">Übrige Besucher</th></tr>
+              </thead>
+              <tbody className="divide-y divide-anthracite-50">
+                {mainSteps.map((k, idx) => {
+                  const c = funnel.get(k)!;
+                  // „Termin prüfen“ ist optional – Prozente der Formularschritte beziehen sich auf den Schritt davor ohne ihn
+                  const prevKey = idx === 0 ? null : mainSteps[idx - 1] === "termin_check" ? mainSteps[idx - 2] : mainSteps[idx - 1];
+                  const prev = prevKey ? funnel.get(prevKey)! : null;
+                  const cell = (n: number, p: number | null) => (
+                    <td className="py-1.5 text-right">
+                      {n}
+                      {p ? <span className={`ml-1 text-xs ${n / p < 0.4 ? "font-semibold text-red-600" : "text-anthracite-400"}`}>({pct(n, p)})</span> : null}
+                    </td>
+                  );
+                  return (
+                    <tr key={k}>
+                      <td className="py-1.5 text-anthracite-700">{FUNNEL_LABELS[k]}</td>
+                      {cell(c.ads, prev ? prev.ads : null)}
+                      {cell(c.sonst, prev ? prev.sonst : null)}
+                    </tr>
+                  );
+                })}
+                {(["whatsapp", "telefon"] as const).map((k) => (
+                  <tr key={k} className="text-anthracite-500">
+                    <td className="py-1.5">{FUNNEL_LABELS[k]}</td>
+                    <td className="py-1.5 text-right">{funnel.get(k)!.ads}</td>
+                    <td className="py-1.5 text-right">{funnel.get(k)!.sonst}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </Card>
 
         {all.length === 0 ? (
