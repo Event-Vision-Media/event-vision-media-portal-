@@ -74,7 +74,7 @@ export async function confirmInquiry(bookingId: string, force = false): Promise<
     mailSent = r.sent;
     mailId = r.id;
   }
-  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? " – Auftragsbestätigung verschickt" : " (keine E-Mail verschickt)"}`);
+  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? ` – 📧 Auftragsbestätigung mit Portal-Zugang an ${b.email}` : " (keine E-Mail verschickt)"}`);
   if (mailId) await logActivity(bookingId, "mail_bestaetigung", mailId);
 
   revalidatePath("/admin/anfragen");
@@ -106,7 +106,7 @@ export async function declineInquiry(
     const m = declineMail(toMailBooking(b), reason.trim().slice(0, 500) || null);
     mailSent = (await sendEmail({ to: b.email, ...m })).sent;
   }
-  await logActivity(bookingId, "anfrage_abgelehnt", `Anfrage abgelehnt${mailSent ? " – Absage verschickt" : ""}`);
+  await logActivity(bookingId, "anfrage_abgelehnt", `Anfrage abgelehnt${mailSent ? ` – 📧 Absage an ${b.email}${reason.trim() ? ` (Hinweis: ${reason.trim().slice(0, 120)})` : ""}` : ""}`);
 
   revalidatePath("/admin/anfragen");
   return { success: true, mailSent };

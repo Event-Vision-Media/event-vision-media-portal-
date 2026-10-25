@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { markActivityRead, markAllActivityRead } from "@/app/actions/admin-activity";
@@ -13,6 +14,8 @@ export interface ActivityFeedEntry {
   created_at: string;
   read_at: string | null;
   bookingCode: string | null;
+  bookingId?: string | null;
+  customer?: string | null;
 }
 
 export function ActivityFeed({ entries }: { entries: ActivityFeedEntry[] }) {
@@ -70,9 +73,16 @@ export function ActivityFeed({ entries }: { entries: ActivityFeedEntry[] }) {
           >
             <div className="min-w-0">
               <p className="text-anthracite-700">
-                {entry.bookingCode && (
-                  <span className="font-medium text-anthracite-800">{entry.bookingCode} · </span>
-                )}
+                {entry.bookingCode &&
+                  (entry.bookingId ? (
+                    <Link href={`/admin/bookings/${entry.bookingId}`} className="font-medium text-anthracite-800 underline-offset-2 hover:text-gold-700 hover:underline">
+                      {entry.bookingCode}
+                      {entry.customer ? ` · ${entry.customer}` : ""}
+                    </Link>
+                  ) : (
+                    <span className="font-medium text-anthracite-800">{entry.bookingCode}</span>
+                  ))}
+                {entry.bookingCode && <span className="text-anthracite-400"> · </span>}
                 {entry.message}
               </p>
               <p className="text-xs text-anthracite-400">

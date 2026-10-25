@@ -50,6 +50,14 @@ function toMailBooking(b: Booking): MailBooking {
   };
 }
 
+const eur = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+const dateDE = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("de-DE");
+
+/** Eintrag fürs Aktivitätsprotokoll: an wen, welche Mail (Betreff), warum. */
+function mailLog(b: Booking, subject: string, reason: string): string {
+  return `📧 Mail an ${b.customer_name || b.couple_names}${b.email ? ` (${b.email})` : ""}: „${subject}“ – ${reason}`;
+}
+
 /** Welche Schritte im Kundenportal sind für diese Buchung noch offen? */
 async function openStepsFor(b: Booking): Promise<string[]> {
   const supabase = createAdminClient();
@@ -140,8 +148,9 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       if (!b.reminder_sent_at && days >= REMINDER_MIN_DAYS && days <= REMINDER_DAYS_BEFORE) continue;
       let sent = false;
       if (!dryRun) {
-        sent = (await sendEmail({ to: b.email!, ...contractReminderMail(toMailBooking(b)) })).sent;
-        if (sent) await logActivity(b.id, "vertrag_erinnerung", `Mietvertrag ${CONTRACT_REMINDER_AFTER_DAYS} Tage nach der Bestätigung noch nicht unterschrieben – Erinnerung verschickt`);
+        const mail = contractReminderMail(toMailBooking(b));
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "vertrag_erinnerung", mailLog(b, mail.subject, `Grund: Mietvertrag ${CONTRACT_REMINDER_AFTER_DAYS} Tage nach deiner Bestätigung noch nicht unterschrieben.`));
       }
       result.contractReminders.push({ booking: b.booking_code, sent });
     }
@@ -167,7 +176,15 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(b.id, "erinnerung", `Erinnerungs-E-Mail verschickt (${openSteps.length} offene Schritte)`);
+        await logActivity(
+          b.id,
+          "erinnerung",
+          mailLog(
+            b,
+            mail.subject,
+            `Event in ${daysUntil(b.event_date)} Tagen. ${openSteps.length ? `Noch offen: ${openSteps.join(", ")}.` : "Alles erledigt – Vorfreude-Mail."}${recs.length ? ` Empfohlen: ${recs.map((r) => r.name).join(", ")}.` : ""}`
+          )
+        );
       }
     }
     result.reminders.push({ booking: b.booking_code, openSteps, recommendations: recs.map((r) => r.name), sent });
@@ -190,10 +207,11 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     if (daysUntil(b.event_date) > -GALLERY_UNLOCK_DAYS) continue;
     let sent = false;
     if (!dryRun) {
-      sent = (await sendEmail({ to: b.email!, ...followupMail(toMailBooking(b), reviewUrl) })).sent;
+      const mail = followupMail(toMailBooking(b), reviewUrl);
+      sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(b.id, "nachher_mail", "Galerie- & Bewertungs-E-Mail verschickt");
+        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: Link zur Online-Galerie${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
       }
     }
     result.followups.push({ booking: b.booking_code, sent });
@@ -241,7 +259,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
         });
         sent = (await sendEmail({ to: b.email!, ...mail })).sent;
         if (sent) {
-          await logActivity(b.id, "abhol_erinnerung", `Erinnerung an die Abholung verschickt${cash ? ` (inkl. Hinweis Barzahlung ${cash} €)` : ""}`);
+          await logActivity(b.id, "abhol_erinnerung", mailLog(b, mail.subject, `Abholung morgen bei dir (${handoverText})${cash ? `, bar mitbringen: ${eur(cash)}` : ""}.`));
           // Barbetrag steht schon drin – keine zweite Mail zur Barzahlung
           if (cash) await supabase.from("bookings").update({ rest_reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
         }
@@ -304,7 +322,15 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
         await logActivity(
           b.id,
           "zahlung_erinnerung",
-          kind === "anzahlung" ? "Erinnerung Anzahlung verschickt" : kind === "rest_bar" ? "Hinweis Barzahlung bei Lieferung verschickt" : "Erinnerung Restzahlung verschickt"
+          mailLog(
+            b,
+            mail.subject,
+            kind === "anzahlung"
+              ? `Anzahlung ${eur(p.deposit)} 7 Tage nach der Vertragsunterschrift noch nicht als bezahlt abgehakt.`
+              : kind === "rest_bar"
+                ? `Event in ${days} Tagen: ${eur(p.rest)} bar bei der ${p.pickupOnly ? "Abholung" : "Lieferung"} bereithalten.`
+                : `Restbetrag ${eur(p.rest)} per Überweisung fällig bis ${dateDE(p.restDueDate)}.`
+          )
         );
       }
     }
@@ -340,8 +366,9 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       const link = `${website}/anfrage.html?typ=business&datum=${suggested}${product ? `&produkt=${product.product}&paket=${product.id}` : ""}`;
       let sent = false;
       if (!dryRun) {
-        sent = (await sendEmail({ to: b.email!, ...rebookingMail(toMailBooking(b), suggested, link) })).sent;
-        if (sent) await logActivity(b.id, "wiederbuchung_angebot", `„Nächstes Jahr wieder?“-Mail verschickt (Vorschlag ${suggested})`);
+        const mail = rebookingMail(toMailBooking(b), suggested, link);
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "wiederbuchung_angebot", mailLog(b, mail.subject, `Firmenkunde vom Vorjahr – Terminvorschlag ${dateDE(suggested)}.`));
       }
       result.rebookingOffers.push({ booking: b.booking_code, suggestedDate: suggested, sent });
     }

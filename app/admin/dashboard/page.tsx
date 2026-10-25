@@ -42,7 +42,7 @@ export default async function AdminBookingsPage({
       .order("version", { ascending: false }),
     supabase
       .from("activity_log")
-      .select("id, message, created_at, read_at, bookings(booking_code)")
+      .select("id, message, created_at, read_at, booking_id, bookings(booking_code, customer_name, couple_names)")
       .neq("event_type", "mail_bestaetigung") // technischer Eintrag (Mail-ID für den Zustellstatus)
       .order("created_at", { ascending: false })
       .limit(50),
@@ -65,6 +65,8 @@ export default async function AdminBookingsPage({
     created_at: entry.created_at,
     read_at: entry.read_at,
     bookingCode: entry.bookings?.booking_code ?? null,
+    bookingId: entry.booking_id ?? null,
+    customer: entry.bookings?.customer_name || entry.bookings?.couple_names || null,
   }));
 
   const personalizedScreenBookingIds = new Set<string>();
