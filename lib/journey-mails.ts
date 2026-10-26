@@ -296,7 +296,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     const signedAt = signedAtBy.get(b.id);
     // Restbetrag per Überweisung: Erinnerung 3 Tage vor bis zur Fälligkeit (14 bzw. bei alten Verträgen 7 Tage vorher)
     let kind: "anzahlung" | "rest_ueberweisung" | "rest_bar" | null = null;
-    // Ohne Anzahlung (Gesamtpreis bis 150 €) entfällt die Anzahlungs-Erinnerung
+    // Ohne Anzahlung (Gesamtpreis bis NO_DEPOSIT_UP_TO) entfällt die Anzahlungs-Erinnerung
     const noDeposit = b.deposit_amount != null ? Number(b.deposit_amount) === 0 : b.total_price != null && depositFor(Number(b.total_price)) === 0;
     // Anzahlungsrechnung geht nach der Vertragsunterschrift raus – Erinnerung 7 Tage danach
     if (!noDeposit && !b.deposit_paid_at && !b.deposit_reminder_sent_at && signedAt && signedAt <= confirmedCutoff) kind = "anzahlung";

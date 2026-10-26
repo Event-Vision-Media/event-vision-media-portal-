@@ -69,3 +69,49 @@ export async function updateStaffHours(bookingId: string, formData: FormData): P
   revalidatePath("/admin/anfragen");
   return { success: true };
 }
+
+/**
+ * Admin vereinbart einen Sonderpreis (z. B. per WhatsApp): neuer Gesamtpreis → die Differenz
+ * steht als eigene Zeile („Nachlass …“) in Buchung, Bestätigungsmail, Portal und Vertrag.
+ * Leeres Feld entfernt die Anpassung. Nach der Vertragsunterschrift nicht mehr möglich.
+ */
+export async function updatePriceAdjustment(bookingId: string, formData: FormData): Promise<LogisticsActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const supabase = createAdminClient();
+  const [{ data: b }, { count }] = await Promise.all([
+    supabase.from("bookings").select("inquiry_items").eq("id", bookingId).single(),
+    supabase.from("booking_contracts").select("id", { count: "exact", head: true }).eq("booking_id", bookingId),
+  ]);
+  if (!b?.inquiry_items?.packages) return { error: "Nur für Buchungen mit Paketen." };
+  if (count) return { error: "Der Vertrag ist schon unterschrieben – Preisänderungen bitte separat abrechnen." };
+
+  const offer = b.inquiry_items.offer ?? {};
+  const base = applyOffer(b.inquiry_items, { ...offer, adjustment: null });
+  const raw = String(formData.get("target") ?? "").trim().replace(",", ".");
+  const label = String(formData.get("label") ?? "").trim().slice(0, 80) || "Nachlass (persönlich vereinbart)";
+
+  let adjustment: { label: string; amount: number } | null = null;
+  if (raw !== "") {
+    const target = Number(raw);
+    if (!Number.isFinite(target) || target < 0) return { error: "Bitte einen gültigen Gesamtpreis eingeben." };
+    const amount = Math.round((target - (base.total ?? 0)) * 100) / 100;
+    if (amount !== 0) adjustment = { label: amount < 0 ? label : label.replace(/^Nachlass/, "Aufpreis"), amount };
+  }
+  const items = applyOffer(base, { ...offer, adjustment });
+  const { error } = await supabase
+    .from("bookings")
+    .update({ inquiry_items: { ...items, offer: { ...offer, adjustment } }, total_price: items.total })
+    .eq("id", bookingId);
+  if (error) return { error: "Konnte nicht gespeichert werden." };
+  await logActivity(
+    bookingId,
+    "preis_angepasst",
+    adjustment
+      ? `Preis angepasst: ${adjustment.label} ${adjustment.amount.toLocaleString("de-DE", { style: "currency", currency: "EUR" })} → Gesamt ${Number(items.total).toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`
+      : "Preisanpassung entfernt – wieder Normalpreis"
+  );
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  revalidatePath("/admin/anfragen");
+  revalidatePath("/dashboard");
+  return { success: true };
+}

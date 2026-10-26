@@ -1,7 +1,7 @@
 import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
-import { LANDLORD, depositFor } from "@/lib/contract";
+import { LANDLORD, NO_DEPOSIT_UP_TO, depositFor } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
 
 /**
@@ -363,7 +363,7 @@ export function contractAdminMail(b: MailBooking, signer: string, noDeposit = fa
       "Mietvertrag unterschrieben",
       `<p style="line-height:1.6"><strong>${esc(signer)}</strong> hat den Mietvertrag für <strong>${esc(b.booking_code)}</strong> (${esc(formatDateGerman(b.event_date))}) digital unterschrieben.</p>
 ${details(b)}
-<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${noDeposit ? "Keine Anzahlung (bis 150 €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben" : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
+<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${noDeposit ? `Keine Anzahlung (bis ${NO_DEPOSIT_UP_TO} €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben` : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
 ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/zahlungen" style="color:#a87731;font-weight:600">Zu den Zahlungen →</a></p>` : ""}`
     ),
     text: `${signer} hat den Mietvertrag für ${b.booking_code} (${formatDateGerman(b.event_date)}) unterschrieben.${url ? `\n${url}/admin/anfragen` : ""}`,

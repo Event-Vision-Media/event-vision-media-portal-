@@ -28,6 +28,7 @@ import { listInvoices } from "@/lib/invoices";
 import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
 import { StaffHoursForm } from "@/components/admin/StaffHoursForm";
+import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
 import { staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
@@ -317,6 +318,17 @@ export default async function AdminBookingDetailPage({
                   bookingId={booking.id}
                   km={booking.inquiry_items?.travel?.km ?? null}
                   pickup={booking.inquiry_items?.pickup ?? null}
+                  locked={Boolean(contract)}
+                />
+              </div>
+            )}
+            {booking.inquiry_items?.packages && (
+              <div className="mt-4 border-t border-anthracite-100 pt-3">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Sonderpreis / Nachlass</p>
+                <PriceAdjustForm
+                  bookingId={booking.id}
+                  total={booking.total_price != null ? Number(booking.total_price) : null}
+                  adjustment={booking.inquiry_items?.offer?.adjustment ?? null}
                   locked={Boolean(contract)}
                 />
               </div>

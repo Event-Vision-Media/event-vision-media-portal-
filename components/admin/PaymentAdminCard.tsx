@@ -4,6 +4,7 @@ import { InvoiceAdminSection } from "@/components/admin/InvoiceAdminSection";
 import { invoiceTitle, type BookingInvoice } from "@/lib/invoices";
 import { formatCurrencyEUR, formatDateGerman } from "@/lib/format";
 import type { PaymentSummary } from "@/lib/payments";
+import { NO_DEPOSIT_UP_TO } from "@/lib/contract";
 
 /** Zahlungen in den Buchungsdetails (Admin). Rechnungen werden in Lexware Office erstellt. */
 export function PaymentAdminCard({
@@ -33,7 +34,7 @@ export function PaymentAdminCard({
       ) : (
         <dl className="mb-4 space-y-1 text-sm">
           {p.deposit === 0 ? (
-            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">keine (bis 150 €)</dd></div>
+            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">keine (bis {NO_DEPOSIT_UP_TO} €)</dd></div>
           ) : (
             <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium">{formatCurrencyEUR(p.deposit!)}</dd></div>
           )}

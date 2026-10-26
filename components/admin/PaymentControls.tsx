@@ -17,7 +17,7 @@ export function PaymentControls({
   restPaid: boolean;
   method: "ueberweisung" | "bar" | null;
   compact?: boolean;
-  /** Gesamtpreis bis 150 €: keine Anzahlung, nur ein Haken für den Gesamtbetrag. */
+  /** Gesamtpreis bis NO_DEPOSIT_UP_TO (250 €): keine Anzahlung, nur ein Haken für den Gesamtbetrag. */
   noDeposit?: boolean;
 }) {
   const [pending, start] = useTransition();

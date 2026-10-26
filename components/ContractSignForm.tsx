@@ -35,7 +35,7 @@ export function ContractSignForm({
   /** Aufstellort nicht ebenerdig und Kunde stellt selbst eine Tragehilfe. */
   carryHelper?: boolean;
   slots: SlotPlan;
-  /** Gesamtpreis bis 150 €: keine Anzahlung, alles auf einmal. */
+  /** Gesamtpreis bis NO_DEPOSIT_UP_TO (250 €): keine Anzahlung, alles auf einmal. */
   noDeposit?: boolean;
   /** Alles wird verschickt – nur Überweisung möglich. */
   shippedOnly?: boolean;

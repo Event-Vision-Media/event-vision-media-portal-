@@ -44,7 +44,7 @@ export async function getPaymentSummary(booking: Booking): Promise<PaymentSummar
     rest: total != null && deposit != null ? round(total - deposit) : null,
     method: booking.rest_payment_method ?? null,
     pickupOnly: !doc.hasDelivery,
-    // Ohne Anzahlung (Gesamtpreis bis 150 €) gibt es nichts anzuzahlen
+    // Ohne Anzahlung (Gesamtpreis bis NO_DEPOSIT_UP_TO) gibt es nichts anzuzahlen
     depositPaid: Boolean(booking.deposit_paid_at) || deposit === 0,
     restPaid: Boolean(booking.rest_paid_at),
     restDueDate: minusDays(booking.event_date, restDueDays),

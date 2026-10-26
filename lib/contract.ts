@@ -28,7 +28,7 @@ import {
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
 
-export const CONTRACT_VERSION = "2026-10.8";
+export const CONTRACT_VERSION = "2026-10.9";
 
 /** Restzahlung per Überweisung: spätestens so viele Tage vor der Veranstaltung. */
 export const REST_DUE_DAYS = 14;
@@ -60,9 +60,9 @@ export const DEPOSIT_RATE = 0.2;
 export const AUDIO_USB_EXTRA_SINCE = "2026-10-14";
 
 /** Bis zu diesem Gesamtpreis keine Anzahlung – alles auf einmal (z. B. Audiogästebuch bar bei Abholung). */
-export const NO_DEPOSIT_UP_TO = 150;
+export const NO_DEPOSIT_UP_TO = 250;
 
-/** Anzahlung: 20 % auf volle 50 € gerundet, mindestens 50 € (höchstens der Gesamtpreis); bis 150 € keine. */
+/** Anzahlung: 20 % auf volle 50 € gerundet, mindestens 50 € (höchstens der Gesamtpreis); bis NO_DEPOSIT_UP_TO (250 €) keine. */
 export function depositFor(total: number): number {
   if (total <= NO_DEPOSIT_UP_TO) return 0;
   return Math.min(total, Math.max(50, Math.round((total * DEPOSIT_RATE) / 50) * 50));
