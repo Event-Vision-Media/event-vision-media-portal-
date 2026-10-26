@@ -534,6 +534,7 @@ export default async function AdminBookingDetailPage({
             <AudioGuestbookAdminSection
               bookingId={booking.id}
               eventDate={booking.event_date}
+              bookedAt={booking.confirmed_at ?? booking.created_at}
               greeting={
                 audioGreeting
                   ? {

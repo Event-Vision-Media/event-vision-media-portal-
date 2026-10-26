@@ -19,6 +19,7 @@ const GREETINGS_BUCKET = "audio-guestbook-greetings";
 
 export function AudioGreetingUploader({
   eventDate,
+  bookedAt,
   existingGreeting,
   playUrl,
   downloadHref,
@@ -26,6 +27,8 @@ export function AudioGreetingUploader({
 }: {
   sie?: boolean;
   eventDate: string;
+  /** Buchungs- bzw. Bestätigungsdatum – für die Frist bei kurzfristigen Buchungen. */
+  bookedAt?: string | null;
   existingGreeting: { fileName: string; fileSize: number; uploadedAt: string } | null;
   playUrl: string | null;
   downloadHref: string;
@@ -37,7 +40,7 @@ export function AudioGreetingUploader({
   const [isUploading, setIsUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const deadline = getAudioGreetingDeadline(eventDate);
+  const deadline = getAudioGreetingDeadline(eventDate, bookedAt);
   const now = new Date();
   const daysLeft = Math.ceil((deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   const isOverdue = daysLeft < 0;

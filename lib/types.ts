@@ -306,9 +306,24 @@ export interface AudioGuestbookRecording {
 // Audiogästebuch spätestens hochgeladen sein sollte.
 export const AUDIO_GREETING_DEADLINE_DAYS = 7;
 
-export function getAudioGreetingDeadline(eventDate: string): Date {
+/** Bei kurzfristigen Buchungen (normale Frist schon vorbei): so viele Tage vor dem Event. */
+export const AUDIO_GREETING_SHORT_NOTICE_DAYS = 2;
+
+/**
+ * Frist für die Begrüßungsnachricht: normalerweise 7 Tage vor dem Event. Wurde erst danach
+ * gebucht (`bookedAt`), gilt 2 Tage vor dem Event – frühestens der Buchungstag selbst.
+ */
+export function getAudioGreetingDeadline(eventDate: string, bookedAt?: string | null): Date {
   const date = new Date(eventDate + "T00:00:00");
   date.setDate(date.getDate() - AUDIO_GREETING_DEADLINE_DAYS);
+  if (bookedAt) {
+    const booked = new Date(bookedAt.slice(0, 10) + "T00:00:00");
+    if (date < booked) {
+      const short = new Date(eventDate + "T00:00:00");
+      short.setDate(short.getDate() - AUDIO_GREETING_SHORT_NOTICE_DAYS);
+      return short < booked ? booked : short;
+    }
+  }
   return date;
 }
 

@@ -161,7 +161,7 @@ export default async function DashboardPage() {
       .eq("booking_id", booking.id);
     audioGreetingMissing = !count;
   }
-  const audioGreetingDeadline = getAudioGreetingDeadline(booking.event_date);
+  const audioGreetingDeadline = getAudioGreetingDeadline(booking.event_date, booking.confirmed_at ?? booking.created_at);
 
   // Was gebucht ist, bestimmt die Schritte: Startbildschirm/Layout nur bei Fotospiegel oder Fotobox
   const devices = bookingDevices(booking);

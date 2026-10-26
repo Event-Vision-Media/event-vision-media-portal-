@@ -106,6 +106,7 @@ export default async function AudioGuestbookPage() {
           </h2>
           <AudioGreetingUploader
             eventDate={booking.event_date}
+            bookedAt={booking.confirmed_at ?? booking.created_at}
             sie={sie}
             existingGreeting={
               greeting

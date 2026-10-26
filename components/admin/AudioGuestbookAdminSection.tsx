@@ -22,15 +22,18 @@ interface RecordingInfo {
 export function AudioGuestbookAdminSection({
   bookingId,
   eventDate,
+  bookedAt,
   greeting,
   recordings,
 }: {
   bookingId: string;
   eventDate: string;
+  /** Buchungs- bzw. Bestätigungsdatum – für die Frist bei kurzfristigen Buchungen. */
+  bookedAt?: string | null;
   greeting: GreetingInfo | null;
   recordings: RecordingInfo[];
 }) {
-  const deadline = getAudioGreetingDeadline(eventDate);
+  const deadline = getAudioGreetingDeadline(eventDate, bookedAt);
   const isOverdue = !greeting && new Date() > deadline;
 
   return (
