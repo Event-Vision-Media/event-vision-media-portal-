@@ -273,7 +273,8 @@
         "Alles aus dem Basis-Paket",
         "Leuchtschild „Audio Guest Book“",
         "Karten mit witzigen Anweisungen für die Gäste",
-        "Selbstabholung am Standort"
+        "Selbstabholung am Standort",
+        "Optional: Lieferung"
       ],
       "includes": "audio-basis"
     },
