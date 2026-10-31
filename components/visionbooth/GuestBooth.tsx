@@ -130,7 +130,27 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     };
   }, [step, facing, opts, stopCamera]);
 
-  const toBlob = (c: HTMLCanvasElement, q = 0.9) => new Promise<Blob | null>((r) => c.toBlob(r, "image/jpeg", q));
+  /** Canvas als JPEG – danach Speicher freigeben (iOS Safari zeichnet sonst irgendwann nur noch schwarz). */
+  const toBlob = (c: HTMLCanvasElement, q = 0.9) =>
+    new Promise<Blob | null>((r) =>
+      c.toBlob((b) => {
+        c.width = c.height = 0;
+        r(b);
+      }, "image/jpeg", q)
+    );
+
+  /** Bild aus einem Blob laden – über <img>, das ist auf iOS zuverlässiger als createImageBitmap. */
+  async function loadImage(blob: Blob): Promise<HTMLImageElement> {
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    try {
+      img.src = url;
+      await (img.decode ? img.decode() : new Promise((ok, err) => ((img.onload = ok), (img.onerror = err))));
+      return img;
+    } finally {
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+  }
 
   async function uploadVariant(v: Variant) {
     if (!consent) return;
@@ -223,11 +243,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
 
       const img = await fetch(`/api/vb/${event.slug}/ai/${jobId}/image`, { headers: { "x-vb-guest": g } });
       if (!img.ok) throw new Error("Bild konnte nicht geladen werden.");
-      const bmp = await createImageBitmap(await img.blob());
+      const aiImg = await loadImage(await img.blob());
       const c = document.createElement("canvas");
       c.width = FRAME_W;
       c.height = FRAME_H;
-      drawFrame(c.getContext("2d")!, bmp, bmp.width, bmp.height, opts(false));
+      drawFrame(c.getContext("2d")!, aiImg, aiImg.naturalWidth, aiImg.naturalHeight, opts(false));
       const framed = await toBlob(c);
       if (!framed) throw new Error("Bild konnte nicht erstellt werden.");
       addVariant({ id: jobId, label: `${style.emoji} ${style.label}`, style: style.key, blob: framed, url: URL.createObjectURL(framed), upload: consent ? "laeuft" : "aus" });
