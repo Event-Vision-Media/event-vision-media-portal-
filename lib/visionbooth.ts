@@ -38,7 +38,7 @@ export interface VbGuestEvent {
   accent: string;
   logoUrl: string | null;
   galleryEnabled: boolean;
-  aiStyles: { key: string; label: string; emoji: string }[];
+  aiStyles: { key: string; label: string; emoji: string; waits: string[]; seconds: number }[];
   aiPerGuest: number;
 }
 
@@ -71,7 +71,7 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     accent: /^#[0-9a-f]{6}$/i.test(e.accent_color) ? e.accent_color : "#c4933f",
     logoUrl,
     galleryEnabled: e.gallery_enabled,
-    aiStyles: e.ai_enabled && e.ai_limit > 0 ? e.ai_styles.filter((k) => VB_STYLES[k]).map((k) => ({ key: k, label: VB_STYLES[k].label, emoji: VB_STYLES[k].emoji })) : [],
+    aiStyles: e.ai_enabled && e.ai_limit > 0 ? e.ai_styles.filter((k) => VB_STYLES[k]).map((k) => ({ key: k, label: VB_STYLES[k].label, emoji: VB_STYLES[k].emoji, waits: VB_STYLES[k].waits, seconds: VB_STYLES[k].seconds })) : [],
     aiPerGuest: e.ai_per_guest,
   };
 }

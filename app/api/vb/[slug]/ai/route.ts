@@ -63,7 +63,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   if (error || !job) return NextResponse.json({ error: "Konnte nicht starten" }, { status: 500 });
 
   try {
-    const { statusUrl, responseUrl } = await submitFal(prompt, `data:image/jpeg;base64,${buf.toString("base64")}`);
+    const { statusUrl, responseUrl } = await submitFal(style, `data:image/jpeg;base64,${buf.toString("base64")}`);
     await supabase.from("vb_ai_jobs").update({ status: "laeuft", fal_status_url: statusUrl, fal_response_url: responseUrl }).eq("id", job.id);
   } catch (e) {
     console.error("VisionBooth-KI start:", e);

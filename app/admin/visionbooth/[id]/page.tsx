@@ -23,10 +23,11 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
   if (!data) notFound();
   const event = data as VbEvent & { package: string; contact_name: string | null; contact_email: string | null };
 
-  const [{ data: photoRows }, { count: photoTotal }, { count: aiDone }, { count: aiFailed }, { data: guests }] = await Promise.all([
+  const [{ data: photoRows }, { count: photoTotal }, { count: aiDone }, { data: aiStyleRows }, { count: aiFailed }, { data: guests }] = await Promise.all([
     supabase.from("vb_photos").select("id, kind, style, file_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fertig"),
+    supabase.from("vb_ai_jobs").select("style").eq("event_id", event.id).eq("status", "fertig").limit(5000),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fehler"),
     supabase.from("vb_photos").select("guest_key").eq("event_id", event.id).not("guest_key", "is", null).limit(5000),
   ]);
@@ -125,7 +126,7 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                 <div className="flex justify-between"><dt className="text-anthracite-500">Gäste (Geräte)</dt><dd className="font-semibold text-anthracite-800">{uniqueGuests}</dd></div>
                 <div className="flex justify-between"><dt className="text-anthracite-500">KI-Bilder</dt><dd className="font-semibold text-anthracite-800">{aiDone ?? 0} / {event.ai_limit}</dd></div>
                 {(aiFailed ?? 0) > 0 && <div className="flex justify-between"><dt className="text-anthracite-500">KI fehlgeschlagen</dt><dd className="text-anthracite-600">{aiFailed}</dd></div>}
-                <div className="flex justify-between"><dt className="text-anthracite-500">KI-Kosten ca.</dt><dd className="text-anthracite-600">{((aiDone ?? 0) * 0.08).toLocaleString("de-DE", { style: "currency", currency: "USD" })}</dd></div>
+                <div className="flex justify-between"><dt className="text-anthracite-500">KI-Kosten ca.</dt><dd className="text-anthracite-600">{(aiStyleRows ?? []).reduce((sum, r) => sum + (VB_STYLES[r.style]?.costUsd ?? 0.12), 0).toLocaleString("de-DE", { style: "currency", currency: "USD" })}</dd></div>
               </dl>
             </Card>
 

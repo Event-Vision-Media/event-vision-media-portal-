@@ -1,65 +1,108 @@
 import "server-only";
 
-// KI-Stile für VisionBooth über fal.ai (Google Nano Banana 2, Test 10/2026: beste Ähnlichkeit,
-// ca. 10–15 s und ca. 0,08 $ pro Bild). Anfragen laufen über die fal-Warteschlange, damit auch
-// viele Gäste gleichzeitig keine langen Server-Anfragen offen halten.
+// KI-Stile für VisionBooth über fal.ai (Google Nano Banana 2 / Pro). Modell, Auflösung und
+// Prompt sind pro Stil gewählt – nach Ähnlichkeits-Test 10/2026 mit echtem Selfie:
+//   „Klassisch“ (Variante A): Nano Banana 2, 1K, kurzer Prompt – am besten für Glamour
+//   „Gesicht exakt“ (Variante B): Nano Banana 2, 2K, strenge Gesichts-Regeln – Comic/3D und Standard
+//   „Pro“ (Variante C): Nano Banana Pro, 2K, strenge Gesichts-Regeln – am besten für Superheld
+// Anfragen laufen über die fal-Warteschlange, damit auch viele Gäste gleichzeitig keine langen
+// Server-Anfragen offen halten. Preise laut fal.ai (10/2026), „Pricing is subject to change“.
 
-export const FAL_MODEL = "fal-ai/nano-banana-2/edit";
+const NB2 = "fal-ai/nano-banana-2/edit";
+const NB_PRO = "fal-ai/nano-banana-pro/edit";
 
 /** Nach dieser Zeit gilt ein Auftrag als hängen geblieben (zählt dann nicht aufs Kontingent). */
-export const AI_STALE_MS = 3 * 60 * 1000;
+export const AI_STALE_MS = 4 * 60 * 1000;
 
+// Variante A: kurz, lässt der KI mehr Freiheit bei Pose und Bildaufbau
 const KEEP =
   "Keep every person exactly recognizable: same faces, identities, facial features, skin tone, hairstyles and expressions. Keep the same number of people. ";
+
+// Variante B/C: Gesicht hat oberste Priorität
+const FACE =
+  "This is an edit of the attached photo, not a new person. Every face must stay identical to the photo: " +
+  "same face shape, eyes, eyebrows, nose, mouth, teeth, ears, skin texture, age, beard and hairline. " +
+  "Do not beautify, slim, smooth, age or restyle the faces. Keep head size, head angle and facial expression as in the photo, " +
+  "and keep the faces well lit and in sharp focus. Keep the same number of people. " +
+  "If someone holds a cup, phone or other everyday object, remove it. ";
+
 const CLEAN =
   " Replace the original background completely with a new scene that fits the style; remove every object from the original surroundings (furniture, cups, cables, walls). Do not add any text, letters, names, logos or watermarks.";
 
 export interface VbStyle {
   label: string;
   emoji: string;
+  /** Kurze Wartesprüche, während die KI rechnet */
+  waits: string[];
+  model: string;
+  resolution: "1K" | "2K";
+  /** Kosten pro Bild in US-Dollar (für die Auswertung im Admin) */
+  costUsd: number;
+  /** Ungefähre Rechenzeit in Sekunden (für den Fortschrittsbalken beim Gast) */
+  seconds: number;
   prompt: string;
 }
+
+const A = { model: NB2, resolution: "1K" as const, costUsd: 0.08, seconds: 14 };
+const B = { model: NB2, resolution: "2K" as const, costUsd: 0.12, seconds: 20 };
+const C = { model: NB_PRO, resolution: "2K" as const, costUsd: 0.15, seconds: 30 };
 
 export const VB_STYLES: Record<string, VbStyle> = {
   glamour: {
     label: "Hollywood-Glamour",
     emoji: "🎬",
+    waits: ["Roter Teppich wird ausgerollt …", "Blitzlichter werden geladen …", "Smoking wird gebügelt …"],
+    ...A,
     prompt: "Turn this photo into a glamorous Hollywood red-carpet portrait. " + KEEP + "Elegant evening wear, golden spotlights, soft bokeh, photorealistic, high detail.",
   },
   superheld: {
     label: "Superheld",
     emoji: "🦸",
-    prompt: "Transform this photo into a cinematic superhero movie scene. " + KEEP + "Sleek black and gold armored suits, dramatic city skyline at night, epic lighting, photorealistic.",
+    waits: ["Anzug wird maßgeschneidert …", "Skyline wird aufgebaut …", "Superkräfte werden geladen …"],
+    ...C,
+    prompt: FACE + "Change only the outfit and the scene: a sleek black and gold armored superhero suit, a dramatic city skyline at night behind, cinematic movie-poster lighting with a soft key light on the face. Photorealistic.",
   },
   animation: {
     label: "3D-Animation",
     emoji: "🧸",
-    prompt: "Turn this photo into a modern 3D animated movie still. " + KEEP + "Same expressions and poses, colorful festive background, high quality render.",
+    waits: ["Figuren werden modelliert …", "Farben werden gemischt …", "Kinoleinwand wird aufgespannt …"],
+    ...B,
+    prompt: FACE + "Render the whole image in the style of a modern 3D animated movie, but every character must still be clearly recognizable as this exact person (same facial proportions, beard, hairline and smile). Colorful festive background.",
   },
   comic: {
     label: "Comic",
     emoji: "💥",
-    prompt: "Turn this photo into a bold pop-art comic illustration with clean ink lines, halftone dots and vibrant colors. " + KEEP + "Dynamic comic background.",
+    waits: ["Tusche wird angerührt …", "Sprechblasen werden versteckt …", "Pop-Art wird gezeichnet …"],
+    ...B,
+    prompt: FACE + "Render the whole image as a bold pop-art comic illustration with clean ink lines, halftone dots and vibrant colors, keeping the faces clearly recognizable. Dynamic comic background.",
   },
   vintage: {
     label: "70er Retro",
     emoji: "🕺",
-    prompt: "Turn this photo into a 1970s disco party photo. " + KEEP + "Retro 70s outfits and hairstyles styled on the same people, mirror ball, warm film grain, faded analog colors.",
+    waits: ["Discokugel wird aufgehängt …", "Schlaghosen werden angepasst …", "Film wird entwickelt …"],
+    ...B,
+    prompt: FACE + "Change only outfits, hair styling and scene: a 1970s disco party with retro 70s outfits, a mirror ball, warm film grain and faded analog colors.",
   },
   neon: {
     label: "Neon-Party",
     emoji: "🌈",
-    prompt: "Place the people in a vibrant neon nightclub scene. " + KEEP + "Glowing pink and blue neon lights, haze, stylish party outfits, photorealistic.",
+    waits: ["Neonröhren werden eingeschaltet …", "Nebelmaschine läuft an …", "DJ legt los …"],
+    ...B,
+    prompt: FACE + "Change only outfits and scene: a vibrant neon nightclub with glowing pink and blue neon lights, haze and stylish party outfits. Photorealistic.",
   },
   business: {
     label: "Business-Porträt",
     emoji: "💼",
-    prompt: "Turn this photo into a professional corporate portrait. " + KEEP + "Dark navy business attire, soft studio lighting, neutral grey background, photorealistic, high detail.",
+    waits: ["Studiolicht wird eingerichtet …", "Krawatte wird gebunden …", "Hintergrund wird gewählt …"],
+    ...B,
+    prompt: FACE + "Change only outfits and scene: dark navy business attire, soft professional studio lighting, neutral grey background. Photorealistic, high detail.",
   },
   weihnachten: {
     label: "Weihnachten",
     emoji: "🎄",
-    prompt: "Place the people in a cozy Christmas scene. " + KEEP + "Stylish dark red Christmas sweaters, warm fairy lights and a decorated Christmas tree, photorealistic, warm atmosphere.",
+    waits: ["Lichterkette wird entwirrt …", "Plätzchen kommen aus dem Ofen …", "Baum wird geschmückt …"],
+    ...B,
+    prompt: FACE + "Change only outfits and scene: a cozy Christmas living room with stylish dark red Christmas sweaters, warm fairy lights and a decorated Christmas tree. Photorealistic, warm atmosphere.",
   },
 };
 
@@ -74,12 +117,22 @@ function falKey(): string {
   return k;
 }
 
-/** Auftrag in die fal-Warteschlange stellen. */
-export async function submitFal(prompt: string, imageDataUri: string) {
-  const res = await fetch(`https://queue.fal.run/${FAL_MODEL}`, {
+/** Auftrag in die fal-Warteschlange stellen (Modell und Auflösung je Stil). */
+export async function submitFal(styleKey: string, imageDataUri: string) {
+  const style = VB_STYLES[styleKey];
+  const prompt = stylePrompt(styleKey);
+  if (!style || !prompt) throw new Error(`Unbekannter Stil: ${styleKey}`);
+  const res = await fetch(`https://queue.fal.run/${style.model}`, {
     method: "POST",
     headers: { Authorization: `Key ${falKey()}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ prompt, image_urls: [imageDataUri], num_images: 1, output_format: "jpeg", aspect_ratio: "4:5" }),
+    body: JSON.stringify({
+      prompt,
+      image_urls: [imageDataUri],
+      num_images: 1,
+      output_format: "jpeg",
+      aspect_ratio: "4:5",
+      resolution: style.resolution,
+    }),
     cache: "no-store",
   });
   if (!res.ok) throw new Error(`fal ${res.status}: ${(await res.text()).slice(0, 200)}`);

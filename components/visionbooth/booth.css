@@ -1,0 +1,159 @@
+/* VisionBooth Gäste-App: edles Schwarz mit Event-Akzentfarbe (--a), Schrift auf Akzent (--ink). */
+.vb {
+  --a: #c4933f;
+  --ink: #0d0d0f;
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  background: #0a0a0c;
+  color: #fff;
+  font-family: var(--vb-font-ui), system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.vb-display { font-family: var(--vb-font-display), Georgia, serif; }
+
+/* weicher, wandernder Lichtschein in der Akzentfarbe */
+.vb-aurora {
+  position: fixed;
+  inset: -25%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 32% at 28% 18%, color-mix(in srgb, var(--a) 38%, transparent), transparent 70%),
+    radial-gradient(34% 30% at 78% 72%, color-mix(in srgb, var(--a) 24%, transparent), transparent 70%),
+    radial-gradient(30% 26% at 60% 40%, rgba(255, 255, 255, 0.05), transparent 70%);
+  filter: blur(28px);
+  animation: vb-drift 16s ease-in-out infinite alternate;
+}
+@keyframes vb-drift {
+  from { transform: translate3d(-4%, -2%, 0) scale(1); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.1); }
+}
+
+.vb-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.vb-gold-text {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--a) 45%, #fff), var(--a) 55%, color-mix(in srgb, var(--a) 70%, #000));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hauptknopf mit Glanz */
+.vb-btn {
+  position: relative;
+  overflow: hidden;
+  color: var(--ink);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--a) 70%, #fff), var(--a) 45%, color-mix(in srgb, var(--a) 72%, #000));
+  box-shadow: 0 14px 34px -12px color-mix(in srgb, var(--a) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.15s ease;
+}
+.vb-btn:active { transform: scale(0.97); }
+.vb-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-20deg);
+  animation: vb-shine 3.4s ease-in-out infinite;
+}
+@keyframes vb-shine {
+  0%, 55% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.vb-in { animation: vb-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes vb-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.vb-pop { animation: vb-pop 0.75s cubic-bezier(0.2, 1.25, 0.3, 1) both; }
+@keyframes vb-pop {
+  from { opacity: 0; transform: scale(0.82) rotate(-4deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Countdown */
+.vb-count { animation: vb-count 1s ease-out both; }
+@keyframes vb-count {
+  0% { opacity: 0; transform: scale(1.9); }
+  22% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.1; transform: scale(0.75); }
+}
+.vb-ring { stroke-dasharray: 289; animation: vb-ring 1s linear both; }
+@keyframes vb-ring {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 289; }
+}
+.vb-flash { animation: vb-flash 0.5s ease-out both; }
+@keyframes vb-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Auslöser */
+.vb-shutter {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--a) 50%, transparent);
+  animation: vb-pulse 2.6s ease-in-out infinite;
+  transition: transform 0.12s ease;
+}
+.vb-shutter:active { transform: scale(0.9); }
+@keyframes vb-pulse {
+  50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--a) 0%, transparent), 0 0 34px color-mix(in srgb, var(--a) 45%, transparent); }
+}
+
+/* KI rechnet */
+.vb-shimmer {
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: vb-shim 1.5s linear infinite;
+}
+@keyframes vb-shim {
+  from { background-position: 150% 0; }
+  to { background-position: -100% 0; }
+}
+.vb-progress > i { display: block; height: 100%; border-radius: inherit; background: var(--a); animation: vb-prog var(--dur, 20s) cubic-bezier(0.15, 0.7, 0.3, 1) forwards; }
+@keyframes vb-prog {
+  from { width: 4%; }
+  to { width: 95%; }
+}
+.vb-fade { animation: vb-fade 0.4s ease both; }
+@keyframes vb-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Konfetti */
+.vb-confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.vb-confetti i {
+  position: absolute;
+  top: -16px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: vb-fall var(--d, 2.4s) cubic-bezier(0.3, 0.1, 0.7, 1) var(--delay, 0s) forwards;
+}
+@keyframes vb-fall {
+  to { transform: translate3d(var(--x, 0), 110vh, 0) rotate(var(--r, 540deg)); }
+}
+
+/* iOS-Schalter */
+.vb-switch { position: relative; width: 48px; height: 28px; flex: none; border-radius: 999px; background: rgba(255, 255, 255, 0.18); transition: background 0.2s; }
+.vb-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); transition: transform 0.2s cubic-bezier(0.3, 1.3, 0.5, 1); }
+.vb-switch[data-on="true"] { background: var(--a); }
+.vb-switch[data-on="true"]::after { transform: translateX(20px); }
+
+.vb-scroll { scrollbar-width: none; scroll-snap-type: x mandatory; }
+.vb-scroll::-webkit-scrollbar { display: none; }
+.vb-scroll > * { scroll-snap-align: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-aurora, .vb-btn::after, .vb-shutter, .vb-shimmer { animation: none; }
+}
