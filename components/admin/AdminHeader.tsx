@@ -23,6 +23,7 @@ const GROUPS: { label: string; links: NavLink[] }[] = [
   {
     label: "Gestaltung",
     links: [
+      { href: "/admin/visionbooth", label: "VisionBooth", hint: "Digitale Fotobox per QR-Code" },
       { href: "/admin/layout-freigaben", label: "Layout-Freigaben", hint: "Entwürfe an Kunden senden" },
       { href: "/admin/startbildschirm-freigaben", label: "Startbildschirm-Freigaben", hint: "Personalisierte Startbildschirme" },
       { href: "/admin/layouts", label: "Layouts", hint: "Auswahl für Kunden pflegen" },
