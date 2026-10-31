@@ -1,7 +1,25 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { drawCover, drawFrame, FRAME_H, FRAME_W, onAccent, type FrameOptions } from "./frame";
+import {
+  CELL_H,
+  CELL_W,
+  drawCover,
+  drawFrame,
+  drawStory,
+  drawStrip,
+  drawStripPreview,
+  FRAME_H,
+  FRAME_W,
+  onAccent,
+  STORY_H,
+  STORY_W,
+  STRIP_H,
+  STRIP_SHOTS,
+  STRIP_W,
+  type FrameOptions,
+  type Shot,
+} from "./frame";
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
 
 interface GuestEvent {
@@ -14,7 +32,11 @@ interface GuestEvent {
   galleryEnabled: boolean;
   aiStyles: { key: string; label: string; emoji: string; waits: string[]; seconds: number }[];
   aiPerGuest: number;
+  /** Formate, zwischen denen der Gast wählen kann */
+  formats: Format[];
 }
+
+type Format = "einzel" | "streifen";
 
 interface Variant {
   id: string;
@@ -50,6 +72,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   const [camError, setCamError] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
   const [flash, setFlash] = useState(false);
+  const [mode, setMode] = useState<Format>(event.formats[0] ?? "einzel");
+  const [busyShot, setBusyShot] = useState(false);
   const [variants, setVariants] = useState<Variant[]>([]);
   const [sel, setSel] = useState("original");
   const [aiBusy, setAiBusy] = useState<string | null>(null);
@@ -67,6 +91,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   const logoRef = useRef<HTMLImageElement | null>(null);
   /** Original ohne Rahmen – Grundlage für die KI, bleibt nur im Browser. */
   const rawRef = useRef<Blob | null>(null);
+  /** Fotostreifen: bisherige Aufnahmen und aktuelles Feld (für die Live-Vorschau) */
+  const shotsRef = useRef<Shot[]>([]);
+  const shotIdxRef = useRef(0);
+  const modeRef = useRef<Format>(mode);
+  modeRef.current = mode;
 
   const opts = useCallback(
     (mirror: boolean): FrameOptions => ({ style: event.frameStyle, text: event.frameText, accent: event.accent, logo: logoRef.current, mirror }),
@@ -116,7 +145,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
         await v.play().catch(() => {});
         const ctx = canvasRef.current!.getContext("2d")!;
         const loop = () => {
-          if (v.videoWidth) drawFrame(ctx, v, v.videoWidth, v.videoHeight, opts(facing === "user"));
+          if (v.videoWidth) {
+            if (modeRef.current === "streifen") {
+              drawStripPreview(ctx, { src: v, w: v.videoWidth, h: v.videoHeight }, shotsRef.current, shotIdxRef.current, opts(facing === "user"));
+            } else drawFrame(ctx, v, v.videoWidth, v.videoHeight, opts(facing === "user"));
+          }
           rafRef.current = requestAnimationFrame(loop);
         };
         loop();
@@ -280,25 +313,54 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     }
   }
 
-  function shoot() {
-    if (count !== null) return;
-    let n = 3;
-    setCount(n);
-    buzz(15);
-    const t = setInterval(() => {
-      n -= 1;
-      if (n > 0) {
-        buzz(15);
-        return setCount(n);
+  /** Countdown n…1, danach Blitz. */
+  async function countdown(n: number) {
+    for (let i = n; i > 0; i--) {
+      setCount(i);
+      buzz(15);
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+    setCount(null);
+    buzz(60);
+    setFlash(true);
+    setTimeout(() => setFlash(false), 450);
+  }
+
+  async function shoot() {
+    if (busyShot) return;
+    const v = videoRef.current;
+    if (!v?.videoWidth) return;
+    setBusyShot(true);
+    try {
+      if (mode === "einzel") {
+        await countdown(3);
+        await exportFrame(v, v.videoWidth, v.videoHeight, facing === "user");
+        return;
       }
-      buzz(60);
-      clearInterval(t);
-      setCount(null);
-      setFlash(true);
-      setTimeout(() => setFlash(false), 250);
-      const v = videoRef.current;
-      if (v?.videoWidth) exportFrame(v, v.videoWidth, v.videoHeight, facing === "user");
-    }, 1000);
+      // Fotostreifen: 3 Aufnahmen hintereinander, jeweils als Streifen-Ausschnitt
+      shotsRef.current = [];
+      for (let i = 0; i < STRIP_SHOTS; i++) {
+        shotIdxRef.current = i;
+        await countdown(i === 0 ? 3 : 2);
+        const c = document.createElement("canvas");
+        c.width = Math.round(CELL_W * 1.25);
+        c.height = Math.round(CELL_H * 1.25);
+        drawCover(c.getContext("2d")!, v, v.videoWidth, v.videoHeight, 0, 0, c.width, c.height, facing === "user");
+        shotsRef.current = [...shotsRef.current, { src: c, w: c.width, h: c.height }];
+        await new Promise((r) => setTimeout(r, 700));
+      }
+      const strip = document.createElement("canvas");
+      strip.width = STRIP_W;
+      strip.height = STRIP_H;
+      drawStrip(strip.getContext("2d")!, shotsRef.current, opts(false));
+      for (const sh of shotsRef.current) (sh.src as HTMLCanvasElement).width = 0;
+      shotsRef.current = [];
+      shotIdxRef.current = 0;
+      const blob = await toBlob(strip, 0.9);
+      if (blob) finish(blob, null);
+    } finally {
+      setBusyShot(false);
+    }
   }
 
   function fromFile(f: File | undefined) {
@@ -317,6 +379,32 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     if (!current) return;
     try {
       await navigator.share({ files: [new File([current.blob], "visionbooth.jpg", { type: "image/jpeg" })], title: event.title });
+    } catch {
+      /* abgebrochen */
+    }
+  }
+
+  /** Story-Version (9:16) erst beim Antippen erzeugen und teilen bzw. speichern. */
+  async function shareStory() {
+    if (!current) return;
+    try {
+      const img = await loadImage(current.blob);
+      const c = document.createElement("canvas");
+      c.width = STORY_W;
+      c.height = STORY_H;
+      drawStory(c.getContext("2d")!, img, img.naturalWidth, img.naturalHeight, event.accent);
+      const blob = await toBlob(c, 0.9);
+      if (!blob) return;
+      const file = new File([blob], "visionbooth-story.jpg", { type: "image/jpeg" });
+      if (navigator.canShare?.({ files: [file] })) {
+        await navigator.share({ files: [file] }).catch(() => {});
+      } else {
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = file.name;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+      }
     } catch {
       /* abgebrochen */
     }
@@ -402,7 +490,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       {step === "kamera" && (
         <section className="relative flex flex-1 flex-col">
           <div className="flex items-center justify-between px-4 py-3">
-            <button onClick={backToStart} className="vb-glass flex h-11 w-11 items-center justify-center rounded-full" aria-label="Zurück">
+            <button onClick={backToStart} disabled={busyShot} className="vb-glass flex h-11 w-11 items-center justify-center rounded-full disabled:opacity-40" aria-label="Zurück">
               <IconBack className="h-5 w-5" />
             </button>
             <span className="vb-display text-sm text-white/70">{event.frameText}</span>
@@ -455,10 +543,25 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           </div>
 
           {!camError && (
-            <div className="flex items-center justify-center px-4 pb-5 pt-4">
+            <div className="flex flex-col items-center gap-4 px-4 pb-5 pt-4">
+              {event.formats.length > 1 && (
+                <div className="vb-glass flex rounded-full p-1 text-[13px] font-semibold">
+                  {event.formats.map((f) => (
+                    <button
+                      key={f}
+                      onClick={() => setMode(f)}
+                      disabled={busyShot}
+                      className={`rounded-full px-4 py-1.5 transition ${mode === f ? "" : "text-white/70"}`}
+                      style={mode === f ? { background: gold, color: ink } : undefined}
+                    >
+                      {f === "einzel" ? "Einzelfoto" : "Fotostreifen"}
+                    </button>
+                  ))}
+                </div>
+              )}
               <button
                 onClick={shoot}
-                disabled={count !== null}
+                disabled={busyShot}
                 aria-label="Auslösen"
                 className="vb-shutter flex h-[84px] w-[84px] items-center justify-center rounded-full border-[3px] border-white/90 disabled:opacity-60"
               >
@@ -518,6 +621,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             </button>
           </div>
 
+          <button onClick={shareStory} className="vb-glass -mt-1 flex items-center justify-center gap-2 rounded-full py-3 text-[14px] font-semibold text-white/90">
+            <span className="inline-block h-4 w-[9px] rounded-[3px] border-[1.5px] border-current" aria-hidden />
+            Als Story teilen (Instagram &amp; WhatsApp)
+          </button>
+
           <p className="-mt-2 text-center text-xs text-white/55">
             {current.upload === "laeuft" && "Wird in die Event-Galerie geladen …"}
             {current.upload === "ok" && (
@@ -530,6 +638,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             {current.upload === "aus" && event.galleryEnabled && "Nur auf deinem Handy – nicht in der Galerie."}
           </p>
 
+          {event.aiStyles.length > 0 && !rawRef.current && (
+            <p className="vb-glass rounded-2xl px-4 py-3 text-center text-xs text-white/70">
+              Lust auf eine KI-Verwandlung? Die gibt&apos;s beim <strong className="text-white">Einzelfoto</strong>.
+            </p>
+          )}
           {event.aiStyles.length > 0 && rawRef.current && (
             <div className="vb-in" style={{ animationDelay: "250ms" }}>
               <div className="mb-3 flex items-end justify-between">

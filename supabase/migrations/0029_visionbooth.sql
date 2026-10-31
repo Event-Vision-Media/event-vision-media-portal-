@@ -20,6 +20,8 @@ create table if not exists public.vb_events (
   -- Branding
   frame_text text,
   frame_style text not null default 'gold' check (frame_style in ('gold', 'weiss', 'schwarz', 'ohne')),
+  -- Bildformate, zwischen denen Gäste wählen können (einzel = Einzelfoto, streifen = Fotostreifen mit 3 Fotos)
+  formats text[] not null default '{einzel,streifen}',
   accent_color text not null default '#c4933f',
   logo_path text,
   -- KI-Stile

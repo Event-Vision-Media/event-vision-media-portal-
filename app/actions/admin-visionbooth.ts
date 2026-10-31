@@ -98,6 +98,10 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
     ai_styles: styles,
     ai_limit: int(formData, "ai_limit", 0, 5000, 0),
     ai_per_guest: int(formData, "ai_per_guest", 1, 20, 3),
+    formats: (() => {
+      const f = formData.getAll("formats").map(String).filter((x) => x === "einzel" || x === "streifen");
+      return f.length ? f : ["einzel"];
+    })(),
     wall_enabled: formData.get("wall_enabled") === "on",
     gallery_enabled: formData.get("gallery_enabled") === "on",
   };

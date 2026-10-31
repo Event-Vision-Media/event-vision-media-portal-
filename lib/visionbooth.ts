@@ -19,6 +19,7 @@ export interface VbEvent {
   closes_at: string | null;
   frame_text: string | null;
   frame_style: "gold" | "weiss" | "schwarz" | "ohne";
+  formats: string[] | null;
   accent_color: string;
   logo_path: string | null;
   ai_enabled: boolean;
@@ -40,6 +41,7 @@ export interface VbGuestEvent {
   galleryEnabled: boolean;
   aiStyles: { key: string; label: string; emoji: string; waits: string[]; seconds: number }[];
   aiPerGuest: number;
+  formats: ("einzel" | "streifen")[];
 }
 
 export async function loadVbEvent(slug: string): Promise<VbEvent | null> {
@@ -73,6 +75,10 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     galleryEnabled: e.gallery_enabled,
     aiStyles: e.ai_enabled && e.ai_limit > 0 ? e.ai_styles.filter((k) => VB_STYLES[k]).map((k) => ({ key: k, label: VB_STYLES[k].label, emoji: VB_STYLES[k].emoji, waits: VB_STYLES[k].waits, seconds: VB_STYLES[k].seconds })) : [],
     aiPerGuest: e.ai_per_guest,
+    formats: (() => {
+      const f = (e.formats ?? []).filter((x): x is "einzel" | "streifen" => x === "einzel" || x === "streifen");
+      return f.length ? f : ["einzel"];
+    })(),
   };
 }
 

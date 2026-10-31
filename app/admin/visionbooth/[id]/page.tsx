@@ -100,6 +100,7 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                     aiPerGuest: event.ai_per_guest,
                     wallEnabled: event.wall_enabled,
                     galleryEnabled: event.gallery_enabled,
+                    formats: event.formats ?? ["einzel"],
                   }}
                   styles={Object.entries(VB_STYLES).map(([key, s]) => ({ key, label: s.label, emoji: s.emoji }))}
                 />

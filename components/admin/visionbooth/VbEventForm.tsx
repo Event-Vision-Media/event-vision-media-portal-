@@ -26,6 +26,7 @@ interface EventValues {
   aiPerGuest: number;
   wallEnabled: boolean;
   galleryEnabled: boolean;
+  formats: string[];
 }
 
 const initial: AdminActionResult = {};
@@ -138,6 +139,21 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
             <input id="f-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-anthracite-600" />
           </div>
         </div>
+      </div>
+
+      <div className={section}>
+        <p className="text-sm font-semibold text-anthracite-800">Bildformate für Gäste</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          {[
+            ["einzel", "Einzelfoto (mit KI-Stilen)"],
+            ["streifen", "Fotostreifen (3 Fotos)"],
+          ].map(([k, l]) => (
+            <label key={k} className="flex items-center gap-2 rounded-lg border border-anthracite-100 bg-white px-2.5 py-2 text-sm text-anthracite-700">
+              <input type="checkbox" name="formats" value={k} defaultChecked={e.formats.includes(k)} /> {l}
+            </label>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-anthracite-400">Bei zwei Formaten wählen Gäste in der Kamera per Umschalter. Jedes Foto gibt es zusätzlich als Story-Version.</p>
       </div>
 
       <div className={section}>
