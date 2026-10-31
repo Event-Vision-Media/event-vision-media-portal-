@@ -89,6 +89,7 @@ export async function buildWeeklyPlan(weekStart = planWeekStart()): Promise<Week
   function openPoints(b: Booking): string[] {
     const out: string[] = [];
     if (b.lifecycle !== "bestaetigt") out.push("Buchung noch nicht bestätigt");
+    if (b.portal_invite_pending) out.push("Portal-Zugang noch nicht verschickt");
     if (b.lifecycle === "bestaetigt" && contractRequired(b) && !signed.has(b.id)) out.push("Mietvertrag nicht unterschrieben");
     const photo = productsOf(b).some((d) => PHOTO.includes(d));
     if (photo && !b.selected_layout_id) out.push("Layout nicht gewählt");

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
 import { weeklyPlanMail } from "@/lib/email";
@@ -38,6 +38,7 @@ export default async function AdminMailPreviewPage({ searchParams }: { searchPar
     { title: "2 · Eingangsbestätigung (Termin belegt oder kurzfristig – du prüfst persönlich)", mail: inquiryReceivedMail(sample, "belegt") },
     { title: "4a · Erinnerung Mietvertrag (3 Tage nach deiner Bestätigung, falls noch nicht unterschrieben)", mail: contractReminderMail(sample) },
     { title: "3 · Auftragsbestätigung mit Portal-Zugang (nach Klick auf „Bestätigen“)", mail: confirmationMail(sample) },
+    { title: "3b · Portal-Zugang für Bestandsbuchung (Knopf „Portal-Zugang senden“, Vertrag liegt vor)", mail: portalInviteMail(sample, { contractOnFile: true }) },
     { title: "4b · Erinnerung Anzahlung (7 Tage nach Vertragsunterschrift, falls nicht abgehakt)", mail: depositReminderMail(sample, depositFor(sample.total_price ?? 0), { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4c · Erinnerung Restzahlung per Überweisung (ca. 17 Tage vor dem Event, fällig 14 Tage vorher)", mail: restTransferReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0), "2027-05-29", { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4d · Hinweis Barzahlung bei Lieferung (1–2 Tage vorher)", mail: cashReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0)) },

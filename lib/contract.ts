@@ -46,7 +46,12 @@ export function restDueDaysFor(templateVersion?: string | null): number {
  * Der digitale Mietvertrag gilt für Buchungen über die Website. Im Admin
  * angelegte (Bestands-)Buchungen laufen wie bisher mit Papiervertrag.
  */
-export function contractRequired(b: { source?: string | null }): boolean {
+export function contractRequired(b: { source?: string | null; contract_on_file?: boolean | null }): boolean {
+  return b.source === "website" && !b.contract_on_file;
+}
+
+/** Zahlungen (Anzahlung/Rest) laufen übers Portal – auch wenn der Vertrag schon auf Papier vorliegt. */
+export function paymentsTracked(b: { source?: string | null }): boolean {
   return b.source === "website";
 }
 

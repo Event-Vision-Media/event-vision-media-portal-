@@ -130,6 +130,8 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     .select("*")
     .eq("source", "website")
     .eq("lifecycle", "bestaetigt")
+    .eq("contract_on_file", false)
+    .eq("portal_invite_pending", false)
     .not("email", "is", null)
     .lte("confirmed_at", cutoff)
     .gte("event_date", addDays(2))
@@ -161,6 +163,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     .from("bookings")
     .select("*")
     .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
     .not("email", "is", null)
     .is("reminder_sent_at", null)
     .gte("event_date", addDays(REMINDER_MIN_DAYS))
@@ -223,6 +226,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     .select("*")
     .eq("source", "website")
     .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
     .not("email", "is", null)
     .gte("event_date", addDays(1))
     .lte("event_date", addDays(4))
@@ -275,6 +279,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     .select("*")
     .eq("source", "website")
     .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
     .not("email", "is", null)
     .gte("event_date", addDays(1))
     .lte("event_date", addDays(400))
@@ -289,6 +294,19 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     for (const r of signedRows ?? []) {
       if (!signedAtBy.has(r.booking_id)) signedAtBy.set(r.booking_id, r.signed_at);
       dueDaysBy.set(r.booking_id, restDueDaysFor(r.template_version));
+    }
+    // Bestandsbuchung (Vertrag liegt auf Papier vor): Start ist der Versand des Portal-Zugangs
+    // (bzw. die Bestätigung mit Mail) – nicht direkt nach der Einladung schon erinnern.
+    const onFile = ((payCandidates ?? []) as Booking[]).filter((b) => b.contract_on_file && !signedAtBy.has(b.id));
+    if (onFile.length) {
+      const { data: invites } = await supabase
+        .from("activity_log")
+        .select("booking_id, created_at")
+        .in("event_type", ["portal_zugang_gesendet", "mail_bestaetigung"])
+        .in("booking_id", onFile.map((b) => b.id))
+        .order("created_at", { ascending: true });
+      for (const r of invites ?? []) if (!signedAtBy.has(r.booking_id)) signedAtBy.set(r.booking_id, r.created_at);
+      for (const b of onFile) dueDaysBy.set(b.id, restDueDaysFor(null));
     }
   }
   for (const b of (payCandidates ?? []) as Booking[]) {
@@ -326,7 +344,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
             b,
             mail.subject,
             kind === "anzahlung"
-              ? `Anzahlung ${eur(p.deposit)} 7 Tage nach der Vertragsunterschrift noch nicht als bezahlt abgehakt.`
+              ? `Anzahlung ${eur(p.deposit)} 7 Tage nach ${b.contract_on_file ? "dem Versand des Portal-Zugangs" : "der Vertragsunterschrift"} noch nicht als bezahlt abgehakt.`
               : kind === "rest_bar"
                 ? `Event in ${days} Tagen: ${eur(p.rest)} bar bei der ${p.pickupOnly ? "Abholung" : "Lieferung"} bereithalten.`
                 : `Restbetrag ${eur(p.rest)} per Überweisung fällig bis ${dateDE(p.restDueDate)}.`

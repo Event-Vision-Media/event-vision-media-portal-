@@ -61,6 +61,10 @@ export interface Booking {
   access_code: string;
   lifecycle: BookingLifecycle;
   source: "admin" | "website";
+  /** Mietvertrag liegt außerhalb des Portals vor (Bestandsbuchung, Migration 0028). */
+  contract_on_file?: boolean;
+  /** Still bestätigt – Portal-Zugang noch nicht verschickt, bis dahin keine automatischen Mails. */
+  portal_invite_pending?: boolean;
   customer_type: "business" | "privat" | null;
   customer_name: string | null;
   company: string | null;

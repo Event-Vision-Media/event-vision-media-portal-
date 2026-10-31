@@ -1,6 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { contractRequired } from "@/lib/contract";
+import { contractRequired, paymentsTracked } from "@/lib/contract";
 import { getPaymentSummary, type PaymentSummary } from "@/lib/payments";
 import type { Booking } from "@/lib/types";
 
@@ -81,7 +81,7 @@ export async function loadBookingInfos(bookings: Booking[]): Promise<BookingInfo
           : null,
         contractNeeded: contractRequired(b),
         lastLogin: lastLoginBy.get(b.id) ?? null,
-        payment: contractRequired(b) ? await getPaymentSummary(b) : null,
+        payment: paymentsTracked(b) ? await getPaymentSummary(b) : null,
       };
     })
   );

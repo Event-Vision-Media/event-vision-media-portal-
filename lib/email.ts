@@ -239,6 +239,55 @@ ${details(b)}${codeBox(b)}
   };
 }
 
+/**
+ * Portal-Einladung für Bestandsbuchungen: Termin stand schon fest (z. B. per Telefon/WhatsApp),
+ * jetzt bekommt der Kunde Zugang zum neuen Kundenportal. Keine „Auftragsbestätigung“,
+ * Vertrag nur erwähnen, wenn er noch nicht vorliegt.
+ */
+export function portalInviteMail(b: MailBooking, opts: { contractOnFile: boolean }) {
+  const sie = isSie(b);
+  const names = (b.inquiry_items?.packages ?? []).map((p) => p.name).join(" ");
+  const photo = /spiegel|mirror|fotobox/i.test(names);
+  const audio = /audio/i.test(names);
+  const todo = [
+    photo && (sie ? "Ihr Foto-Layout auswählen und personalisieren" : "dein Foto-Layout auswählen und personalisieren"),
+    audio && (sie ? "Ihre persönliche Begrüßungsansage fürs Audiogästebuch hochladen" : "deine persönliche Begrüßungsansage fürs Audiogästebuch hochladen"),
+    sie ? "Lieferung, Abholung und Ansprechpartner einsehen" : "Lieferung, Abholung und Ansprechpartner einsehen",
+    sie ? "den Stand Ihrer Zahlungen und Rechnungen sehen" : "den Stand deiner Zahlungen und Rechnungen sehen",
+  ].filter(Boolean) as string[];
+  const contract = opts.contractOnFile
+    ? ""
+    : sie
+      ? "Bitte unterschreiben Sie dort außerdem Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt."
+      : "Bitte unterschreib dort außerdem deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt.";
+  const t = sie
+    ? {
+        title: "Ihr Kundenportal ist bereit",
+        intro: `Ihr Termin am <strong>${esc(formatDateGerman(b.event_date))}</strong> steht – und ab sofort finden Sie alles dazu an einem Ort: in Ihrem persönlichen Kundenportal.`,
+        lead: "Dort können Sie:",
+      }
+    : {
+        title: "Dein Kundenportal ist bereit 🎉",
+        intro: `Dein Termin am <strong>${esc(formatDateGerman(b.event_date))}</strong> steht – und ab sofort findest du alles dazu an einem Ort: in deinem persönlichen Kundenportal.`,
+        lead: "Dort kannst du:",
+      };
+  const list = `<ul style="line-height:1.7;padding-left:20px;margin:8px 0">${todo.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  return {
+    subject: `${sie ? "Ihr" : "Dein"} Kundenportal für den ${formatDateGerman(b.event_date)} – ${BRAND}`,
+    html: layout(
+      t.title,
+      `<p style="line-height:1.6">${esc(greeting(b))},</p>
+<p style="line-height:1.6">${t.intro}</p>
+${details(b)}${codeBox(b)}
+<p style="line-height:1.6;margin-bottom:0">${t.lead}</p>
+${list}
+${contract ? `<p style="line-height:1.6">${contract}</p>` : ""}
+<p style="line-height:1.6">${sie ? "Bei Fragen erreichen Sie uns jederzeit" : "Bei Fragen erreichst du uns jederzeit"} telefonisch oder per WhatsApp unter 0176 22748363.</p>`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\nBuchungsnummer: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n\nZugangscode Kundenportal: ${loginCode(b)}${portalUrl() ? `\n${portalUrl()}` : ""}\n\n${t.lead}\n${todo.map((x) => `- ${x}`).join("\n")}\n${contract ? `\n${contract}\n` : ""}\nBei Fragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}`,
+  };
+}
+
 export function declineMail(b: MailBooking, reason: string | null) {
   const date = formatDateGerman(b.event_date);
   const t = isSie(b)

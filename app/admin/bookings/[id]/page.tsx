@@ -342,9 +342,11 @@ export default async function AdminBookingDetailPage({
           </Card>
         )}
 
-        {booking.lifecycle === "bestaetigt" && <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} />}
+        {booking.lifecycle === "bestaetigt" && (
+          <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} invitePending={Boolean(booking.portal_invite_pending)} email={booking.email} />
+        )}
 
-        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
+        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />
 
         {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
 

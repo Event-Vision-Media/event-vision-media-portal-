@@ -37,7 +37,9 @@ export function PaymentCard({
       ? { label: p.pickupOnly ? "Bar bei Abholung" : "Bar bei Lieferung", tone: "text-anthracite-600" }
       : p.method === "ueberweisung"
         ? { label: `Überweisung bis ${formatDateGerman(p.restDueDate)}`, tone: "text-anthracite-600" }
-        : { label: t("Zahlungsart wählt ihr beim Vertrag", "Zahlungsart wählen Sie beim Vertrag"), tone: "text-anthracite-500" };
+        : hasContract
+          ? { label: t("Zahlungsart wie mit uns vereinbart", "Zahlungsart wie mit uns vereinbart"), tone: "text-anthracite-500" }
+          : { label: t("Zahlungsart wählt ihr beim Vertrag", "Zahlungsart wählen Sie beim Vertrag"), tone: "text-anthracite-500" };
 
   const showBank = p.bank?.iban && (!p.depositPaid || (p.method === "ueberweisung" && !p.restPaid));
 

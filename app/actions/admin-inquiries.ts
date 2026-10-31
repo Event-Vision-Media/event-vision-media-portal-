@@ -6,7 +6,7 @@ import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
 import { checkDeviceAvailability, createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
 import { isUniqueViolation } from "@/lib/supabase/errors";
-import { confirmationMail, declineMail, sendEmail, type MailBooking } from "@/lib/email";
+import { confirmationMail, declineMail, portalInviteMail, sendEmail, type MailBooking } from "@/lib/email";
 import { PACKAGES, PICKUP_OPTIONS, PRODUCT_LABELS, normalizeAccess, type DeviceKey, type PickupId } from "@/lib/catalog";
 
 export interface InquiryActionResult {
@@ -55,7 +55,7 @@ export async function confirmInquiry(bookingId: string, force = false): Promise<
 
   const { error } = await supabase
     .from("bookings")
-    .update({ lifecycle: "bestaetigt", confirmed_at: new Date().toISOString() })
+    .update({ lifecycle: "bestaetigt", confirmed_at: new Date().toISOString(), portal_invite_pending: false })
     .eq("id", bookingId);
   if (error) return { error: "Konnte nicht gespeichert werden." };
 
@@ -69,12 +69,13 @@ export async function confirmInquiry(bookingId: string, force = false): Promise<
   let mailSent = false;
   let mailId: string | undefined;
   if (b.email) {
-    const m = confirmationMail(toMailBooking(b));
+    // Liegt der Vertrag schon vor (Bestandsbuchung), keine Aufforderung zum Unterschreiben
+    const m = b.contract_on_file ? portalInviteMail(toMailBooking(b), { contractOnFile: true }) : confirmationMail(toMailBooking(b));
     const r = await sendEmail({ to: b.email, ...m });
     mailSent = r.sent;
     mailId = r.id;
   }
-  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? ` – 📧 Auftragsbestätigung mit Portal-Zugang an ${b.email}` : " (keine E-Mail verschickt)"}`);
+  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? ` – 📧 ${b.contract_on_file ? "Portal-Zugang (Vertrag liegt vor)" : "Auftragsbestätigung mit Portal-Zugang"} an ${b.email}` : " (keine E-Mail verschickt)"}`);
   if (mailId) await logActivity(bookingId, "mail_bestaetigung", mailId);
 
   revalidatePath("/admin/anfragen");
@@ -148,6 +149,10 @@ export interface AdminPackageBookingInput {
   pickup: string;
   access: { level: string; help: string | null } | null;
   note: string;
+  /** Bestandsbuchung: Mietvertrag liegt schon vor (Papier/PDF) – kein digitaler Vertrag. */
+  contractOnFile?: boolean;
+  /** Sofort bestätigen, aber noch keine Mail – Portal-Zugang später per Knopf senden. */
+  confirmSilently?: boolean;
   /** Abweichungen laut schriftlichem Angebot (optional). */
   offer?: { number: string; freeExtraIds: string[]; travelIncluded: boolean; adjustmentLabel: string; adjustmentAmount: string } | null;
 }
@@ -207,12 +212,63 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
 
   try {
     const r = await createBookingFromInquiry(input, { viaAdmin: true });
+    let lifecycle: string = r.lifecycle;
+    if (raw.contractOnFile || raw.confirmSilently) {
+      const patch: Record<string, unknown> = {};
+      if (raw.contractOnFile) patch.contract_on_file = true;
+      if (raw.confirmSilently) {
+        patch.lifecycle = "bestaetigt";
+        patch.confirmed_at = new Date().toISOString();
+        patch.portal_invite_pending = true;
+        lifecycle = "bestaetigt";
+      }
+      await createAdminClient().from("bookings").update(patch).eq("id", r.bookingId);
+      await logActivity(
+        r.bookingId,
+        "bestandsbuchung",
+        [raw.confirmSilently && "Ohne Mail bestätigt – Portal-Zugang noch nicht verschickt", raw.contractOnFile && "Mietvertrag liegt bereits vor"].filter(Boolean).join(" · ")
+      );
+    }
     revalidatePath("/admin/anfragen");
     revalidatePath("/admin/dashboard");
-    return { bookingId: r.bookingId, lifecycle: r.lifecycle, busy: r.busy.map((d) => PRODUCT_LABELS[d]) };
+    return { bookingId: r.bookingId, lifecycle, busy: r.busy.map((d) => PRODUCT_LABELS[d]) };
   } catch (err: any) {
     if (err?.message === "no_packages") return { error: "Das gewählte Paket passt nicht zum Kundentyp." };
     console.error("[admin-buchung]", err);
     return { error: "Buchung konnte nicht angelegt werden." };
   }
+}
+
+/** Bestandsbuchung: Vermerk „Mietvertrag liegt bereits vor“ setzen oder entfernen. */
+export async function setContractOnFile(bookingId: string, onFile: boolean): Promise<InquiryActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const { error } = await createAdminClient().from("bookings").update({ contract_on_file: onFile }).eq("id", bookingId);
+  if (error) return { error: "Konnte nicht gespeichert werden." };
+  await logActivity(bookingId, "vertrag_vermerk", onFile ? "Vermerk gesetzt: Mietvertrag liegt bereits vor" : "Vermerk entfernt: Mietvertrag wird digital im Portal unterschrieben");
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  return { success: true };
+}
+
+/** Portal-Zugang an den Kunden schicken (Bestandsbuchung) – danach laufen die automatischen Mails normal. */
+export async function sendPortalInvite(bookingId: string): Promise<InquiryActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const supabase = createAdminClient();
+  const { data: b } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
+  if (!b) return { error: "Buchung nicht gefunden." };
+  if (!b.email) return { error: "Für diese Buchung ist keine E-Mail-Adresse hinterlegt." };
+  if (b.lifecycle !== "bestaetigt") return { error: "Bitte die Buchung zuerst bestätigen." };
+
+  const mail = portalInviteMail(toMailBooking(b), { contractOnFile: Boolean(b.contract_on_file) });
+  const r = await sendEmail({ to: b.email, ...mail });
+  if (!r.sent) return { error: "Die Mail konnte nicht verschickt werden. Bitte später erneut versuchen." };
+
+  await supabase.from("bookings").update({ portal_invite_pending: false }).eq("id", bookingId);
+  await logActivity(
+    bookingId,
+    "portal_zugang_gesendet",
+    `📧 Mail an ${b.customer_name || b.couple_names} (${b.email}): „${mail.subject}“ – Grund: Portal-Zugang für Bestandsbuchung von dir verschickt.`
+  );
+  if (r.id) await logActivity(bookingId, "mail_portal_zugang", r.id);
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  return { success: true, mailSent: true };
 }

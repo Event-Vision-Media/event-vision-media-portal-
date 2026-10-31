@@ -86,7 +86,9 @@ export default async function AdminInquiriesPage({ searchParams }: { searchParam
                       {b.lifecycle === "bestaetigt" && <Badge tone="success">Bestätigt</Badge>}
                       {(b.lifecycle === "abgelehnt" || b.lifecycle === "storniert") && <Badge tone="neutral">{b.lifecycle}</Badge>}
                       <Badge tone="neutral">{b.customer_type === "business" ? "Business" : "Privat"}</Badge>
-                      {b.lifecycle === "bestaetigt" && (contracts.has(b.id) || daysUntil(b.event_date) >= 0) && (contracts.get(b.id) === "gegengezeichnet"
+                      {b.lifecycle === "bestaetigt" && b.portal_invite_pending && <Badge tone="gold">Zugang noch nicht verschickt</Badge>}
+                      {b.lifecycle === "bestaetigt" && b.contract_on_file && !contracts.has(b.id) && <Badge tone="success">Vertrag liegt vor</Badge>}
+                      {b.lifecycle === "bestaetigt" && !(b.contract_on_file && !contracts.has(b.id)) && (contracts.has(b.id) || daysUntil(b.event_date) >= 0) && (contracts.get(b.id) === "gegengezeichnet"
                         ? <Badge tone="success">Vertrag ✓</Badge>
                         : contracts.get(b.id) === "unterschrieben"
                           ? <Badge tone="gold">Vertrag unterschrieben</Badge>

@@ -21,7 +21,7 @@ import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
 import { UpsellSection } from "@/components/UpsellSection";
 import { getLatestContract } from "@/lib/contract-server";
-import { contractRequired } from "@/lib/contract";
+import { contractRequired, paymentsTracked } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentCard } from "@/components/PaymentCard";
 import { invoiceTitle, listInvoices } from "@/lib/invoices";
@@ -192,7 +192,7 @@ export default async function DashboardPage() {
 
   const contract = await getLatestContract(booking.id);
   const showContract = contractRequired(booking) || Boolean(contract);
-  const [payment, invoices] = contractRequired(booking) ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
+  const [payment, invoices] = paymentsTracked(booking) ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const contractMissing = contractRequired(booking) && !contract && daysUntil(booking.event_date) >= 0;
 
   // Fortschritt passend zur Buchung
@@ -365,7 +365,7 @@ export default async function DashboardPage() {
             sie={booking.customer_type === "business"}
             confirmed={booking.lifecycle === "bestaetigt"}
             bookingCode={booking.booking_code}
-            hasContract={Boolean(contract)}
+            hasContract={Boolean(contract) || Boolean(booking.contract_on_file)}
             invoices={invoices.map((i) => ({ id: i.id, kind: i.kind, title: invoiceTitle(i), amount: i.amount, date: i.created_at }))}
           />
         )}
