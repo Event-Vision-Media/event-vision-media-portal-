@@ -20,6 +20,9 @@ create table if not exists public.vb_events (
   -- Branding
   frame_text text,
   frame_style text not null default 'gold' check (frame_style in ('gold', 'weiss', 'schwarz', 'ohne')),
+  -- Design-Vorlage (components/visionbooth/templates.ts) und zweite Textzeile
+  template text not null default 'elegant-gold',
+  frame_subtext text,
   -- Bildformate, zwischen denen Gäste wählen können (einzel = Einzelfoto, streifen = Fotostreifen mit 3 Fotos)
   formats text[] not null default '{einzel,streifen}',
   accent_color text not null default '#c4933f',

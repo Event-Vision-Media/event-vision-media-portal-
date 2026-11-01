@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { VB_BUCKET } from "@/lib/visionbooth";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
+import { getTemplate } from "@/components/visionbooth/templates";
 import type { AdminActionResult } from "@/app/actions/admin";
 
 /** Gut lesbar, nicht erratbar: ohne 0/o/1/l/i. */
@@ -90,7 +91,8 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
     contact_name: str(formData, "contact_name", 120) || null,
     contact_email: str(formData, "contact_email", 200).toLowerCase() || null,
     frame_text: str(formData, "frame_text", 60) || title,
-    frame_style: ["gold", "weiss", "schwarz", "ohne"].includes(str(formData, "frame_style")) ? str(formData, "frame_style") : "gold",
+    template: getTemplate(str(formData, "template", 40)).id,
+    frame_subtext: str(formData, "frame_subtext", 60) || null,
     accent_color: /^#[0-9a-f]{6}$/i.test(accent) ? accent.toLowerCase() : "#c4933f",
     opens_at: opensDate ? berlinIso(opensDate, "00:00") : null,
     closes_at: closesDate ? berlinIso(closesDate, "23:59") : null,

@@ -11,6 +11,7 @@ import {
   drawStripPreview,
   FRAME_H,
   FRAME_W,
+  loadVbFonts,
   onAccent,
   STORY_H,
   STORY_W,
@@ -19,6 +20,7 @@ import {
   STRIP_W,
   type FrameOptions,
   type Shot,
+  type VbFonts,
 } from "./frame";
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
 
@@ -26,7 +28,8 @@ interface GuestEvent {
   slug: string;
   title: string;
   frameText: string;
-  frameStyle: FrameOptions["style"];
+  template: string;
+  subtext: string;
   accent: string;
   logoUrl: string | null;
   galleryEnabled: boolean;
@@ -89,6 +92,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   const streamRef = useRef<MediaStream | null>(null);
   const rafRef = useRef<number>(0);
   const logoRef = useRef<HTMLImageElement | null>(null);
+  const fontsRef = useRef<VbFonts | undefined>(undefined);
+  const mainRef = useRef<HTMLElement>(null);
   /** Original ohne Rahmen – Grundlage für die KI, bleibt nur im Browser. */
   const rawRef = useRef<Blob | null>(null);
   /** Fotostreifen: bisherige Aufnahmen und aktuelles Feld (für die Live-Vorschau) */
@@ -98,9 +103,22 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   modeRef.current = mode;
 
   const opts = useCallback(
-    (mirror: boolean): FrameOptions => ({ style: event.frameStyle, text: event.frameText, accent: event.accent, logo: logoRef.current, mirror }),
+    (mirror: boolean): FrameOptions => ({
+      template: event.template,
+      text: event.frameText,
+      subtext: event.subtext,
+      accent: event.accent,
+      logo: logoRef.current,
+      mirror,
+      fonts: fontsRef.current,
+    }),
     [event]
   );
+
+  // Schriften der Vorlage fürs Canvas laden
+  useEffect(() => {
+    loadVbFonts(mainRef.current).then((f) => (fontsRef.current = f));
+  }, []);
 
   // Logo einmal laden (crossOrigin, damit das Canvas exportierbar bleibt)
   useEffect(() => {
@@ -430,6 +448,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
 
   return (
     <main
+      ref={mainRef}
       className="vb flex flex-col"
       style={{ ["--a" as string]: gold, ["--ink" as string]: ink, paddingTop: "env(safe-area-inset-top)", paddingBottom: "env(safe-area-inset-bottom)" }}
     >

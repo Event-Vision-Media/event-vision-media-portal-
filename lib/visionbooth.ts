@@ -2,6 +2,7 @@ import "server-only";
 import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
+import { getTemplate } from "@/components/visionbooth/templates";
 
 // VisionBooth: digitale Fotobox per QR-Code (Tabellen vb_*, Bucket "visionbooth", Migration 0029).
 
@@ -19,6 +20,8 @@ export interface VbEvent {
   closes_at: string | null;
   frame_text: string | null;
   frame_style: "gold" | "weiss" | "schwarz" | "ohne";
+  template: string | null;
+  frame_subtext: string | null;
   formats: string[] | null;
   accent_color: string;
   logo_path: string | null;
@@ -35,7 +38,8 @@ export interface VbGuestEvent {
   slug: string;
   title: string;
   frameText: string;
-  frameStyle: VbEvent["frame_style"];
+  template: string;
+  subtext: string;
   accent: string;
   logoUrl: string | null;
   galleryEnabled: boolean;
@@ -69,7 +73,8 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     slug: e.slug,
     title: e.title,
     frameText: e.frame_text || e.title,
-    frameStyle: e.frame_style,
+    template: getTemplate(e.template ?? e.frame_style).id,
+    subtext: e.frame_subtext ?? "",
     accent: /^#[0-9a-f]{6}$/i.test(e.accent_color) ? e.accent_color : "#c4933f",
     logoUrl,
     galleryEnabled: e.gallery_enabled,

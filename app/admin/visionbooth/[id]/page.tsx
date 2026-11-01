@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { vbClosedReason, vbGuestUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
+import { getTemplate } from "@/components/visionbooth/templates";
 
 export const dynamic = "force-dynamic";
 
@@ -89,7 +90,8 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                     contactName: event.contact_name ?? "",
                     contactEmail: event.contact_email ?? "",
                     frameText: event.frame_text ?? "",
-                    frameStyle: event.frame_style,
+                    template: getTemplate(event.template ?? event.frame_style).id,
+                    subtext: event.frame_subtext ?? "",
                     accent: event.accent_color,
                     logoUrl: event.logo_path ? url.get(event.logo_path) ?? null : null,
                     opensDate: berlinDate(event.opens_at),

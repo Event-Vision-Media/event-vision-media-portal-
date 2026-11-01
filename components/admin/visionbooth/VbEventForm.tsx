@@ -5,6 +5,8 @@ import { useFormState, useFormStatus } from "react-dom";
 import { updateVbEvent } from "@/app/actions/admin-visionbooth";
 import type { AdminActionResult } from "@/app/actions/admin";
 import { Button } from "@/components/ui/Button";
+import { VbDesignPicker } from "@/components/admin/visionbooth/VbDesignPicker";
+import { vbFontVars } from "@/components/visionbooth/fonts";
 
 interface EventValues {
   id: string;
@@ -15,7 +17,8 @@ interface EventValues {
   contactName: string;
   contactEmail: string;
   frameText: string;
-  frameStyle: string;
+  template: string;
+  subtext: string;
   accent: string;
   logoUrl: string | null;
   opensDate: string;
@@ -47,6 +50,10 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
   const [state, action] = useFormState(updateVbEvent, initial);
   const [aiOn, setAiOn] = useState(e.aiEnabled);
   const [accent, setAccent] = useState(e.accent);
+  const [template, setTemplate] = useState(e.template);
+  const [frameText, setFrameText] = useState(e.frameText);
+  const [subtext, setSubtext] = useState(e.subtext);
+  const [logoPreview, setLogoPreview] = useState<string | null>(e.logoUrl);
 
   return (
     <form action={action} className="space-y-5">
@@ -104,20 +111,15 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
       </div>
 
       <div className={section}>
-        <p className="text-sm font-semibold text-anthracite-800">Rahmen</p>
+        <p className="text-sm font-semibold text-anthracite-800">Design</p>
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">
-            <label className={label} htmlFor="f-frame">Text im Rahmen</label>
-            <input id="f-frame" name="frame_text" maxLength={60} defaultValue={e.frameText} className="input-field" />
+          <div>
+            <label className={label} htmlFor="f-frame">Titel (z. B. Namen, Firma)</label>
+            <input id="f-frame" name="frame_text" maxLength={60} value={frameText} onChange={(ev) => setFrameText(ev.target.value)} className="input-field" placeholder="Anna & Max" />
           </div>
           <div>
-            <label className={label} htmlFor="f-style">Stil</label>
-            <select id="f-style" name="frame_style" defaultValue={e.frameStyle} className="input-field">
-              <option value="gold">Schwarz mit Akzentfarbe</option>
-              <option value="schwarz">Schwarz-Weiß</option>
-              <option value="weiss">Hell (Creme)</option>
-              <option value="ohne">Ohne Rahmen (Text unten im Bild)</option>
-            </select>
+            <label className={label} htmlFor="f-sub">Unterzeile (optional)</label>
+            <input id="f-sub" name="frame_subtext" maxLength={60} value={subtext} onChange={(ev) => setSubtext(ev.target.value)} className="input-field" placeholder="14.11.2026 · Schloss Hugenpoet" />
           </div>
           <div>
             <label className={label} htmlFor="f-accent">Akzentfarbe</label>
@@ -126,19 +128,42 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
               <input name="accent_color" value={accent} onChange={(ev) => setAccent(ev.target.value)} className="input-field font-mono" maxLength={7} />
             </div>
           </div>
-          <div className="sm:col-span-2">
+          <div>
             <label className={label} htmlFor="f-logo">Logo (optional, PNG mit transparentem Hintergrund ideal)</label>
             {e.logoUrl && (
-              <div className="mb-2 flex items-center gap-3">
-                <img src={e.logoUrl} alt="" className="h-12 max-w-[160px] rounded bg-anthracite-900 object-contain p-1" />
-                <label className="flex items-center gap-2 text-xs text-anthracite-500">
-                  <input type="checkbox" name="remove_logo" /> Logo entfernen
-                </label>
-              </div>
+              <label className="mb-1.5 flex items-center gap-2 text-xs text-anthracite-500">
+                <input type="checkbox" name="remove_logo" onChange={(ev) => setLogoPreview(ev.target.checked ? null : e.logoUrl)} /> Aktuelles Logo entfernen
+              </label>
             )}
-            <input id="f-logo" name="logo" type="file" accept="image/png,image/jpeg,image/webp" className="block w-full text-sm text-anthracite-600" />
+            <input
+              id="f-logo"
+              name="logo"
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              onChange={(ev) => {
+                const f = ev.target.files?.[0];
+                setLogoPreview(f ? URL.createObjectURL(f) : e.logoUrl);
+              }}
+              className="block w-full text-sm text-anthracite-600"
+            />
           </div>
         </div>
+        <input type="hidden" name="template" value={template} />
+        <p className="mb-2 mt-5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Vorlage wählen</p>
+        <div className={vbFontVars}>
+          <VbDesignPicker
+            template={template}
+            onTemplate={(id, a) => {
+              setTemplate(id);
+              setAccent(a);
+            }}
+            text={frameText}
+            subtext={subtext}
+            accent={/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#c4933f"}
+            logoUrl={logoPreview}
+          />
+        </div>
+        <p className="mt-2 text-xs text-anthracite-400">Beim Wechsel der Vorlage wird ihre passende Akzentfarbe vorgeschlagen – du kannst sie danach frei ändern.</p>
       </div>
 
       <div className={section}>
