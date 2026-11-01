@@ -294,17 +294,17 @@ function textBand(ctx: CanvasRenderingContext2D, t: VbTemplate, o: FrameOptions,
   }
   if (t.titleUpper) (ctx as CanvasRenderingContext2D & { letterSpacing?: string }).letterSpacing = "4px";
   ctx.fillStyle = opts.light ? "#ffffff" : ink;
-  fitFont(ctx, title, w - 30, t.titleSize, 28, titleFont);
+  const titleSize = fitFont(ctx, title, w - 30, t.titleSize, 28, titleFont);
+  const titleW = ctx.measureText(title).width;
   ctx.fillText(title, cx, titleY);
   ctx.restore();
 
   // kleine Verzierungen rund um den Titel
   if (t.decor === "hearts" || t.decor === "sparkle") {
-    const tw = Math.min(ctx.measureText(title).width, w - 30);
+    const tw = Math.min(titleW, w - 30);
     ctx.save();
-    ctx.font = titleFont(t.titleSize);
     ctx.fillStyle = o.accent;
-    const y = titleY - t.titleSize * 0.45;
+    const y = titleY - titleSize * 0.45;
     const dx = Math.min(tw / 2 + 40, w / 2 - 20);
     if (t.decor === "hearts") {
       heart(ctx, cx - dx, y - 8, 22);
