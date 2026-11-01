@@ -6,6 +6,8 @@ create table if not exists public.vb_events (
   id uuid primary key default gen_random_uuid(),
   -- Kurzer Code in der Gäste-URL (/vb/<slug>), nicht erratbar
   slug text not null unique,
+  -- Geheimer Verwaltungs-Link für den Kunden (/vb/verwalten/<token>), ohne Konto/Passwort
+  manage_token text not null unique default encode(gen_random_bytes(18), 'hex'),
   title text not null,
   event_date date,
   -- optional: gehört zu einer Fotobox-/Spiegel-Buchung (Add-on)

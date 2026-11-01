@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
-import { VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
+import { vbManageUrl, VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
+import { sendEmail, vbManageMail } from "@/lib/email";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import type { AdminActionResult } from "@/app/actions/admin";
@@ -152,4 +153,16 @@ export async function deleteVbEvent(eventId: string): Promise<AdminActionResult>
   if (error) return { error: "Löschen fehlgeschlagen." };
   paths();
   redirect("/admin/visionbooth");
+}
+
+/** Verwaltungs-Link per Mail an den Kunden schicken. */
+export async function sendVbManageLink(eventId: string): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const { data: e } = await createAdminClient().from("vb_events").select("*").eq("id", eventId).maybeSingle();
+  if (!e) return { error: "Event nicht gefunden." };
+  if (!e.contact_email) return { error: "Bitte zuerst die E-Mail des Kunden eintragen und speichern." };
+  const mail = vbManageMail({ name: e.contact_name, title: e.frame_text || e.title, date: e.event_date, url: vbManageUrl(e.manage_token) });
+  const r = await sendEmail({ to: e.contact_email, ...mail });
+  if (!r.sent) return { error: "Mail konnte nicht verschickt werden." };
+  return { success: true };
 }

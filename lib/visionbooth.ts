@@ -25,6 +25,11 @@ export interface VbEvent {
   formats: string[] | null;
   retention_days: number;
   photos_deleted_at: string | null;
+  /** Geheimer Verwaltungs-Link für den Kunden */
+  manage_token: string;
+  contact_name: string | null;
+  contact_email: string | null;
+  package: string;
   created_at: string;
   accent_color: string;
   logo_path: string | null;
@@ -51,6 +56,13 @@ export interface VbGuestEvent {
   formats: ("einzel" | "streifen")[];
   /** Fotos werden automatisch gelöscht am (ISO-Datum) */
   deleteAfter: string;
+}
+
+/** Event über den geheimen Verwaltungs-Link des Kunden laden. */
+export async function loadVbEventByToken(token: string): Promise<VbEvent | null> {
+  if (!/^[a-f0-9]{36}$/.test(token)) return null;
+  const { data } = await createAdminClient().from("vb_events").select("*").eq("manage_token", token).maybeSingle();
+  return (data as VbEvent | null) ?? null;
 }
 
 export async function loadVbEvent(slug: string): Promise<VbEvent | null> {
@@ -107,6 +119,7 @@ export function vbBaseUrl(): string {
 }
 
 export const vbGuestUrl = (slug: string) => `${vbBaseUrl()}/vb/${slug}`;
+export const vbManageUrl = (token: string) => `${vbBaseUrl()}/vb/verwalten/${token}`;
 
 /** Fotos werden so viele Tage nach Ende des Gäste-Links gelöscht (Admin: 30–365). */
 export const VB_RETENTION_CHOICES = [30, 60, 90, 180, 365];

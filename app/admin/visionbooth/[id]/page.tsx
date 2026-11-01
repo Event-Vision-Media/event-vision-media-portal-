@@ -9,7 +9,8 @@ import { VbPhotoGrid } from "@/components/admin/visionbooth/VbPhotoGrid";
 import { VbDeleteButton } from "@/components/admin/visionbooth/VbDeleteButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
+import { vbClosedReason, vbDeleteAfter, vbGuestUrl, vbManageUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
+import { VbSendManageLink } from "@/components/admin/visionbooth/VbSendManageLink";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 
@@ -68,6 +69,14 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                   <CopyField value={`${guestUrl}/galerie`} />
                 </div>
               )}
+              <div className="mt-4 rounded-xl border border-gold-200 bg-gold-50/60 p-3">
+                <p className="mb-1.5 text-xs font-semibold text-anthracite-600">Kunden-Link (Design, QR-Aufsteller, Fotos) – nicht öffentlich teilen</p>
+                <CopyField value={vbManageUrl(event.manage_token)} />
+                <div className="mt-2 flex flex-wrap items-center gap-3">
+                  <a href={`/vb/verwalten/${event.manage_token}`} target="_blank" className="text-sm font-medium text-gold-700 hover:underline">Kundenbereich öffnen →</a>
+                  <VbSendManageLink eventId={event.id} email={event.contact_email} />
+                </div>
+              </div>
               {closed && <p className="mt-2 text-xs text-gold-700">Gäste sehen gerade: „{closed}“</p>}
               <div className="mt-4 flex flex-wrap gap-2 text-sm">
                 <a href={`/vb/${event.slug}`} target="_blank" className="rounded-lg border border-anthracite-200 bg-white px-3 py-2 hover:border-gold-300">📱 Gäste-Seite öffnen</a>

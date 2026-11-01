@@ -13,18 +13,27 @@ interface Photo {
 }
 
 /** Fotos eines Events; Klick aufs Auge blendet ein Foto auf Wand und Galerie aus/ein. */
-export function VbPhotoGrid({ eventId, photos }: { eventId: string; photos: Photo[] }) {
+export function VbPhotoGrid({
+  eventId,
+  photos,
+  toggle,
+}: {
+  eventId: string;
+  photos: Photo[];
+  /** Kundenbereich: eigene Aktion (an den Verwaltungs-Link gebunden); sonst Admin-Aktion */
+  toggle?: (photoId: string, hidden: boolean) => Promise<{ error?: string }>;
+}) {
   const [hidden, setHidden] = useState(() => new Map(photos.map((p) => [p.id, p.hidden])));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   if (!photos.length) return <p className="text-sm text-anthracite-400">Noch keine Fotos.</p>;
 
-  function toggle(id: string) {
+  function flip(id: string) {
     const next = !hidden.get(id);
     setHidden((m) => new Map(m).set(id, next));
     start(async () => {
-      const r = await setVbPhotoHidden(eventId, id, next);
+      const r = toggle ? await toggle(id, next) : await setVbPhotoHidden(eventId, id, next);
       if (r.error) {
         setError(r.error);
         setHidden((m) => new Map(m).set(id, !next));
@@ -47,7 +56,7 @@ export function VbPhotoGrid({ eventId, photos }: { eventId: string; photos: Phot
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => toggle(p.id)}
+                onClick={() => flip(p.id)}
                 className={`absolute bottom-1.5 right-1.5 rounded-full px-2 py-1 text-[11px] font-medium ${isHidden ? "bg-gold-500 text-white" : "bg-white/90 text-anthracite-700"}`}
               >
                 {isHidden ? "Einblenden" : "Ausblenden"}
