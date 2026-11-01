@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
-import { VB_BUCKET } from "@/lib/visionbooth";
+import { VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import type { AdminActionResult } from "@/app/actions/admin";
@@ -104,6 +104,7 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
       const f = formData.getAll("formats").map(String).filter((x) => x === "einzel" || x === "streifen");
       return f.length ? f : ["einzel"];
     })(),
+    retention_days: VB_RETENTION_CHOICES.includes(int(formData, "retention_days", 1, 365, 90)) ? int(formData, "retention_days", 1, 365, 90) : 90,
     wall_enabled: formData.get("wall_enabled") === "on",
     gallery_enabled: formData.get("gallery_enabled") === "on",
   };

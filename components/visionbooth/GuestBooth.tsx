@@ -37,6 +37,8 @@ interface GuestEvent {
   aiPerGuest: number;
   /** Formate, zwischen denen der Gast wählen kann */
   formats: Format[];
+  /** Fotos werden automatisch gelöscht am (ISO-Datum) */
+  deleteAfter: string;
 }
 
 type Format = "einzel" | "streifen";
@@ -490,7 +492,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               <button type="button" onClick={() => setConsent((c) => !c)} className="vb-glass flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left" aria-pressed={consent}>
                 <span className="flex-1 text-[13px] leading-snug text-white/80">
                   <span className="block font-semibold text-white">In Galerie &amp; auf der Foto-Wand zeigen</span>
-                  {consent ? "Deine Fotos erscheinen für alle Gäste." : "Aus: Fotos bleiben nur auf deinem Handy."}
+                  {consent ? `Deine Fotos erscheinen für die Gäste – automatisch gelöscht am ${new Date(event.deleteAfter).toLocaleDateString("de-DE")}.` : "Aus: Fotos bleiben nur auf deinem Handy."}
                 </span>
                 <span className="vb-switch" data-on={consent} />
               </button>
@@ -499,8 +501,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               <IconCamera className="h-6 w-6" />
               Los geht&apos;s
             </button>
-            <a href="https://fotobox-essen.com/datenschutz" className="block text-[11px] text-white/35 underline underline-offset-2">
-              Datenschutz
+            <a href={`/vb/${event.slug}/datenschutz`} className="block text-[11px] text-white/45 underline underline-offset-2">
+              Datenschutz · was mit deinen Fotos passiert
             </a>
           </div>
         </section>
@@ -667,7 +669,10 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               <div className="mb-3 flex items-end justify-between">
                 <div>
                   <p className="vb-display text-xl font-semibold">KI-Verwandlung</p>
-                  <p className="text-xs text-white/55">Tippe einen Stil an – dein Foto wird verwandelt.</p>
+                  <p className="text-xs text-white/55">
+                    Tippe einen Stil an – dein Foto wird dafür an unseren KI-Dienstleister übertragen.{" "}
+                    <a href={`/vb/${event.slug}/datenschutz`} className="underline underline-offset-2">Mehr</a>
+                  </p>
                 </div>
                 <span className="vb-glass rounded-full px-3 py-1 text-xs font-semibold text-white/80">
                   {aiLeft === null ? `${event.aiPerGuest}× frei` : `noch ${aiLeft}×`}

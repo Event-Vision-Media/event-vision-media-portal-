@@ -30,6 +30,10 @@ interface EventValues {
   wallEnabled: boolean;
   galleryEnabled: boolean;
   formats: string[];
+  retentionDays: number;
+  /** Stichtag der automatischen Löschung (dd.mm.yyyy) bzw. Datum, an dem gelöscht wurde */
+  deleteAfterLabel: string;
+  photosDeleted: boolean;
 }
 
 const initial: AdminActionResult = {};
@@ -108,6 +112,21 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
           </div>
         </div>
         <p className="mt-1 text-xs text-anthracite-400">Leer = ohne Begrenzung.</p>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className={label} htmlFor="f-ret">Fotos automatisch löschen</label>
+            <select id="f-ret" name="retention_days" defaultValue={e.retentionDays} className="input-field">
+              {[30, 60, 90, 180, 365].map((d) => (
+                <option key={d} value={d}>
+                  {d} Tage nach Ende des Gäste-Links
+                </option>
+              ))}
+            </select>
+          </div>
+          <p className={`self-end pb-2 text-xs ${e.photosDeleted ? "text-anthracite-500" : "text-gold-700"}`}>
+            {e.photosDeleted ? `Fotos wurden am ${e.deleteAfterLabel} gelöscht.` : `Löschung am ${e.deleteAfterLabel} (Datenschutz). Bis dahin Galerie ggf. herunterladen.`}
+          </p>
+        </div>
       </div>
 
       <div className={section}>

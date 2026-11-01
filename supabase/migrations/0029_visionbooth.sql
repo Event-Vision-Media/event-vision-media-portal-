@@ -33,6 +33,9 @@ create table if not exists public.vb_events (
   ai_limit integer not null default 0,
   ai_per_guest integer not null default 3,
   -- Galerie / Live-Wall
+  -- Datenschutz: Fotos werden so viele Tage nach Ende des Gäste-Links automatisch gelöscht
+  retention_days integer not null default 90,
+  photos_deleted_at timestamptz,
   wall_enabled boolean not null default true,
   gallery_enabled boolean not null default true,
   created_at timestamptz not null default now()

@@ -9,7 +9,7 @@ import { VbPhotoGrid } from "@/components/admin/visionbooth/VbPhotoGrid";
 import { VbDeleteButton } from "@/components/admin/visionbooth/VbDeleteButton";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { vbClosedReason, vbGuestUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
+import { vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 
@@ -103,6 +103,9 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                     wallEnabled: event.wall_enabled,
                     galleryEnabled: event.gallery_enabled,
                     formats: event.formats ?? ["einzel"],
+                    retentionDays: event.retention_days ?? 90,
+                    deleteAfterLabel: (event.photos_deleted_at ? new Date(event.photos_deleted_at) : vbDeleteAfter(event)).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }),
+                    photosDeleted: Boolean(event.photos_deleted_at),
                   }}
                   styles={Object.entries(VB_STYLES).map(([key, s]) => ({ key, label: s.label, emoji: s.emoji }))}
                 />
