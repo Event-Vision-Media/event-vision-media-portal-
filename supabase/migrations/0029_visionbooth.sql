@@ -197,3 +197,15 @@ alter table public.vb_orders add column if not exists invoiced_at timestamptz;
 
 -- VisionBooth: verschickte Erinnerungs-Mails je Event ({vorher, danach, loeschung} = Zeitpunkt)
 alter table public.vb_events add column if not exists reminders jsonb not null default '{}'::jsonb;
+
+-- VisionBooth: Mitteilungen aufs Handy des Gastgebers (Web-Push) + Zeitpunkt der letzten Mitteilung
+create table if not exists public.vb_push_subs (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.vb_events (id) on delete cascade,
+  endpoint text not null unique,
+  keys jsonb not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists vb_push_subs_event_idx on public.vb_push_subs (event_id);
+alter table public.vb_push_subs enable row level security;
+alter table public.vb_events add column if not exists push_state jsonb not null default '{}'::jsonb;

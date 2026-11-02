@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, vbClosedReason, VB_BUCKET, VB_MAX_UPLOAD } from "@/lib/visionbooth";
 import { parseChallenges } from "@/components/visionbooth/challenges";
 import { vbBoard } from "@/lib/visionbooth-board";
+import { notifyNewPhotos } from "@/lib/visionbooth-push";
 
 export const dynamic = "force-dynamic";
 
@@ -89,6 +90,8 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     await supabase.storage.from(VB_BUCKET).remove(thumbPath ? [path, thumbPath] : [path]);
     return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });
   }
+  // Gastgeber benachrichtigen (gebündelt, höchstens alle 20 Minuten)
+  await notifyNewPhotos(event).catch((e) => console.error("VisionBooth-Push Fotos:", e));
   if (!challenge) return NextResponse.json({ ok: true, id });
   const board = await vbBoard(event, guestKey, 3);
   return NextResponse.json({ ok: true, id, mission: { id: challenge.id, points: challenge.points, total: board.me?.points ?? 0, rank: board.me?.rank ?? null, players: board.players } });

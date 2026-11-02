@@ -4,6 +4,7 @@ import { loadVbEvent, vbClosedReason } from "@/lib/visionbooth";
 import { cleanGuestKey } from "@/lib/visionbooth-board";
 import { vbRevealState } from "@/lib/visionbooth-reveal";
 import { parseReveal } from "@/components/visionbooth/reveal";
+import { notifyTips } from "@/lib/visionbooth-push";
 
 export const dynamic = "force-dynamic";
 
@@ -30,5 +31,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   if (!key || (body?.choice !== "a" && body?.choice !== "b")) return NextResponse.json({ error: "ungültig" }, { status: 400 });
   const { error } = await createAdminClient().from("vb_tips").upsert({ event_id: event.id, guest_key: key, choice: body.choice, created_at: new Date().toISOString() });
   if (error) return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });
-  return NextResponse.json(await vbRevealState(event, key));
+  const state = await vbRevealState(event, key);
+  if (state) await notifyTips(event, state.counts, [cfg.options[0].label, cfg.options[1].label]).catch(() => {});
+  return NextResponse.json(state);
 }

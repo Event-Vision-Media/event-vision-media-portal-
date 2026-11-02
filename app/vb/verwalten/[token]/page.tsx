@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
@@ -17,10 +17,24 @@ import { VbPhotoGrid } from "@/components/admin/visionbooth/VbPhotoGrid";
 import { CopyField } from "@/components/admin/CopyField";
 import { LANDLORD } from "@/lib/contract";
 import { relevantGames } from "@/components/visionbooth/packages";
+import { VbAppBar } from "@/components/visionbooth/customer/VbAppBar";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = { title: "Meine VisionBooth", robots: { index: false, follow: false } };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
+
+/** Web-App: eigener App-Steckbrief je Event, iPhone-Symbol und Vollbild ohne Browserleiste. */
+export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
+  const event = await loadVbEventByToken(params.token);
+  const name = event ? (event.frame_text || event.title).slice(0, 40) : "Meine VisionBooth";
+  return {
+    title: `${name} – Meine VisionBooth`,
+    robots: { index: false, follow: false },
+    manifest: `/api/vb/verwalten/${params.token}/manifest`,
+    appleWebApp: { capable: true, title: name.length > 14 ? "VisionBooth" : name, statusBarStyle: "black-translucent" },
+    icons: { apple: "/visionbooth/apple-touch-icon.png", icon: "/visionbooth/icon-192.png" },
+  };
+}
 
 const fmtDate = (d: Date | string) => new Date(d).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin", day: "numeric", month: "long", year: "numeric" });
 
@@ -69,7 +83,7 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
     <main className="min-h-[100dvh] bg-sand-50 pb-20">
       <header className="vb relative overflow-hidden" style={{ ["--a" as string]: event.accent_color, minHeight: 0 }}>
         <div className="vb-aurora" style={{ position: "absolute" }} aria-hidden />
-        <div className="relative mx-auto max-w-4xl px-5 pb-12 pt-8">
+        <div className="relative mx-auto max-w-4xl px-5 pb-12 pt-8" style={{ paddingTop: "max(2rem, calc(env(safe-area-inset-top) + 1rem))" }}>
           <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">VisionBooth · Dein Bereich</p>
           <h1 className="vb-display vb-gold-text mt-3 text-4xl font-semibold leading-tight">{event.frame_text || event.title}</h1>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/75">
@@ -77,6 +91,7 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
             {event.event_date && <span>Event am {fmtDate(event.event_date)}</span>}
             {event.opens_at && event.closes_at && <span>· Gäste-Link aktiv {fmtDate(event.opens_at)} – {fmtDate(event.closes_at)}</span>}
           </div>
+          {!deleted && <VbAppBar token={params.token} />}
         </div>
       </header>
 
