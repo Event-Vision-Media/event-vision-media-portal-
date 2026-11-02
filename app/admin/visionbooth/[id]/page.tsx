@@ -117,6 +117,7 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                     aiStyles: event.ai_styles,
                     aiLimit: event.ai_limit,
                     aiPerGuest: event.ai_per_guest,
+                    aiDailyLimit: event.ai_daily_limit ?? null,
                     wallEnabled: event.wall_enabled,
                     galleryEnabled: event.gallery_enabled,
                     formats: event.formats ?? ["einzel"],

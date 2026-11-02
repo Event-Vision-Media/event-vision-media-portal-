@@ -102,6 +102,7 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
     ai_styles: styles,
     ai_limit: int(formData, "ai_limit", 0, 5000, 0),
     ai_per_guest: int(formData, "ai_per_guest", 1, 20, 3),
+    ai_daily_limit: str(formData, "ai_daily_limit", 6) ? int(formData, "ai_daily_limit", 1, 5000, 30) : null,
     formats: (() => {
       const f = formData.getAll("formats").map(String).filter((x) => x === "einzel" || x === "streifen");
       return f.length ? f : ["einzel"];

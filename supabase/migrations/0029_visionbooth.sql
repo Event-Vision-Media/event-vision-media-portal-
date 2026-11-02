@@ -37,6 +37,8 @@ create table if not exists public.vb_events (
   ai_styles text[] not null default '{}',
   ai_limit integer not null default 0,
   ai_per_guest integer not null default 3,
+  -- KI-Bilder pro Kalendertag (z. B. öffentliche Demo); leer = keine Tagesgrenze
+  ai_daily_limit integer,
   -- Galerie / Live-Wall
   -- Datenschutz: Fotos werden so viele Tage nach Ende des Gäste-Links automatisch gelöscht
   retention_days integer not null default 90,

@@ -40,6 +40,7 @@ export interface VbEvent {
   ai_styles: string[];
   ai_limit: number;
   ai_per_guest: number;
+  ai_daily_limit: number | null;
   wall_enabled: boolean;
   gallery_enabled: boolean;
   /** Foto-Missionen (jsonb), leer = aus */

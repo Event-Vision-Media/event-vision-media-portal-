@@ -27,6 +27,7 @@ interface EventValues {
   aiStyles: string[];
   aiLimit: number;
   aiPerGuest: number;
+  aiDailyLimit: number | null;
   wallEnabled: boolean;
   galleryEnabled: boolean;
   formats: string[];
@@ -215,15 +216,20 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
                 </label>
               ))}
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div>
                 <label className={label} htmlFor="f-limit">KI-Bilder fürs ganze Event</label>
                 <input id="f-limit" name="ai_limit" type="number" min={0} max={5000} defaultValue={e.aiLimit} className="input-field" />
-                <p className="mt-1 text-xs text-anthracite-400">je Bild ca. 0,08 $ Kosten</p>
+                <p className="mt-1 text-xs text-anthracite-400">je Bild ca. 0,08–0,15 $ Kosten</p>
               </div>
               <div>
                 <label className={label} htmlFor="f-per">pro Gast (Gerät)</label>
                 <input id="f-per" name="ai_per_guest" type="number" min={1} max={20} defaultValue={e.aiPerGuest} className="input-field" />
+              </div>
+              <div>
+                <label className={label} htmlFor="f-day">pro Tag (optional)</label>
+                <input id="f-day" name="ai_daily_limit" type="number" min={1} max={5000} defaultValue={e.aiDailyLimit ?? ""} placeholder="keine Grenze" className="input-field" />
+                <p className="mt-1 text-xs text-anthracite-400">z. B. für die öffentliche Demo</p>
               </div>
             </div>
           </div>
@@ -233,6 +239,7 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
             {e.aiStyles.map((k) => <input key={k} type="hidden" name="ai_styles" value={k} />)}
             <input type="hidden" name="ai_limit" value={e.aiLimit} />
             <input type="hidden" name="ai_per_guest" value={e.aiPerGuest} />
+            <input type="hidden" name="ai_daily_limit" value={e.aiDailyLimit ?? ""} />
           </>
         )}
       </div>

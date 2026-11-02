@@ -1,3 +1,4 @@
+import { berlinIso } from "@/lib/visionbooth-provision";
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, vbClosedReason, VB_MAX_UPLOAD } from "@/lib/visionbooth";
@@ -40,7 +41,9 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
         .eq("event_id", event.id)
         .or(`status.eq.fertig,and(status.in.(wartet,laeuft),created_at.gt.${fresh})`)
     );
-  const [{ count: eventCount }, { count: guestCount }, { count: running }] = await Promise.all([
+  // Tagesgrenze (z. B. öffentliche Demo): ab Mitternacht deutscher Zeit
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+  const [{ count: eventCount }, { count: guestCount }, { count: running }, { count: todayCount }] = await Promise.all([
     used((q) => q),
     used((q) => q.eq("guest_key", guestKey)),
     supabase
@@ -50,8 +53,12 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
       .eq("guest_key", guestKey)
       .in("status", ["wartet", "laeuft"])
       .gt("created_at", fresh),
+    event.ai_daily_limit ? used((q) => q.gte("created_at", berlinIso(today, "00:00"))) : Promise.resolve({ count: 0 }),
   ]);
   if ((eventCount ?? 0) >= event.ai_limit) return NextResponse.json({ error: "Die KI-Bilder für dieses Event sind aufgebraucht – normale Fotos gehen weiterhin.", remaining: 0 }, { status: 429 });
+  if (event.ai_daily_limit && (todayCount ?? 0) >= event.ai_daily_limit) {
+    return NextResponse.json({ error: "Die KI-Verwandlungen sind für heute ausgebucht – morgen gibt's neue. Normale Fotos gehen weiterhin.", remaining: 0 }, { status: 429 });
+  }
   if ((guestCount ?? 0) >= event.ai_per_guest) return NextResponse.json({ error: "Du hast alle deine KI-Verwandlungen genutzt – lass auch den anderen Gästen etwas übrig 😉", remaining: 0 }, { status: 429 });
   if ((running ?? 0) > 0) return NextResponse.json({ error: "Deine letzte Verwandlung läuft noch – einen Moment." }, { status: 429 });
 

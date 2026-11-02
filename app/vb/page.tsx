@@ -38,6 +38,7 @@ const FAQ = [
   { q: "Brauchen die Gäste eine App?", a: "Nein. Gäste scannen den QR-Code mit der normalen Handy-Kamera – die VisionBooth öffnet sich direkt im Browser, auf iPhone und Android." },
   { q: "Wann bekomme ich meinen Link?", a: "Sofort nach der Bezahlung – per E-Mail und direkt auf der Bestätigungsseite. Dort gestaltest du alles selbst und druckst den QR-Aufsteller." },
   { q: "Wie viele Gäste können mitmachen?", a: "So viele, wie ihr seid. Jeder Gast nutzt sein eigenes Handy. Die KI-Verwandlungen sind je Paket begrenzt (z. B. 150 bei der Hochzeit)." },
+  { q: "Warum nicht einfach eine WhatsApp-Gruppe?", a: "Weil dort nie alle Fotos ankommen, sie sich auf viele Chats verteilen und man erst alle Nummern einsammeln muss. Bei der VisionBooth landen die Fotos aller Gäste automatisch in einer Galerie – im Look eures Events, am Ende als ZIP." },
   { q: "Was passiert mit den Fotos?", a: "Fotos erscheinen nur in Galerie und Foto-Wand, wenn der Gast das erlaubt. Nach Ablauf der Speicherzeit werden sie automatisch gelöscht – vorher könnt ihr alles als ZIP herunterladen." },
   { q: "Kann ich Design und Texte später ändern?", a: "Ja, jederzeit in deinem persönlichen Bereich – Änderungen sind sofort für alle Gäste sichtbar." },
   { q: "Gibt es etwas für Kindergeburtstage?", a: "Ja! Mit Motto-Rahmen wie Prinzessin, Dino, Feuerwehr, Piraten, Einhorn, Weltraum oder Fußball und lustigen Kinder-Missionen. Die KI-Verwandlung ist dabei bewusst aus – Kinderfotos geben wir nicht an KI-Dienste weiter." },
@@ -106,6 +107,48 @@ export default function VisionBoothHome() {
               <p className="mt-2 text-[15px] leading-relaxed text-white/65">{s.text}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Gemeinsame Galerie statt WhatsApp-Chaos */}
+      <section className="relative mx-auto max-w-5xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">
+          Alle Fotos. <span className="vb-gold-text">Eine Galerie.</span>
+        </h2>
+        <p className="mx-auto mt-3 max-w-xl text-center text-white/65">Schluss mit „Schickt mal eure Fotos in die Gruppe!“ – die Bilder aller Gäste landen automatisch an einem Ort.</p>
+        <div className="mt-10 grid gap-4 md:grid-cols-2">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">Ohne VisionBooth</p>
+            <ul className="mt-4 space-y-3 text-[15px] text-white/60">
+              {[
+                "Fotos verteilt auf zig Handys, Gruppen und Chats",
+                "Ständig nachfragen – die Hälfte kommt nie an",
+                "Jedes Foto sieht anders aus – kein gemeinsamer Look",
+                "Erst eine Gruppe mit allen Gästen anlegen und Nummern teilen",
+              ].map((x) => (
+                <li key={x} className="flex gap-3">
+                  <span className="text-red-400/80">✕</span>
+                  {x}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="rounded-3xl p-6 ring-2" style={{ background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 18%, #141417), #141417 65%)", ["--tw-ring-color" as string]: "var(--a)" }}>
+            <p className="text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--a)" }}>Mit VisionBooth</p>
+            <ul className="mt-4 space-y-3 text-[15px] text-white/85">
+              {[
+                "Jedes Foto landet automatisch in eurer gemeinsamen Galerie",
+                "Alle Fotos im gleichen Look – mit eurem Rahmen und Namen",
+                "Am Ende alle Fotos mit einem Klick als ZIP",
+                "Keine Gruppe, keine Telefonnummern – nur ein QR-Code",
+              ].map((x) => (
+                <li key={x} className="flex gap-3">
+                  <span style={{ color: "var(--a)" }}>✓</span>
+                  {x}
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
       </section>
 
