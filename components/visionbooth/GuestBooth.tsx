@@ -571,6 +571,9 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               Dein Foto mit Event-Rahmen – direkt im Browser, ganz ohne App.
             </p>
 
+            {event.aiStyles.some((s) => STYLE_PREVIEW.has(s.key)) ? (
+              <StyleFan styles={event.aiStyles.filter((s) => STYLE_PREVIEW.has(s.key))} />
+            ) : (
             <div className="vb-in mt-9 grid w-full grid-cols-3 gap-2" style={{ animationDelay: "240ms" }}>
               {[
                 { icon: <IconCamera className="h-6 w-6" />, label: "Foto" },
@@ -583,6 +586,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 </div>
               ))}
             </div>
+            )}
           </div>
 
           <div className="vb-in mt-8 space-y-4" style={{ animationDelay: "320ms" }}>
@@ -821,12 +825,18 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                     key={s.key}
                     onClick={() => startAi(s)}
                     disabled={Boolean(aiBusy) || aiLeft === 0}
-                    className="relative flex h-[148px] w-[118px] flex-none flex-col justify-end overflow-hidden rounded-2xl p-3 text-left transition active:scale-95 disabled:opacity-40"
+                    className="relative flex h-[160px] w-[128px] flex-none flex-col justify-end overflow-hidden rounded-2xl p-3 text-left ring-1 ring-white/10 transition active:scale-95 disabled:opacity-40"
                     style={{ background: STYLE_BG[s.key] ?? STYLE_BG.default }}
                   >
-                    <span className="absolute right-2.5 top-2 text-[34px] leading-none drop-shadow-[0_4px_10px_rgba(0,0,0,0.35)]">{s.emoji}</span>
+                    {STYLE_PREVIEW.has(s.key) && (
+                      <img src={`/visionbooth/stile/${s.key}.webp`} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" />
+                    )}
+                    <span className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/10 to-transparent" />
+                    {STYLE_PREVIEW.has(s.key) && <span className="absolute left-2 top-2 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-white/80 backdrop-blur">Beispiel</span>}
                     {aiBusy === s.key && <span className="vb-shimmer absolute inset-0" />}
-                    <span className="relative text-[13px] font-bold leading-tight text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">{s.label}</span>
+                    <span className="relative text-[13px] font-bold leading-tight text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.6)]">
+                      {s.emoji} {s.label}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -877,7 +887,10 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   );
 }
 
-/** Farbverläufe der KI-Stil-Karten */
+/** Stile mit Beispielbild (fiktive Personen, erzeugt mit denselben Einstellungen wie in der App) */
+const STYLE_PREVIEW = new Set(["glamour", "superheld", "animation", "comic", "vintage", "neon", "business", "weihnachten"]);
+
+/** Farbverläufe der KI-Stil-Karten (Platzhalter, bis das Bild geladen ist) */
 const STYLE_BG: Record<string, string> = {
   glamour: "linear-gradient(160deg, #3a1d10 0%, #8a1c1c 55%, #d4a24c 120%)",
   superheld: "linear-gradient(160deg, #0b1630 0%, #1e3a8a 55%, #c4933f 130%)",
@@ -906,6 +919,37 @@ function Confetti() {
       {pieces.map((p, i) => (
         <i key={i} style={{ left: p.left, background: p.c, ["--x" as string]: p.x, ["--r" as string]: p.r, ["--d" as string]: p.d, ["--delay" as string]: p.delay }} />
       ))}
+    </div>
+  );
+}
+
+/** Startseite: Fächer aus Original + KI-Stilen, der Stil vorne wechselt alle paar Sekunden. */
+function StyleFan({ styles }: { styles: { key: string; label: string; emoji: string }[] }) {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (styles.length < 2) return;
+    const t = setInterval(() => setI((n) => (n + 1) % styles.length), 2600);
+    return () => clearInterval(t);
+  }, [styles.length]);
+  const cur = styles[i % styles.length];
+  return (
+    <div className="vb-in mt-8 w-full" style={{ animationDelay: "240ms" }}>
+      <div className="relative mx-auto h-[178px] w-[260px]">
+        <figure className="absolute left-2 top-3 h-[160px] w-[128px] -rotate-[7deg] overflow-hidden rounded-2xl shadow-[0_18px_40px_-14px_rgba(0,0,0,0.9)] ring-1 ring-white/15">
+          <img src="/visionbooth/stile/original.webp" alt="" className="h-full w-full object-cover" />
+          <figcaption className="absolute bottom-2 left-2 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">Dein Foto</figcaption>
+        </figure>
+        <span className="absolute left-1/2 top-[70px] z-20 flex h-9 w-9 -translate-x-1/2 items-center justify-center rounded-full text-[var(--ink)] shadow-lg" style={{ background: "var(--a)" }}>
+          <IconSparkles className="h-5 w-5" />
+        </span>
+        <figure className="absolute right-2 top-0 z-10 h-[170px] w-[136px] rotate-[6deg] overflow-hidden rounded-2xl shadow-[0_22px_50px_-14px_rgba(0,0,0,0.95)] ring-1 ring-white/20">
+          <img key={cur.key} src={`/visionbooth/stile/${cur.key}.webp`} alt="" className="vb-fade h-full w-full object-cover" />
+          <figcaption className="absolute bottom-2 left-2 right-2 truncate rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur">
+            {cur.emoji} {cur.label}
+          </figcaption>
+        </figure>
+      </div>
+      <p className="mt-3 text-[13px] text-white/60">Foto machen · mit KI verwandeln · teilen</p>
     </div>
   );
 }

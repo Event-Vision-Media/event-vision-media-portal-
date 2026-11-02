@@ -67,7 +67,10 @@ export const VB_STYLES: Record<string, VbStyle> = {
     emoji: "🧸",
     waits: ["Figuren werden modelliert …", "Farben werden gemischt …", "Kinoleinwand wird aufgespannt …"],
     ...B,
-    prompt: FACE + "Render the whole image in the style of a modern 3D animated movie, but every character must still be clearly recognizable as this exact person (same facial proportions, beard, hairline and smile). Colorful festive background.",
+    // Eigener Prompt ohne FACE: dessen „nicht umgestalten“ verhinderte den Animationslook (Test 2.11.2026)
+    prompt:
+      "Transform this photo into a still from a modern 3D animated family movie: every person becomes a stylized CGI character with smooth stylized skin, slightly larger expressive eyes and soft cinematic lighting – clearly animated, not photorealistic. " +
+      "Each character must still be instantly recognizable as the same person: same face shape, hairstyle and hair color, beard, glasses, skin tone, age, smile and clothing colors. Keep the same number of people and their arrangement. Remove any phone or object held in a hand. Colorful party background with warm bokeh lights, balloons and confetti (no Christmas decorations).",
   },
   comic: {
     label: "Comic",
@@ -102,7 +105,7 @@ export const VB_STYLES: Record<string, VbStyle> = {
     emoji: "🎄",
     waits: ["Lichterkette wird entwirrt …", "Plätzchen kommen aus dem Ofen …", "Baum wird geschmückt …"],
     ...B,
-    prompt: FACE + "Change only outfits and scene: a cozy Christmas living room with stylish dark red Christmas sweaters, warm fairy lights and a decorated Christmas tree. Photorealistic, warm atmosphere.",
+    prompt: FACE + "Remove the phone from the picture completely; hands rest naturally on shoulders. Change only outfits and scene: a cozy Christmas living room with stylish dark red Christmas sweaters, warm fairy lights and a decorated Christmas tree. Photorealistic, warm atmosphere.",
   },
 };
 
