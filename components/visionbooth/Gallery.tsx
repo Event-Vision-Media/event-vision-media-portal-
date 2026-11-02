@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { onAccent } from "./frame";
+import { GuestUpload } from "./GuestUpload";
 
 interface Photo {
   id: string;
@@ -41,10 +42,19 @@ function Heart({ on, className = "" }: { on: boolean; className?: string }) {
 }
 
 const fileName = (p: Photo, i: number) =>
-  `visionbooth-${String(i + 1).padStart(3, "0")}${p.kind === "ki" ? "-ki" : ""}.jpg`;
+  `visionbooth-${String(i + 1).padStart(3, "0")}${p.kind === "ki" ? "-ki" : p.kind === "gast" ? "-gast" : ""}.jpg`;
 
 /** Galerie: Raster mit Nachladen, Großansicht mit Wischen/Pfeiltasten, Download einzeln oder als ZIP. */
-export function Gallery({ event, total }: { event: { slug: string; frameText: string; accent: string; logoUrl: string | null }; total: number }) {
+export function Gallery({
+  event,
+  total,
+  upload,
+}: {
+  event: { slug: string; frameText: string; accent: string; logoUrl: string | null };
+  total: number;
+  /** Gäste dürfen eigene Fotos hinzufügen (Event aktiv) – mit Löschdatum für den Hinweis */
+  upload: { deleteAfter: string } | null;
+}) {
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -136,6 +146,16 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
       setLikes((l) => ({ ...l, [p.id]: n }));
     }
   }
+
+  /** Nach eigenen Uploads: neueste Fotos holen und vorne einfügen */
+  const refreshNewest = useCallback(async () => {
+    const res = await fetch(`/api/vb/${event.slug}/photos?limit=100`, { cache: "no-store" }).catch(() => null);
+    if (!res?.ok) return;
+    const { photos: fresh } = (await res.json()) as { photos: Photo[] };
+    setPhotos((p) => [...fresh, ...p.filter((x) => !fresh.some((f) => f.id === x.id))]);
+    setFilter("alle");
+    setTopList(null);
+  }, [event.slug]);
 
   const shown = filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
   const hasAi = photos.some((p) => p.kind === "ki");
@@ -242,9 +262,12 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
         <p className="vb-in mt-3 text-sm text-white/60" style={{ animationDelay: "140ms" }}>
           {total === 1 ? "1 Foto" : `${total} Fotos`} · tippe ♡ bei deinen Lieblingen
         </p>
-        <a href={`/vb/${event.slug}`} className="vb-in vb-glass mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white/90" style={{ animationDelay: "200ms" }}>
-          📸 Selbst ein Foto machen
-        </a>
+        <div className="vb-in mt-5 flex flex-wrap items-center justify-center gap-2" style={{ animationDelay: "200ms" }}>
+          {upload && <GuestUpload slug={event.slug} deleteAfter={upload.deleteAfter} onDone={refreshNewest} />}
+          <a href={`/vb/${event.slug}`} className="vb-glass inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white/90">
+            📸 Foto mit Rahmen machen
+          </a>
+        </div>
       </header>
 
       {total > 0 && (
@@ -285,7 +308,9 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
             </button>
             <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
             {hero && i === 0 && <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: gold, color: ink }}>Neuestes Foto</span>}
-            {p.kind === "ki" && <span className={`pointer-events-none absolute ${hero && i === 0 ? "left-2.5 top-10" : "left-2 top-2"} rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur`}>✨ KI</span>}
+            {(p.kind === "ki" || p.kind === "gast") && (
+              <span className={`pointer-events-none absolute ${hero && i === 0 ? "left-2.5 top-10" : "left-2 top-2"} rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur`}>{p.kind === "ki" ? "✨ KI" : "📷 Gast-Foto"}</span>
+            )}
             {filter === "top" && i < 3 && <span className="pointer-events-none absolute right-2 top-2 text-2xl drop-shadow">{["🥇", "🥈", "🥉"][i]}</span>}
             <button
               onClick={() => toggleLike(p)}

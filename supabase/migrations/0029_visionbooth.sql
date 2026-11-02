@@ -57,7 +57,7 @@ comment on table public.vb_events is 'VisionBooth-Events (digitale Fotobox per Q
 create table if not exists public.vb_photos (
   id uuid primary key default gen_random_uuid(),
   event_id uuid not null references public.vb_events (id) on delete cascade,
-  kind text not null default 'foto' check (kind in ('foto', 'ki')),
+  kind text not null default 'foto' check (kind in ('foto', 'ki', 'gast')),
   style text,
   source_photo_id uuid references public.vb_photos (id) on delete set null,
   file_path text not null,

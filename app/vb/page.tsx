@@ -139,6 +139,7 @@ export default function VisionBoothHome() {
               {[
                 "Jedes Foto landet automatisch in eurer gemeinsamen Galerie",
                 "Alle Fotos im gleichen Look – mit eurem Rahmen und Namen",
+                "Gäste legen auch ihre eigenen Handy-Fotos dazu – in hoher Auflösung",
                 "Am Ende alle Fotos mit einem Klick als ZIP",
                 "Keine Gruppe, keine Telefonnummern – nur ein QR-Code",
               ].map((x) => (

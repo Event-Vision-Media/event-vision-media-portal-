@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Challenge } from "./challenges";
 
 // Foto-Missionen in der Gäste-App: Auswahl, Spitzname, Bestenliste und Punkte-Feier.
@@ -23,21 +24,28 @@ export interface MissionWin {
 
 const MEDALS = ["🥇", "🥈", "🥉"];
 
-/** Unteres Blatt mit Hintergrund-Abdunklung; schließt per Tippen daneben. */
+/**
+ * Unteres Blatt mit Hintergrund-Abdunklung; schließt per Tippen daneben.
+ * Wird direkt an <body> gehängt – sonst „fängt“ eine Einblend-Animation (transform) im Elternelement das Fixed-Overlay ein.
+ */
 export function Sheet({ onClose, children, title }: { onClose: () => void; children: React.ReactNode; title: string }) {
+  const [host, setHost] = useState<HTMLElement | null>(null);
+  useEffect(() => setHost(document.querySelector<HTMLElement>(".vb") ?? document.body), []);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
-  return (
+  if (!host) return null;
+  return createPortal(
     <div className="fixed inset-0 z-40 flex items-end justify-center" role="dialog" aria-modal aria-label={title}>
       <button className="vb-backdrop absolute inset-0 bg-black/60" onClick={onClose} aria-label="Schließen" />
       <div className="vb-sheet relative max-h-[86dvh] w-full max-w-md overflow-y-auto rounded-t-[28px] border-t border-white/10 bg-[#141417]/95 px-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-3 shadow-[0_-30px_80px_-20px_rgba(0,0,0,0.9)] backdrop-blur-xl">
         <div className="mx-auto mb-4 h-1.5 w-10 rounded-full bg-white/20" />
         {children}
       </div>
-    </div>
+    </div>,
+    host
   );
 }
 

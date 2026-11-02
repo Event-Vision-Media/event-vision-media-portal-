@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadVbEvent, toGuestEvent } from "@/lib/visionbooth";
+import { loadVbEvent, toGuestEvent, vbClosedReason } from "@/lib/visionbooth";
 import { Gallery } from "@/components/visionbooth/Gallery";
 
 export const dynamic = "force-dynamic";
@@ -30,5 +30,11 @@ export default async function VisionBoothGalleryPage({ params }: { params: { slu
     .eq("hidden", false);
 
   const g = await toGuestEvent(event);
-  return <Gallery event={{ slug: g.slug, frameText: g.frameText, accent: g.accent, logoUrl: g.logoUrl }} total={count ?? 0} />;
+  return (
+    <Gallery
+      event={{ slug: g.slug, frameText: g.frameText, accent: g.accent, logoUrl: g.logoUrl }}
+      total={count ?? 0}
+      upload={!vbClosedReason(event) && !event.photos_deleted_at ? { deleteAfter: g.deleteAfter } : null}
+    />
+  );
 }
