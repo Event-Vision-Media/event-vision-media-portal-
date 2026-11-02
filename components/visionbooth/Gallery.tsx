@@ -62,7 +62,7 @@ export function Gallery({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"alle" | "ki" | "top" | "meine">("alle");
+  const [filter, setFilter] = useState<"alle" | "ki" | "gast" | "top" | "meine">("alle");
   const [mineList, setMineList] = useState<Photo[] | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [topList, setTopList] = useState<Photo[] | null>(null);
@@ -173,7 +173,7 @@ export function Gallery({
     loadMine();
   }, [event.slug, loadMine]);
 
-  const shown = filter === "meine" ? mineList ?? [] : filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
+  const shown = filter === "meine" ? mineList ?? [] : filter === "gast" ? photos.filter((p) => p.kind === "gast") : filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
   const hasAi = photos.some((p) => p.kind === "ki");
 
   const step = useCallback(
@@ -260,7 +260,7 @@ export function Gallery({
   const ink = onAccent(gold);
   const current = open !== null ? shown[open] : null;
   const hero = filter === "alle" && shown.length > 2;
-  const filters = [...(["alle", "top"] as const), ...(hasAi ? (["ki"] as const) : []), ...(mineList?.length ? (["meine"] as const) : [])];
+  const filters = [...(["alle", "top"] as const), ...(hasAi ? (["ki"] as const) : []), ...(photos.some((p) => p.kind === "gast") ? (["gast"] as const) : []), ...(mineList?.length ? (["meine"] as const) : [])];
 
   /** Eigenes Foto endgültig löschen */
   async function removeMine(p: Photo) {
@@ -304,7 +304,7 @@ export function Gallery({
       {total > 0 && (
         <div className="sticky top-0 z-30 px-3 py-2" style={{ background: "linear-gradient(#0a0a0c 55%, transparent)" }}>
           <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
-            <div className="vb-glass flex rounded-full p-1 text-[13px] font-semibold">
+            <div className="vb-glass vb-scroll flex min-w-0 overflow-x-auto rounded-full p-1 text-[13px] font-semibold">
               {filters.map((f) => (
                 <button
                   key={f}
@@ -312,14 +312,14 @@ export function Gallery({
                     setFilter(f);
                     setOpen(null);
                   }}
-                  className={`rounded-full px-3.5 py-1.5 transition ${filter === f ? "" : "text-white/70"}`}
+                  className={`flex-none whitespace-nowrap rounded-full px-3.5 py-1.5 transition ${filter === f ? "" : "text-white/70"}`}
                   style={filter === f ? { background: gold, color: ink } : undefined}
                 >
-                  {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : f === "ki" ? "✨ KI" : "👤 Meine"}
+                  {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : f === "ki" ? "✨ KI" : f === "gast" ? "📷 Gäste" : "👤 Meine"}
                 </button>
               ))}
             </div>
-            <button onClick={downloadAll} disabled={Boolean(zip)} className="vb-glass flex-none rounded-full px-3.5 py-2 text-[13px] font-semibold text-white/90 disabled:opacity-60" aria-label="Alle Fotos als ZIP herunterladen">
+            <button onClick={downloadAll} disabled={Boolean(zip)} className="vb-glass flex-none whitespace-nowrap rounded-full px-3.5 py-2 text-[13px] font-semibold text-white/90 disabled:opacity-60" aria-label="Alle Fotos als ZIP herunterladen">
               {zip ? `${zip.done}/${zip.total} …` : "⬇︎ Alle (ZIP)"}
             </button>
           </div>

@@ -30,6 +30,7 @@ interface EventValues {
   aiDailyLimit: number | null;
   wallEnabled: boolean;
   galleryEnabled: boolean;
+  guestUploads: boolean;
   formats: string[];
   retentionDays: number;
   /** Stichtag der automatischen Löschung (dd.mm.yyyy) bzw. Datum, an dem gelöscht wurde */
@@ -248,6 +249,10 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
         <label className="flex items-center gap-2 text-sm text-anthracite-700">
           <input type="checkbox" name="gallery_enabled" defaultChecked={e.galleryEnabled} className="h-4 w-4" />
           Galerie: Gäste können zustimmen, dass ihre Fotos gespeichert werden
+        </label>
+        <label className="flex items-center gap-2 text-sm text-anthracite-700">
+          <input type="checkbox" name="guest_uploads" defaultChecked={e.guestUploads} className="h-4 w-4" />
+          Gäste dürfen eigene Handy-Fotos hochladen (Kindergeburtstag: lieber aus)
         </label>
         <label className="flex items-center gap-2 text-sm text-anthracite-700">
           <input type="checkbox" name="wall_enabled" defaultChecked={e.wallEnabled} className="h-4 w-4" />

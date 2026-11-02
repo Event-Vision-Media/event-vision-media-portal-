@@ -46,7 +46,7 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
 
   const supabase = createAdminClient();
   const isGast = req.headers.get("x-vb-kind") === "gast";
-  if (isGast && (!event.gallery_enabled || !guestKey)) return NextResponse.json({ error: "Die Galerie ist für Uploads nicht freigegeben." }, { status: 403 });
+  if (isGast && (!event.gallery_enabled || event.guest_uploads === false || !guestKey)) return NextResponse.json({ error: "Die Galerie ist für Uploads nicht freigegeben." }, { status: 403 });
   if (guestKey) {
     const since = (ms: number) =>
       supabase

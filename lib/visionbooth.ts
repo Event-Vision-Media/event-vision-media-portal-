@@ -43,6 +43,8 @@ export interface VbEvent {
   ai_daily_limit: number | null;
   wall_enabled: boolean;
   gallery_enabled: boolean;
+  /** Gäste dürfen eigene Handy-Fotos hochladen */
+  guest_uploads: boolean;
   /** Foto-Missionen (jsonb), leer = aus */
   challenges: unknown;
   /** Kontaktformular (jsonb, leads.ts) */

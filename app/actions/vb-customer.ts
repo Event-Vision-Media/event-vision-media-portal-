@@ -33,6 +33,7 @@ export async function updateVbDesign(token: string, _prev: VbCustomerResult, for
     accent_color: /^#[0-9a-f]{6}$/i.test(accent) ? accent.toLowerCase() : event.accent_color,
     formats: formats.length ? formats : ["einzel"],
     gallery_enabled: formData.get("gallery_enabled") === "on",
+    guest_uploads: formData.get("guest_uploads") === "on",
     wall_enabled: formData.get("wall_enabled") === "on",
   };
 

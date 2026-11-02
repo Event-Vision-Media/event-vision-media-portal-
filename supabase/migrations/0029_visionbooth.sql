@@ -45,6 +45,8 @@ create table if not exists public.vb_events (
   photos_deleted_at timestamptz,
   wall_enabled boolean not null default true,
   gallery_enabled boolean not null default true,
+  -- Gäste dürfen eigene Handy-Fotos in die Galerie laden (Kindergeburtstag: aus)
+  guest_uploads boolean not null default true,
   -- Foto-Missionen [{id, emoji, text, points}], leer = aus
   challenges jsonb not null default '[]'::jsonb,
   -- Kontaktformular für Firmen (leads.ts), freiwillig

@@ -128,6 +128,7 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
                   logoUrl: event.logo_path ? url.get(event.logo_path) ?? null : null,
                   formats: event.formats ?? ["einzel"],
                   galleryEnabled: event.gallery_enabled,
+                  guestUploads: event.guest_uploads !== false,
                   wallEnabled: event.wall_enabled,
                 }}
               />

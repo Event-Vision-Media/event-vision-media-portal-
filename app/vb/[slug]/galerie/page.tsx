@@ -34,7 +34,7 @@ export default async function VisionBoothGalleryPage({ params }: { params: { slu
     <Gallery
       event={{ slug: g.slug, frameText: g.frameText, accent: g.accent, logoUrl: g.logoUrl }}
       total={count ?? 0}
-      upload={!vbClosedReason(event) && !event.photos_deleted_at ? { deleteAfter: g.deleteAfter } : null}
+      upload={!vbClosedReason(event) && !event.photos_deleted_at && event.guest_uploads !== false ? { deleteAfter: g.deleteAfter } : null}
     />
   );
 }

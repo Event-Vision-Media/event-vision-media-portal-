@@ -13,6 +13,7 @@ interface Values {
   logoUrl: string | null;
   formats: string[];
   galleryEnabled: boolean;
+  guestUploads: boolean;
   wallEnabled: boolean;
 }
 
@@ -108,6 +109,13 @@ export function VbCustomerDesignForm({ action, initial }: { action: (prev: VbCus
           <div className="mt-2 space-y-2 text-sm text-anthracite-700">
             <label className="flex items-center gap-2">
               <input type="checkbox" name="gallery_enabled" defaultChecked={initial.galleryEnabled} /> Gäste dürfen Fotos in die Galerie stellen
+            </label>
+            <label className="flex items-start gap-2">
+              <input type="checkbox" name="guest_uploads" defaultChecked={initial.guestUploads} className="mt-1" />
+              <span>
+                Gäste dürfen eigene Handy-Fotos hochladen
+                <span className="block text-xs text-anthracite-400">Beim Kindergeburtstag empfehlen wir: aus</span>
+              </span>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" name="wall_enabled" defaultChecked={initial.wallEnabled} /> Foto-Wand für Beamer/TV

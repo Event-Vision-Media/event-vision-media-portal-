@@ -98,6 +98,8 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     ai_per_guest: Math.max(1, plan.aiPerGuest),
     wall_enabled: true,
     gallery_enabled: true,
+    // Fotos fremder Kinder sollen nicht von anderen Eltern hochgeladen werden
+    guest_uploads: occ.id !== "kindergeburtstag",
     challenges,
     reveal: games.reveal ? { ...REVEAL_DEFAULT, enabled: true } : {},
     leads: games.leads && plan.firma ? { ...LEAD_DEFAULT, enabled: true, sponsor: input.company?.trim() || input.contactName?.trim() || "" } : {},

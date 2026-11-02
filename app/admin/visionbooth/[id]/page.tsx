@@ -120,6 +120,7 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                     aiDailyLimit: event.ai_daily_limit ?? null,
                     wallEnabled: event.wall_enabled,
                     galleryEnabled: event.gallery_enabled,
+                    guestUploads: event.guest_uploads !== false,
                     formats: event.formats ?? ["einzel"],
                     retentionDays: event.retention_days ?? 90,
                     deleteAfterLabel: (event.photos_deleted_at ? new Date(event.photos_deleted_at) : vbDeleteAfter(event)).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }),

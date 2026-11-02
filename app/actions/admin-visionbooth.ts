@@ -110,6 +110,7 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
     retention_days: VB_RETENTION_CHOICES.includes(int(formData, "retention_days", 1, 365, 90)) ? int(formData, "retention_days", 1, 365, 90) : 90,
     wall_enabled: formData.get("wall_enabled") === "on",
     gallery_enabled: formData.get("gallery_enabled") === "on",
+    guest_uploads: formData.get("guest_uploads") === "on",
   };
 
   const logo = formData.get("logo") as File | null;
