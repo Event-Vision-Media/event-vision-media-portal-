@@ -4,7 +4,7 @@
 
 export type FontRole = "display" | "ui" | "script" | "hand";
 export type PhotoStyle = "double" | "thin" | "arch" | "neon" | "rounded" | "polaroid" | "bleed" | "corporate";
-export type Decor = "none" | "confetti" | "snow" | "hearts" | "sparkle";
+export type Decor = "none" | "confetti" | "snow" | "hearts" | "sparkle" | "sticker";
 
 export interface VbTemplate {
   id: string;
@@ -27,6 +27,12 @@ export interface VbTemplate {
   subUpper?: boolean;
   photo: PhotoStyle;
   decor: Decor;
+  /** Motiv-Sticker auf den Foto-Ecken (Kinder-Mottos), Reihenfolge: oben links, oben rechts, unten rechts, unten links */
+  stickers?: [string, string, string, string];
+  /** Hintergrundmuster: Punkte oder Sterne */
+  pattern?: "dots" | "stars";
+  /** Vorlagengruppe in der Auswahl */
+  group?: "kinder";
 }
 
 export const VB_TEMPLATES: VbTemplate[] = [
@@ -191,7 +197,20 @@ export const VB_TEMPLATES: VbTemplate[] = [
     photo: "bleed",
     decor: "none",
   },
+  // ---------- Kindergeburtstag (Mottos) ----------
+  kid("prinzessin", "Prinzessin", "#e0559a", "#fff0f6", "accent", "#b0487e", "script", 400, ["👑", "✨", "💖", "🦄"], "dots"),
+  kid("einhorn", "Einhorn & Regenbogen", "#a66cff", "#f6f0ff", "accent", "#7b55c7", "hand", 600, ["🦄", "🌈", "⭐", "🍭"], "stars"),
+  kid("dino", "Dino-Abenteuer", "#3f9a3a", "#eaf6dd", "#24461f", "#3f7a3a", "hand", 600, ["🦖", "🌿", "🦕", "🌋"], "dots"),
+  kid("feuerwehr", "Feuerwehr", "#e3342f", "#fff5ec", "#c21d1d", "#7a4a2a", "ui", 800, ["🚒", "🔥", "👨‍🚒", "🧯"], "dots", true),
+  kid("pirat", "Piraten", "#8b5a2b", "#f3e8d2", "#3b2a1a", "#6b4a2b", "display", 700, ["🏴‍☠️", "🦜", "💰", "⚓"], "dots"),
+  kid("weltraum", "Weltraum", "#7c8cff", "#0b1030", "#ffffff", "rgba(255,255,255,0.75)", "ui", 800, ["🚀", "🪐", "👽", "⭐"], "stars", true),
+  kid("fussball", "Fußball", "#16a34a", "#e8f7ee", "#14532d", "#2f6b45", "ui", 800, ["⚽", "🏆", "🥅", "⭐"], "dots", true),
 ];
+
+/** Kinder-Motto: heller Hintergrund, runder Fotorahmen, Sticker auf den Ecken. */
+function kid(id: string, name: string, accent: string, bg: string, ink: string, sub: string, titleFont: FontRole, titleWeight: number, stickers: [string, string, string, string], pattern: "dots" | "stars", titleUpper = false): VbTemplate {
+  return { id, name, occasions: "Kindergeburtstag", accent, bg, ink, sub, titleFont, titleWeight, titleUpper, titleSize: titleFont === "script" ? 84 : 66, subFont: "ui", subUpper: true, photo: "rounded", decor: "sticker", stickers, pattern, group: "kinder" };
+}
 
 export const DEFAULT_TEMPLATE = "elegant-gold";
 

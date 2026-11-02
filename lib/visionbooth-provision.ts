@@ -45,6 +45,8 @@ export interface ProvisionInput {
   games?: VbGames;
   /** Firma (für den Einwilligungstext des Gewinnspiels) */
   company?: string | null;
+  /** Vorlage statt der Anlass-Vorlage (z. B. Kinder-Motto aus der Buchung) */
+  template?: string | null;
 }
 
 export interface ProvisionResult {
@@ -57,7 +59,8 @@ export interface ProvisionResult {
 export async function provisionVbEvent(input: ProvisionInput): Promise<ProvisionResult | { error: string }> {
   const plan = getPlan(input.plan);
   const occ = getOccasion(input.occasion);
-  const template = getTemplate(occ.template);
+  const template = getTemplate(input.template || occ.template);
+  const ai = plan.aiLimit > 0 && !occ.noAi;
   const title = input.title.trim().slice(0, 120);
   if (!title) return { error: "Bitte einen Namen für das Event angeben." };
   const date = input.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(input.eventDate) ? input.eventDate : null;
@@ -89,7 +92,7 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     opens_at: date ? berlinIso(date, "00:00") : null,
     closes_at: date ? berlinIso(addDays(date, activeDays), "23:59") : null,
     retention_days: plan.retentionDays,
-    ai_enabled: plan.aiLimit > 0,
+    ai_enabled: ai,
     ai_styles: occ.aiStyles,
     ai_limit: plan.aiLimit,
     ai_per_guest: Math.max(1, plan.aiPerGuest),

@@ -229,6 +229,22 @@ function decorate(ctx: CanvasRenderingContext2D, t: VbTemplate, W: number, H: nu
       } else ctx.fillRect(-4, -10, 8 + r() * 6, 18 + r() * 8);
       ctx.restore();
     }
+  } else if (t.pattern) {
+    // verspieltes Muster für Kinder-Mottos
+    ctx.save();
+    ctx.fillStyle = accent;
+    for (let i = 0; i < 80; i++) {
+      const x = r() * W;
+      const y = r() * H;
+      ctx.globalAlpha = 0.1 + r() * 0.12;
+      if (t.pattern === "stars") sparkle(ctx, x, y, 6 + r() * 10);
+      else {
+        ctx.beginPath();
+        ctx.arc(x, y, 5 + r() * 9, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    ctx.restore();
   } else if (t.decor === "snow") {
     for (let i = 0; i < 90; i++) {
       ctx.fillStyle = `rgba(255,255,255,${0.15 + r() * 0.45})`;
@@ -237,6 +253,43 @@ function decorate(ctx: CanvasRenderingContext2D, t: VbTemplate, W: number, H: nu
       ctx.fill();
     }
   }
+}
+
+const EMOJI_FONT = `"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif`;
+
+/** Motiv-Sticker auf den Foto-Ecken (leicht gedreht, mit weißem Rand wie ein echter Sticker). */
+function stickers(ctx: CanvasRenderingContext2D, t: VbTemplate, b: Box, size = 120, which: number[] = [0, 1, 2, 3]) {
+  if (!t.stickers) return;
+  // so weit nach innen, dass der weiße Sticker-Rand nie am Bildrand abgeschnitten wird
+  const m = size * 0.42;
+  const pos = [
+    { x: b.x + m - 20, y: b.y + m - 10, r: -0.22 },
+    { x: b.x + b.w - m + 20, y: b.y + m - 10, r: 0.2 },
+    { x: b.x + b.w - m + 16, y: b.y + b.h - m + 26, r: -0.16 },
+    { x: b.x + m - 16, y: b.y + b.h - m + 26, r: 0.18 },
+  ];
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const i of which) {
+    const p = pos[i];
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(p.r);
+    ctx.font = `${size}px ${EMOJI_FONT}`;
+    // weißer „Sticker-Rand“
+    ctx.shadowColor = "rgba(0,0,0,0.28)";
+    ctx.shadowBlur = 14;
+    ctx.shadowOffsetY = 5;
+    ctx.fillStyle = "#ffffff";
+    ctx.beginPath();
+    ctx.arc(0, 0, size * 0.62, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.fillText(t.stickers[i], 0, size * 0.04);
+    ctx.restore();
+  }
+  ctx.restore();
 }
 
 function heart(ctx: CanvasRenderingContext2D, x: number, y: number, s: number) {
@@ -374,10 +427,25 @@ export function drawFrame(ctx: CanvasRenderingContext2D, src: CanvasImageSource 
     textBand(ctx, t, o, { x: 60, y: b.y + b.h + 10, w: W - 120, h: H - (b.y + b.h + 10) });
     return;
   }
-  const pad = 56;
+  const pad = t.stickers ? 70 : 56;
   const band = 250;
   const b = { x: pad, y: pad, w: W - pad * 2, h: H - pad - band };
   photoInBox(ctx, t, src, sw, sh, b, o.accent, mirror);
+  if (t.stickers) {
+    // Kinder-Motto: farbiges Titelband mit großer weißer Schrift, Sticker obendrauf
+    const band2 = { x: pad - 20, y: b.y + b.h + 24, w: W - (pad - 20) * 2, h: H - (b.y + b.h + 24) - 30 };
+    ctx.save();
+    ctx.fillStyle = o.accent;
+    ctx.shadowColor = "rgba(0,0,0,0.18)";
+    ctx.shadowBlur = 18;
+    ctx.shadowOffsetY = 6;
+    roundRect(ctx, band2.x, band2.y, band2.w, band2.h, 46);
+    ctx.fill();
+    ctx.restore();
+    stickers(ctx, t, b, 150);
+    textBand(ctx, { ...t, titleSize: t.titleFont === "script" ? 96 : 80 }, o, { x: band2.x + 20, y: band2.y - 6, w: band2.w - 40, h: band2.h + 30 }, { light: true });
+    return;
+  }
   textBand(ctx, t, o, { x: pad, y: b.y + b.h + 16, w: W - pad * 2, h: H - (b.y + b.h + 16) });
 }
 
@@ -418,6 +486,9 @@ export function drawStrip(ctx: CanvasRenderingContext2D, shots: Shot[], o: Frame
     const s = shots[i];
     photoInBox(ctx, { ...t, photo: t.photo === "double" ? "thin" : t.photo }, s?.src ?? null, s?.w ?? 0, s?.h ?? 0, { x: STRIP_PAD, y, w: CELL_W, h: CELL_H }, o.accent, false);
   }
+  // Kinder-Mottos: Sticker oben am ersten und unten am letzten Foto
+  stickers(ctx, t, { x: STRIP_PAD, y: STRIP_PAD, w: CELL_W, h: CELL_H }, 100, [0, 1]);
+  stickers(ctx, t, { x: STRIP_PAD, y: STRIP_PAD + (STRIP_SHOTS - 1) * (CELL_H + STRIP_GAP), w: CELL_W, h: CELL_H }, 100, [2, 3]);
   const top = STRIP_PAD + STRIP_SHOTS * (CELL_H + STRIP_GAP);
   if (getTemplate(o.template).photo === "corporate") {
     ctx.fillStyle = o.accent;

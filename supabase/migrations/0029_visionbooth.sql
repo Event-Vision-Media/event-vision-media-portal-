@@ -177,3 +177,6 @@ create table if not exists public.vb_tips (
 alter table public.vb_tips enable row level security;
 -- Bei der Online-Buchung gewählte Spiele
 alter table public.vb_orders add column if not exists games jsonb not null default '{}'::jsonb;
+
+-- Online-Buchung: gewähltes Motto (Vorlage), z. B. beim Kindergeburtstag
+alter table public.vb_orders add column if not exists template text;

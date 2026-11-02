@@ -23,7 +23,7 @@ const FEATURES = [
   { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste. Bringt Gäste zusammen – und sorgt für viel mehr Fotos." },
   { icon: "📺", title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
   { icon: "🔮", title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
-  { icon: "🖼️", title: "10 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night, mit Namen, Datum und Logo – dazu 3er-Fotostreifen und Story-Format." },
+  { icon: "🖼️", title: "17 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night – dazu Kinder-Mottos wie Dino, Prinzessin oder Feuerwehr. Plus 3er-Fotostreifen und Story-Format." },
   { icon: "❤️", title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
 ];
 
@@ -40,6 +40,7 @@ const FAQ = [
   { q: "Wie viele Gäste können mitmachen?", a: "So viele, wie ihr seid. Jeder Gast nutzt sein eigenes Handy. Die KI-Verwandlungen sind je Paket begrenzt (z. B. 150 bei der Hochzeit)." },
   { q: "Was passiert mit den Fotos?", a: "Fotos erscheinen nur in Galerie und Foto-Wand, wenn der Gast das erlaubt. Nach Ablauf der Speicherzeit werden sie automatisch gelöscht – vorher könnt ihr alles als ZIP herunterladen." },
   { q: "Kann ich Design und Texte später ändern?", a: "Ja, jederzeit in deinem persönlichen Bereich – Änderungen sind sofort für alle Gäste sichtbar." },
+  { q: "Gibt es etwas für Kindergeburtstage?", a: "Ja! Mit Motto-Rahmen wie Prinzessin, Dino, Feuerwehr, Piraten, Einhorn, Weltraum oder Fußball und lustigen Kinder-Missionen. Die KI-Verwandlung ist dabei bewusst aus – Kinderfotos geben wir nicht an KI-Dienste weiter." },
   { q: "Gibt es das auch zusätzlich zu einer Fotobox?", a: "Ja! Wenn du bei uns eine Fotobox oder einen Fotospiegel mietest, gibt es die VisionBooth als günstiges Add-on dazu." },
 ];
 
@@ -73,7 +74,7 @@ export default function VisionBoothHome() {
             Jedes Handy wird zur <span className="vb-gold-text">Fotobox</span> – mit KI-Magie.
           </h1>
           <p className="vb-in mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-white/70 md:mx-0" style={{ animationDelay: "160ms" }}>
-            QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und sofort teilen. Ganz ohne App, ohne Aufbau – für Hochzeit, Geburtstag und Firmenevent.
+            QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und sofort teilen. Ganz ohne App, ohne Aufbau – für Hochzeit, Geburtstag, Kindergeburtstag, Babyparty und Firmenevent.
           </p>
           <div className="vb-in mt-8 flex flex-col items-center gap-3 sm:flex-row md:justify-start" style={{ animationDelay: "240ms" }}>
             <Link href="/vb/buchen" className="vb-btn w-full rounded-full px-8 py-4 text-center text-[17px] font-bold sm:w-auto">

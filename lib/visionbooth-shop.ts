@@ -21,6 +21,7 @@ export interface VbOrder {
   email: string;
   company: string | null;
   amount_cents: number;
+  template: string | null;
   games: Partial<{ missions: boolean; reveal: boolean; leads: boolean }> | null;
   status: "offen" | "wird_eingerichtet" | "bezahlt" | "abgebrochen" | "fehler";
   stripe_session_id: string | null;
@@ -109,6 +110,7 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     contactName: order.name,
     contactEmail: order.email,
     company: order.company,
+    template: order.template,
     games: order.games && Object.keys(order.games).length ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads) } : undefined,
     sendMail: true,
   });

@@ -5,13 +5,14 @@ import { useFormState, useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
 import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
-import { getTemplate } from "@/components/visionbooth/templates";
+import { getTemplate, VB_TEMPLATES } from "@/components/visionbooth/templates";
 
-const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", babyparty: "🍼", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
-const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
+const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", kindergeburtstag: "🎈", babyparty: "🍼", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
+const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", kindergeburtstag: "party", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
 const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   hochzeit: "Anna & Max",
   babyparty: "Baby Muster 2027",
+  kindergeburtstag: "Paulas 6. Geburtstag",
   geburtstag: "Lenas 30.",
   party: "Abiball 2026",
   firma: "Muster GmbH · Sommerfest",
@@ -19,6 +20,7 @@ const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   messe: "Muster GmbH",
   sonstiges: "Unser Event",
 };
+const KID_MOTTOS = VB_TEMPLATES.filter((t) => t.group === "kinder");
 const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
 const STEPS = ["Anlass", "Paket", "Spiele", "Details", "Bezahlen"];
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
@@ -43,6 +45,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [games, setGames] = useState<VbGames | null>(null);
+  const [motto, setMotto] = useState("dino");
   const [state, action] = useFormState<VbShopResult, FormData>(startVbCheckout, {});
   const top = useRef<HTMLDivElement>(null);
 
@@ -152,6 +155,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               title="Foto-Missionen & Bestenliste"
               text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand."
             />
+            {!["kindergeburtstag", "firma", "weihnachtsfeier", "messe"].includes(occasion) && (
             <GameToggle
               on={games.reveal}
               onChange={(v) => setGames({ ...games, reveal: v })}
@@ -159,6 +163,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               title="Gender-Reveal-Tippspiel"
               text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
             />
+            )}
             {p.firma && (
               <GameToggle
                 on={games.leads}
@@ -179,7 +184,27 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
         <section key="s2" className="vb-in">
           <h1 className="vb-display text-3xl font-semibold">Eure Details</h1>
           <p className="mt-1 text-white/60">So sieht euer Foto-Rahmen aus – alles später noch änderbar.</p>
-          <FramePreview occasion={occasion} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
+          {occasion === "kindergeburtstag" && (
+            <div className="mt-5">
+              <p className="mb-2 text-[13px] font-semibold text-white/70">Welches Motto?</p>
+              <div className="vb-scroll -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
+                {KID_MOTTOS.map((t) => (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setMotto(t.id)}
+                    className={`flex flex-none flex-col items-center gap-1 rounded-2xl px-3 py-2.5 transition active:scale-95 ${motto === t.id ? "ring-2" : "vb-glass"}`}
+                    style={motto === t.id ? { background: `color-mix(in srgb, ${t.accent} 30%, #141417)`, ["--tw-ring-color" as string]: t.accent } : undefined}
+                  >
+                    <span className="text-3xl">{t.stickers![0]}</span>
+                    <span className="whitespace-nowrap text-[12px] font-semibold">{t.name}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <FramePreview occasion={occasion} template={occasion === "kindergeburtstag" ? motto : undefined} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
+          {occasion === "kindergeburtstag" && <p className="mt-3 text-xs text-white/50">🔒 Beim Kindergeburtstag ist die KI-Verwandlung aus – Kinderfotos geben wir nicht an KI-Dienste weiter.</p>}
           <div className="mt-6 space-y-4">
             <Field label="Text im Foto-Rahmen">
               <input value={frameText} onChange={(e) => setFrameText(e.target.value)} maxLength={60} placeholder={`z. B. ${OCC_PLACEHOLDER[occasion]}`} className="vb-input" />
@@ -235,12 +260,13 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             ["email", email],
             ["company", company],
             ["games", JSON.stringify(games ?? defaultGames(p.id, occasion))],
+            ["template", occasion === "kindergeburtstag" ? motto : ""],
           ].map(([k, v]) => (
             <input key={k} type="hidden" name={k} value={v} />
           ))}
           <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
             <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
-            <Row label="Anlass" value={`${OCC_EMOJI[occasion]} ${getOccasion(occasion).label}`} onEdit={() => go(0)} />
+            <Row label="Anlass" value={`${OCC_EMOJI[occasion]} ${getOccasion(occasion).label}${occasion === "kindergeburtstag" ? ` · Motto ${getTemplate(motto).name}` : ""}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
               value={[games?.missions && "🎯 Missionen", games?.reveal && "🍼 Tippspiel", games?.leads && p.firma && "🎁 Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
@@ -298,12 +324,12 @@ function Row({ label, value, onEdit }: { label: string; value: string; onEdit: (
 }
 
 /** Live-Vorschau des Rahmens mit dem Beispielfoto (fiktive Personen). */
-function FramePreview({ occasion, text, date }: { occasion: VbOccasionId; text: string; date: string }) {
+function FramePreview({ occasion, template, text, date }: { occasion: VbOccasionId; template?: string; text: string; date: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const img = useRef<HTMLImageElement | null>(null);
   const fonts = useRef<VbFonts | undefined>(undefined);
   const [ready, setReady] = useState(0);
-  const t = getTemplate(getOccasion(occasion).template);
+  const t = getTemplate(template ?? getOccasion(occasion).template);
 
   useEffect(() => {
     const i = new Image();
@@ -331,7 +357,7 @@ function FramePreview({ occasion, text, date }: { occasion: VbOccasionId; text: 
       <p className="flex-1 text-[13px] leading-relaxed text-white/60">
         Vorlage <strong className="text-white">{t.name}</strong>
         <br />
-        Farbe, Logo und Vorlage kannst du nach der Buchung frei ändern – 10 Designs zur Auswahl.
+        Farbe, Logo und Vorlage kannst du nach der Buchung frei ändern – {VB_TEMPLATES.length} Designs zur Auswahl.
       </p>
     </div>
   );

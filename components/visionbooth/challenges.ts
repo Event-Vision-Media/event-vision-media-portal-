@@ -30,6 +30,21 @@ export const CHALLENGE_SETS: { id: string; label: string; emoji: string; items: 
     ],
   },
   {
+    id: "kinder",
+    label: "Kindergeburtstag",
+    emoji: "🎈",
+    items: [
+      c("k1", "🥳", "Foto mit dem Geburtstagskind", 30),
+      c("k2", "🦖", "Brüll wie ein Dino!", 10),
+      c("k3", "🦸", "Deine beste Superhelden-Pose", 20),
+      c("k4", "💪", "Zeig deine Muskeln", 10),
+      c("k5", "🤪", "Die lustigste Grimasse", 10),
+      c("k6", "👨‍👩‍👧", "Foto mit Mama, Papa, Oma oder Opa", 20),
+      c("k7", "🧍", "Mach dich ganz groß – oder ganz klein", 20),
+      c("k8", "👫", "Gruppenfoto mit allen Kindern", 30),
+    ],
+  },
+  {
     id: "babyparty",
     label: "Babyparty",
     emoji: "🍼",

@@ -3,7 +3,7 @@
 // Der Kunde kann Design und Missionen danach im Kundenbereich anpassen.
 
 export type VbPlanId = "party" | "hochzeit" | "business" | "messe" | "addon-privat" | "addon-firma";
-export type VbOccasionId = "hochzeit" | "geburtstag" | "babyparty" | "party" | "firma" | "weihnachtsfeier" | "messe" | "sonstiges";
+export type VbOccasionId = "hochzeit" | "geburtstag" | "kindergeburtstag" | "babyparty" | "party" | "firma" | "weihnachtsfeier" | "messe" | "sonstiges";
 
 /**
  * Umsatzsteuer: „kleinunternehmer“ (§ 19 UStG, keine MwSt.) oder „regel“ (Preise inkl. 19 % MwSt.).
@@ -53,10 +53,13 @@ export interface VbOccasion {
   aiStyles: string[];
   /** Gender-Reveal-Tippspiel vorausgewählt */
   reveal?: boolean;
+  /** KI-Verwandlung aus (Kinderfotos nicht an KI-Dienste – Datenschutz) */
+  noAi?: boolean;
 }
 
 export const VB_OCCASIONS: VbOccasion[] = [
   { id: "hochzeit", label: "Hochzeit", template: "elegant-gold", challenges: "hochzeit", aiStyles: ["glamour", "vintage", "animation", "superheld"] },
+  { id: "kindergeburtstag", label: "Kindergeburtstag", template: "dino", challenges: "kinder", aiStyles: [], noAi: true },
   { id: "babyparty", label: "Babyparty / Gender Reveal", template: "minimal-weiss", challenges: "babyparty", aiStyles: ["glamour", "animation", "vintage", "superheld"], reveal: true },
   { id: "geburtstag", label: "Geburtstag", template: "party-konfetti", challenges: "geburtstag", aiStyles: ["superheld", "comic", "animation", "glamour"] },
   { id: "party", label: "Party / Abiball", template: "neon", challenges: "party", aiStyles: ["neon", "comic", "superheld", "animation"] },
@@ -80,6 +83,7 @@ export function guessOccasion(text: string | null | undefined, firma = false): V
   const t = (text ?? "").toLowerCase();
   if (/hochzeit|trauung|polterabend|verlobung/.test(t)) return "hochzeit";
   if (/gender|baby|reveal/.test(t)) return "babyparty";
+  if (/kinder|kids|kita|\b[1-9]\.?\s*geburtstag/.test(t)) return "kindergeburtstag";
   if (/weihnacht|xmas|advent|jahresabschluss/.test(t)) return "weihnachtsfeier";
   if (/messe|promo|ausstellung|kongress|roadshow/.test(t)) return "messe";
   if (/geburtstag|jubiläum.*jahre|\b\d{2}\.?\s*(geb|bday)|birthday|ü\d0/.test(t)) return "geburtstag";
