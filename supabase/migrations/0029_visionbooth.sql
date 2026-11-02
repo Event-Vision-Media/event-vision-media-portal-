@@ -15,6 +15,9 @@ create table if not exists public.vb_events (
   contact_name text,
   contact_email text,
   package text not null default 'privat' check (package in ('privat', 'business', 'addon')),
+  -- Paket (packages.ts: party, hochzeit, business, messe, addon-privat, addon-firma) und Anlass
+  plan text,
+  occasion text,
   status text not null default 'aktiv' check (status in ('entwurf', 'aktiv', 'beendet')),
   -- Gäste-Link funktioniert in diesem Zeitraum (null = unbegrenzt)
   opens_at timestamptz,
@@ -40,6 +43,10 @@ create table if not exists public.vb_events (
   photos_deleted_at timestamptz,
   wall_enabled boolean not null default true,
   gallery_enabled boolean not null default true,
+  -- Foto-Missionen [{id, emoji, text, points}], leer = aus
+  challenges jsonb not null default '[]'::jsonb,
+  -- Kontaktformular für Firmen (leads.ts), freiwillig
+  leads jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now()
 );
 
@@ -57,6 +64,8 @@ create table if not exists public.vb_photos (
   -- anonyme Geräte-Kennung (zufällig im Browser erzeugt) für das KI-Limit pro Gast
   guest_key text,
   hidden boolean not null default false,
+  challenge_id text,
+  likes integer not null default 0,
   created_at timestamptz not null default now()
 );
 
@@ -82,7 +91,45 @@ create table if not exists public.vb_ai_jobs (
 
 create index if not exists vb_ai_jobs_event_idx on public.vb_ai_jobs (event_id, created_at desc);
 
+-- Gäste mit Spitznamen (für die Bestenliste der Foto-Missionen)
+create table if not exists public.vb_guests (
+  event_id uuid not null references public.vb_events (id) on delete cascade,
+  guest_key text not null,
+  name text not null,
+  created_at timestamptz not null default now(),
+  primary key (event_id, guest_key)
+);
+
+-- Herzen in der Galerie („Foto des Abends“), ein Herz pro Gerät und Foto
+create table if not exists public.vb_likes (
+  photo_id uuid not null references public.vb_photos (id) on delete cascade,
+  guest_key text not null,
+  event_id uuid not null references public.vb_events (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (photo_id, guest_key)
+);
+
+-- Kontakte aus dem Firmen-Formular, mit gespeichertem Einwilligungstext
+create table if not exists public.vb_leads (
+  id uuid primary key default gen_random_uuid(),
+  event_id uuid not null references public.vb_events (id) on delete cascade,
+  guest_key text,
+  name text,
+  email text not null,
+  company text,
+  phone text,
+  consent_text text not null,
+  created_at timestamptz not null default now()
+);
+create unique index if not exists vb_leads_email_idx on public.vb_leads (event_id, lower(email));
+alter table public.vb_leads enable row level security;
+
+create unique index if not exists vb_events_booking_idx on public.vb_events (booking_id) where booking_id is not null;
+create index if not exists vb_photos_challenge_idx on public.vb_photos (event_id) where challenge_id is not null;
+
 -- Nur der Server (Service-Role) liest und schreibt.
+alter table public.vb_guests enable row level security;
+alter table public.vb_likes enable row level security;
 alter table public.vb_events enable row level security;
 alter table public.vb_photos enable row level security;
 alter table public.vb_ai_jobs enable row level security;

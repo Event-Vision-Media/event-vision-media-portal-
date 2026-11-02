@@ -3,6 +3,8 @@ import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
+import { parseChallenges, type Challenge } from "@/components/visionbooth/challenges";
+import { leadConsentText, parseLeadConfig, type LeadField } from "@/components/visionbooth/leads";
 
 // VisionBooth: digitale Fotobox per QR-Code (Tabellen vb_*, Bucket "visionbooth", Migration 0029).
 
@@ -39,6 +41,12 @@ export interface VbEvent {
   ai_per_guest: number;
   wall_enabled: boolean;
   gallery_enabled: boolean;
+  /** Foto-Missionen (jsonb), leer = aus */
+  challenges: unknown;
+  /** Kontaktformular (jsonb, leads.ts) */
+  leads: unknown;
+  plan: string | null;
+  occasion: string | null;
 }
 
 /** Was die Gäste-Seite vom Event kennen darf (keine Kontaktdaten, keine Buchung). */
@@ -56,6 +64,10 @@ export interface VbGuestEvent {
   formats: ("einzel" | "streifen")[];
   /** Fotos werden automatisch gelöscht am (ISO-Datum) */
   deleteAfter: string;
+  /** Foto-Missionen – nur wenn die Galerie an ist (Punkte zählen nur für geteilte Fotos) */
+  challenges: Challenge[];
+  /** Freiwilliges Kontaktformular (Firmen-Events) */
+  leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
 }
 
 /** Event über den geheimen Verwaltungs-Link des Kunden laden. */
@@ -98,6 +110,11 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     aiStyles: e.ai_enabled && e.ai_limit > 0 ? e.ai_styles.filter((k) => VB_STYLES[k]).map((k) => ({ key: k, label: VB_STYLES[k].label, emoji: VB_STYLES[k].emoji, waits: VB_STYLES[k].waits, seconds: VB_STYLES[k].seconds })) : [],
     aiPerGuest: e.ai_per_guest,
     deleteAfter: vbDeleteAfter(e).toISOString().slice(0, 10),
+    challenges: e.gallery_enabled ? parseChallenges(e.challenges) : [],
+    leads: (() => {
+      const c = parseLeadConfig(e.leads);
+      return c.enabled ? { title: c.title, text: c.text, fields: c.fields, consent: leadConsentText(c, e.contact_name || e.title) } : null;
+    })(),
     formats: (() => {
       const f = (e.formats ?? []).filter((x): x is "einzel" | "streifen" => x === "einzel" || x === "streifen");
       return f.length ? f : ["einzel"];
@@ -167,6 +184,7 @@ export async function cleanupVbPhotos(dryRun = false): Promise<{ event: string; 
       continue;
     }
     await supabase.from("vb_ai_jobs").delete().eq("event_id", e.id);
+    await supabase.from("vb_leads").delete().eq("event_id", e.id);
     await supabase.from("vb_photos").delete().eq("event_id", e.id);
     await supabase.from("vb_events").update({ photos_deleted_at: new Date().toISOString(), status: "beendet" }).eq("id", e.id);
     out.push({ event: e.slug, photos: count ?? 0, deleted: true });

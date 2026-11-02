@@ -19,6 +19,7 @@ import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
 import { AudioGuestbookAdminSection } from "@/components/admin/AudioGuestbookAdminSection";
 import { Card } from "@/components/ui/Card";
+import { VbBookingCard } from "@/components/admin/visionbooth/VbBookingCard";
 import { ContractAdminCard } from "@/components/admin/ContractAdminCard";
 import { getLatestContract } from "@/lib/contract-server";
 import { contractRequired } from "@/lib/contract";
@@ -347,6 +348,8 @@ export default async function AdminBookingDetailPage({
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
 
         {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
+
+        <VbBookingCard booking={booking} />
 
         {(booking as any).layout_draft && (
           <Card>

@@ -23,6 +23,10 @@ import {
   type VbFonts,
 } from "./frame";
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
+import type { Challenge } from "./challenges";
+import { LeadFormView, LeadTeaser } from "./LeadForm";
+import type { LeadField } from "./leads";
+import { BoardView, MissionList, MissionWinCard, NameForm, Sheet, type BoardData, type MissionWin } from "./Missions";
 
 interface GuestEvent {
   slug: string;
@@ -39,6 +43,10 @@ interface GuestEvent {
   formats: Format[];
   /** Fotos werden automatisch gelöscht am (ISO-Datum) */
   deleteAfter: string;
+  /** Foto-Missionen (leer = aus) */
+  challenges: Challenge[];
+  /** Freiwilliges Kontaktformular (Firmen-Events) */
+  leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
 }
 
 type Format = "einzel" | "streifen";
@@ -87,6 +95,18 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   const [canShare, setCanShare] = useState(false);
   const [confetti, setConfetti] = useState(0);
   const [waitIdx, setWaitIdx] = useState(0);
+  // Foto-Missionen
+  const missions = event.challenges;
+  const [mission, setMission] = useState<Challenge | null>(null);
+  const [pending, setPending] = useState<Challenge | null>(null);
+  const [sheet, setSheet] = useState<"missionen" | "name" | "bestenliste" | "kontakt" | null>(null);
+  const [leadDone, setLeadDone] = useState(true);
+  const [done, setDone] = useState<Set<string>>(new Set());
+  const [myName, setMyName] = useState<string | null>(null);
+  const [win, setWin] = useState<MissionWin | null>(null);
+  const [nudge, setNudge] = useState(0);
+  /** Mission, die mit dem nächsten Original-Upload eingereicht wird */
+  const missionRef = useRef<Challenge | null>(null);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -116,6 +136,28 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     }),
     [event]
   );
+
+  // Erledigte Missionen und Spitzname vom Server holen (z. B. nach Neuladen der Seite)
+  useEffect(() => {
+    if (!missions.length) return;
+    fetch(`/api/vb/${event.slug}/board?limit=1`, { headers: { "x-vb-guest": guestKey() }, cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((b: BoardData | null) => {
+        if (!b?.me) return;
+        setDone(new Set(b.me.done));
+        if (b.me.name) setMyName(b.me.name);
+      })
+      .catch(() => {});
+  }, [missions.length, event.slug]);
+
+  // Kontaktformular schon ausgefüllt? (nur auf diesem Gerät gemerkt)
+  useEffect(() => {
+    try {
+      setLeadDone(!event.leads || localStorage.getItem(`vb-lead-${event.slug}`) === "1");
+    } catch {
+      setLeadDone(!event.leads);
+    }
+  }, [event.leads, event.slug]);
 
   // Schriften der Vorlage fürs Canvas laden
   useEffect(() => {
@@ -217,10 +259,20 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
         headers["x-vb-kind"] = "ki";
         headers["x-vb-style"] = v.style;
       }
+      const m = v.id === "original" ? missionRef.current : null;
+      if (m) headers["x-vb-challenge"] = m.id;
       const res = await fetch(`/api/vb/${event.slug}/upload`, { method: "POST", headers, body: v.blob });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Upload fehlgeschlagen");
       setVariant(v.id, { upload: "ok" });
+      if (m && data?.mission) {
+        missionRef.current = null;
+        setMission(null);
+        setDone((d) => new Set(d).add(m.id));
+        setWin({ emoji: m.emoji, text: m.text, points: m.points, total: data.mission.total, rank: data.mission.rank, players: data.mission.players });
+        setConfetti((n) => n + 1);
+        buzz([30, 60, 30, 60, 90]);
+      }
     } catch (e: any) {
       setVariant(v.id, { upload: "fehler", uploadMsg: e?.message || "Upload fehlgeschlagen" });
     }
@@ -430,8 +482,54 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     }
   }
 
+  /** Mission auswählen: erst Galerie-Freigabe und Spitzname, dann direkt zur Kamera. */
+  function pickMission(c: Challenge) {
+    if (!consent) {
+      buzz(80);
+      setNudge((n) => n + 1);
+      return;
+    }
+    if (!myName) {
+      setPending(c);
+      setSheet("name");
+      return;
+    }
+    startMission(c);
+  }
+
+  function startMission(c: Challenge) {
+    missionRef.current = c;
+    setMission(c);
+    setSheet(null);
+    setWin(null);
+    buzz(20);
+    if (step === "ergebnis") again();
+    else setStep("kamera");
+  }
+
+  async function saveName(name: string): Promise<string | null> {
+    const res = await fetch(`/api/vb/${event.slug}/guest`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-vb-guest": guestKey() },
+      body: JSON.stringify({ name }),
+    }).catch(() => null);
+    const data = await res?.json().catch(() => ({}));
+    if (!res?.ok) return data?.error || "Das hat nicht geklappt – versuch es nochmal.";
+    setMyName(data.name);
+    if (pending) startMission(pending);
+    else setSheet(null);
+    setPending(null);
+    return null;
+  }
+
+  function cancelMission() {
+    missionRef.current = null;
+    setMission(null);
+  }
+
   function again() {
     if (aiBusy) return;
+    setWin(null);
     variants.forEach((v) => URL.revokeObjectURL(v.url));
     setVariants([]);
     rawRef.current = null;
@@ -488,6 +586,19 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           </div>
 
           <div className="vb-in mt-8 space-y-4" style={{ animationDelay: "320ms" }}>
+            {missions.length > 0 && (
+              <button onClick={() => setSheet("missionen")} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
+                <span className="vb-shimmer pointer-events-none absolute inset-0 opacity-40" />
+                <span className="relative flex h-11 w-11 flex-none items-center justify-center rounded-xl text-2xl" style={{ background: "color-mix(in srgb, var(--a) 25%, transparent)" }}>
+                  🎯
+                </span>
+                <span className="relative flex-1 text-[13px] leading-snug text-white/75">
+                  <span className="block text-[15px] font-semibold text-white">Foto-Missionen</span>
+                  {done.size ? `${done.size} von ${missions.length} erledigt – weiter geht's!` : `${missions.length} Aufgaben · Punkte sammeln · Bestenliste`}
+                </span>
+                <span className="relative text-xl text-white/50">›</span>
+              </button>
+            )}
             {event.galleryEnabled && (
               <button type="button" onClick={() => setConsent((c) => !c)} className="vb-glass flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left" aria-pressed={consent}>
                 <span className="flex-1 text-[13px] leading-snug text-white/80">
@@ -552,6 +663,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 <div className="vb-glass absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-[22px] p-7 text-center">
                   <IconCamera className="h-10 w-10 text-white/60" />
                   <p className="text-sm leading-relaxed text-white/80">{camError}</p>
+                  {mission && (
+                    <p className="rounded-full px-4 py-1.5 text-[13px] font-semibold" style={{ background: "color-mix(in srgb, var(--a) 24%, transparent)" }}>
+                      {mission.emoji} {mission.text} <span style={{ color: "var(--a)" }}>+{mission.points}</span>
+                    </p>
+                  )}
                   <button onClick={() => fileRef.current?.click()} className="vb-btn rounded-full px-7 py-3.5 font-bold">
                     Foto aufnehmen
                   </button>
@@ -565,6 +681,22 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
 
           {!camError && (
             <div className="flex flex-col items-center gap-4 px-4 pb-5 pt-4">
+              {mission ? (
+                <div className="vb-chip flex max-w-full items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 text-[13px] font-semibold" style={{ background: "color-mix(in srgb, var(--a) 24%, rgba(20,20,23,0.85))", border: "1px solid color-mix(in srgb, var(--a) 55%, transparent)" }}>
+                  <span className="text-base">{mission.emoji}</span>
+                  <span className="truncate">{mission.text}</span>
+                  <span className="flex-none font-bold" style={{ color: "var(--a)" }}>+{mission.points}</span>
+                  <button onClick={cancelMission} disabled={busyShot} className="ml-1 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black/30 text-xs" aria-label="Mission abbrechen">
+                    ✕
+                  </button>
+                </div>
+              ) : (
+                missions.length > 0 && (
+                  <button onClick={() => setSheet("missionen")} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
+                    🎯 Mission wählen
+                  </button>
+                )
+              )}
               {event.formats.length > 1 && (
                 <div className="vb-glass flex rounded-full p-1 text-[13px] font-semibold">
                   {event.formats.map((f) => (
@@ -612,6 +744,9 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             )}
           </div>
 
+          {win && <MissionWinCard win={win} onNext={() => setSheet("missionen")} onBoard={() => setSheet("bestenliste")} />}
+          {!win && mission && current.upload === "laeuft" && <p className="vb-fade text-center text-sm text-white/70">{mission.emoji} Mission wird gewertet …</p>}
+
           {variants.length > 1 && (
             <div className="vb-scroll -mx-4 flex gap-2 overflow-x-auto px-4">
               {variants.map((v) => (
@@ -646,6 +781,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             <span className="inline-block h-4 w-[9px] rounded-[3px] border-[1.5px] border-current" aria-hidden />
             Als Story teilen (Instagram &amp; WhatsApp)
           </button>
+
+          {event.leads && !leadDone && <LeadTeaser lead={event.leads} onOpen={() => setSheet("kontakt")} />}
 
           <p className="-mt-2 text-center text-xs text-white/55">
             {current.upload === "laeuft" && "Wird in die Event-Galerie geladen …"}
@@ -697,6 +834,44 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             </div>
           )}
         </section>
+      )}
+
+      {sheet === "missionen" && (
+        <Sheet title="Foto-Missionen" onClose={() => setSheet(null)}>
+          <MissionList
+            missions={missions}
+            done={done}
+            active={mission?.id ?? null}
+            consent={consent}
+            nudge={nudge}
+            onConsent={() => setConsent(true)}
+            onPick={pickMission}
+            onBoard={() => setSheet("bestenliste")}
+          />
+        </Sheet>
+      )}
+      {sheet === "name" && (
+        <Sheet title="Dein Name" onClose={() => setSheet(null)}>
+          <NameForm initial={myName ?? ""} onSave={saveName} />
+        </Sheet>
+      )}
+      {sheet === "kontakt" && event.leads && (
+        <Sheet title="Mitmachen" onClose={() => setSheet(null)}>
+          <LeadFormView
+            slug={event.slug}
+            guest={guestKey()}
+            lead={event.leads}
+            onDone={() => {
+              setLeadDone(true);
+              setSheet(null);
+            }}
+          />
+        </Sheet>
+      )}
+      {sheet === "bestenliste" && (
+        <Sheet title="Bestenliste" onClose={() => setSheet(null)}>
+          <BoardView slug={event.slug} guest={guestKey()} />
+        </Sheet>
       )}
     </main>
   );

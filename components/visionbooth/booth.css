@@ -157,3 +157,39 @@
 @media (prefers-reduced-motion: reduce) {
   .vb-aurora, .vb-btn::after, .vb-shutter, .vb-shimmer { animation: none; }
 }
+
+/* Unteres Blatt (Missionen, Bestenliste) */
+.vb-backdrop { animation: vb-fade-bg 0.25s ease both; }
+@keyframes vb-fade-bg { from { opacity: 0; } to { opacity: 1; } }
+.vb-sheet { animation: vb-sheet 0.42s cubic-bezier(0.2, 1, 0.3, 1) both; }
+@keyframes vb-sheet { from { transform: translateY(100%); } to { transform: none; } }
+
+/* Punkte springen rein */
+.vb-points { animation: vb-points 0.9s cubic-bezier(0.2, 1.6, 0.4, 1) 0.15s both; }
+@keyframes vb-points {
+  0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  60% { opacity: 1; transform: scale(1.15) rotate(2deg); }
+  100% { transform: none; }
+}
+
+/* Missions-Chip über der Kamera */
+.vb-chip { animation: vb-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Herz-Puls in der Galerie */
+.vb-heart { animation: vb-heart 0.45s cubic-bezier(0.2, 1.8, 0.4, 1) both; }
+@keyframes vb-heart { 0% { transform: scale(0.6); } 60% { transform: scale(1.35); } 100% { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-sheet, .vb-points, .vb-heart { animation: none; }
+}
+.vb-shake { animation: vb-shake 0.45s ease both; }
+@keyframes vb-shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+.vb-wall-mission { animation: vb-wall-m 0.8s cubic-bezier(0.2, 1.3, 0.3, 1) both; }
+@keyframes vb-wall-m { from { opacity: 0; transform: translate(-50%, 60%) scale(0.85); } to { opacity: 1; transform: translate(-50%, 0); } }
+.vb-heart-burst { animation: vb-burst 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes vb-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1.05); }
+}

@@ -11,6 +11,12 @@ import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { vbClosedReason, vbDeleteAfter, vbGuestUrl, vbManageUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 import { VbSendManageLink } from "@/components/admin/visionbooth/VbSendManageLink";
+import { VbChallengesEditor } from "@/components/visionbooth/customer/VbChallengesEditor";
+import { parseChallenges } from "@/components/visionbooth/challenges";
+import { updateVbChallengesAdmin, updateVbLeadsAdmin } from "@/app/actions/admin-visionbooth";
+import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
+import { parseLeadConfig } from "@/components/visionbooth/leads";
+import { listVbLeads } from "@/lib/visionbooth-leads";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 
@@ -118,6 +124,20 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
                   }}
                   styles={Object.entries(VB_STYLES).map(([key, s]) => ({ key, label: s.label, emoji: s.emoji }))}
                 />
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="font-serif text-lg font-semibold text-anthracite-800">🎯 Foto-Missionen</h2>
+              <div className="mt-4">
+                <VbChallengesEditor action={updateVbChallengesAdmin.bind(null, event.id)} initial={parseChallenges(event.challenges)} galleryEnabled={event.gallery_enabled} />
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="font-serif text-lg font-semibold text-anthracite-800">🎁 Kontakte & Gewinnspiel</h2>
+              <div className="mt-4">
+                <VbLeadsEditor action={updateVbLeadsAdmin.bind(null, event.id)} initial={parseLeadConfig(event.leads)} count={(await listVbLeads(event.id)).length} csvUrl={`/api/admin/vb-kontakte/${event.id}`} />
               </div>
             </Card>
 

@@ -2,6 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, vbClosedReason, VB_BUCKET, VB_MAX_UPLOAD } from "@/lib/visionbooth";
+import { parseChallenges } from "@/components/visionbooth/challenges";
+import { vbBoard } from "@/lib/visionbooth-board";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +49,18 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   }
   const isAi = req.headers.get("x-vb-kind") === "ki";
   const style = isAi ? (req.headers.get("x-vb-style") ?? "").replace(/[^a-z]/g, "").slice(0, 30) || null : null;
+  // Foto-Mission: nur echte Fotos (keine KI-Varianten) und nur Missionen dieses Events zählen
+  const wanted = req.headers.get("x-vb-challenge");
+  const challenge = !isAi && guestKey && wanted ? parseChallenges(event.challenges).find((c) => c.id === wanted) ?? null : null;
   const { error: dbErr } = await supabase
     .from("vb_photos")
-    .insert({ id, event_id: event.id, kind: isAi ? "ki" : "foto", style, file_path: path, guest_key: guestKey });
+    .insert({ id, event_id: event.id, kind: isAi ? "ki" : "foto", style, file_path: path, guest_key: guestKey, challenge_id: challenge?.id ?? null });
   if (dbErr) {
     console.error("VisionBooth-Foto:", dbErr);
     await supabase.storage.from(VB_BUCKET).remove([path]);
     return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });
   }
-  return NextResponse.json({ ok: true, id });
+  if (!challenge) return NextResponse.json({ ok: true, id });
+  const board = await vbBoard(event, guestKey, 3);
+  return NextResponse.json({ ok: true, id, mission: { id: challenge.id, points: challenge.points, total: board.me?.points ?? 0, rank: board.me?.rank ?? null, players: board.players } });
 }

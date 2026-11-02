@@ -7,7 +7,18 @@ interface Photo {
   kind: string;
   createdAt: string;
   url: string;
+  likes?: number;
+  mission?: { emoji: string; text: string; points: number; by: string | null } | null;
 }
+
+interface Board {
+  top: { name: string; points: number; missions: number }[];
+  players: number;
+  topPhoto: { id: string; url: string; likes: number } | null;
+}
+
+const BOARD_MS = 15000;
+const MEDALS = ["🥇", "🥈", "🥉"];
 
 const POLL_MS = 5000;
 const ROTATE_MS = 6000;
@@ -29,7 +40,7 @@ export function LiveWall({
   qrSvg,
   guestUrl,
 }: {
-  event: { slug: string; frameText: string; accent: string; logoUrl: string | null };
+  event: { slug: string; frameText: string; accent: string; logoUrl: string | null; challenges: unknown[] };
   qrSvg: string;
   guestUrl: string;
 }) {
@@ -39,6 +50,25 @@ export function LiveWall({
   const holdUntil = useRef(0);
   const rotateIdx = useRef(0);
   const photosRef = useRef<Photo[]>([]);
+  const [board, setBoard] = useState<Board | null>(null);
+  const missions = event.challenges.length > 0;
+
+  // Bestenliste regelmäßig aktualisieren
+  useEffect(() => {
+    if (!missions) return;
+    let stop = false;
+    const load = () =>
+      fetch(`/api/vb/${event.slug}/board?limit=5`, { cache: "no-store" })
+        .then((r) => (r.ok ? r.json() : null))
+        .then((b) => !stop && b && setBoard(b))
+        .catch(() => {});
+    load();
+    const t = setInterval(load, BOARD_MS);
+    return () => {
+      stop = true;
+      clearInterval(t);
+    };
+  }, [missions, event.slug]);
 
   // Nachladen: erst alle der letzten Fotos, danach nur neue
   useEffect(() => {
@@ -115,10 +145,22 @@ export function LiveWall({
         {current ? (
           <>
             <img key={current.id} src={current.url} alt="" className="max-h-full max-w-full animate-fade-in rounded-lg object-contain shadow-2xl" />
-            {isNew && (
+            {isNew && !current.mission && (
               <span className="absolute left-4 top-4 animate-fade-in rounded-full px-5 py-2 text-[1.4vw] font-semibold text-[#0d0d0f]" style={{ background: gold }}>
                 Gerade aufgenommen ✨
               </span>
+            )}
+            {current.mission && (
+              <div key={`m${current.id}`} className="vb-wall-mission absolute bottom-[3%] left-1/2 flex -translate-x-1/2 items-center gap-[1vw] whitespace-nowrap rounded-full bg-black/75 py-[0.7vw] pl-[0.8vw] pr-[1.6vw] text-[1.35vw] shadow-2xl ring-1 ring-white/15 backdrop-blur">
+                <span className="flex h-[3vw] w-[3vw] items-center justify-center rounded-full text-[1.7vw]" style={{ background: gold }}>
+                  {current.mission.emoji}
+                </span>
+                <span>
+                  <span className="font-semibold">{current.mission.by ?? "Ein Gast"}</span>
+                  <span className="text-white/65"> hat „{current.mission.text}“ erfüllt</span>
+                </span>
+                <span className="font-bold" style={{ color: gold }}>+{current.mission.points}</span>
+              </div>
             )}
           </>
         ) : (
@@ -141,7 +183,33 @@ export function LiveWall({
           <p className="mt-[0.6vw] text-[0.9vw] text-white/40">{guestUrl}</p>
         </div>
 
-        {strip.length > 1 ? (
+        {missions && board ? (
+          <div className="w-full text-left">
+            <p className="mb-[0.6vw] text-center font-serif text-[1.5vw]">🏆 Bestenliste</p>
+            {board.top.length === 0 ? (
+              <p className="text-center text-[0.95vw] text-white/50">Erfülle Foto-Missionen und lande hier!</p>
+            ) : (
+              <ol className="space-y-[0.35vw]">
+                {board.top.map((r, i) => (
+                  <li key={r.name + i} className="flex items-center gap-[0.6vw] rounded-lg bg-white/[0.06] px-[0.7vw] py-[0.45vw] text-[1vw]">
+                    <span className="w-[1.8vw] text-center">{MEDALS[i] ?? `${i + 1}.`}</span>
+                    <span className="flex-1 truncate font-semibold">{r.name}</span>
+                    <span className="font-bold" style={{ color: gold }}>{r.points}</span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            {board.topPhoto && (
+              <div className="mt-[0.8vw] flex items-center gap-[0.7vw] rounded-lg bg-white/[0.06] p-[0.45vw]">
+                <img src={board.topPhoto.url} alt="" className="h-[4.2vw] w-[3.4vw] rounded object-cover" />
+                <span className="text-[0.9vw] leading-tight text-white/75">
+                  <span className="block font-semibold text-white">❤️ Foto des Abends</span>
+                  {board.topPhoto.likes === 1 ? "1 Herz" : `${board.topPhoto.likes} Herzen`}
+                </span>
+              </div>
+            )}
+          </div>
+        ) : strip.length > 1 ? (
           <div className="grid w-full grid-cols-3 gap-[0.5vw]">
             {strip.map((p) => (
               <img key={p.id} src={p.url} alt="" className={`aspect-[4/5] w-full rounded object-cover ${p.id === current?.id ? "ring-2" : "opacity-60"}`} style={{ ["--tw-ring-color" as string]: gold }} />

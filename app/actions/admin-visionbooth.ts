@@ -2,27 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { vbManageUrl, VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
 import { sendEmail, vbManageMail } from "@/lib/email";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
+import { parseChallenges } from "@/components/visionbooth/challenges";
+import { leadConfigFromForm } from "@/lib/visionbooth-leads";
+import { addonPlanFor, getOccasion, getPlan, guessOccasion } from "@/components/visionbooth/packages";
+import { berlinIso, provisionVbEvent } from "@/lib/visionbooth-provision";
 import type { AdminActionResult } from "@/app/actions/admin";
 
-/** Gut lesbar, nicht erratbar: ohne 0/o/1/l/i. */
-const SLUG_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
-const newSlug = () => Array.from({ length: 7 }, () => SLUG_CHARS[randomInt(SLUG_CHARS.length)]).join("");
-
-/** "2026-11-14" + "18:00" (Berlin) → ISO-Zeitpunkt. */
-function berlinIso(date: string, time: string): string | null {
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
-  const guess = new Date(`${date}T${time}:00Z`);
-  const berlin = new Date(guess.toLocaleString("en-US", { timeZone: "Europe/Berlin" }));
-  const utc = new Date(guess.toLocaleString("en-US", { timeZone: "UTC" }));
-  return new Date(guess.getTime() - (berlin.getTime() - utc.getTime())).toISOString();
-}
 
 const str = (f: FormData, k: string, max = 200) => String(f.get(k) ?? "").trim().slice(0, max);
 const int = (f: FormData, k: string, min: number, max: number, fallback: number) => {
@@ -37,39 +28,48 @@ function paths(id?: string) {
 
 export async function createVbEvent(_prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
   if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
-  const title = str(formData, "title", 120);
-  if (!title) return { error: "Bitte einen Namen für das Event angeben." };
-  const eventDate = str(formData, "event_date", 10) || null;
-  const pkg = ["privat", "business", "addon"].includes(str(formData, "package")) ? str(formData, "package") : "privat";
-
-  const supabase = createAdminClient();
-  let id: string | null = null;
-  for (let i = 0; i < 5 && !id; i++) {
-    const { data, error } = await supabase
-      .from("vb_events")
-      .insert({
-        slug: newSlug(),
-        title,
-        event_date: eventDate,
-        package: pkg,
-        frame_text: str(formData, "frame_text", 60) || title,
-        contact_name: str(formData, "contact_name", 120) || null,
-        contact_email: str(formData, "contact_email", 200).toLowerCase() || null,
-        // Standard: Gäste-Link ab Event-Tag bis 14 Tage danach
-        opens_at: eventDate ? berlinIso(eventDate, "00:00") : null,
-        closes_at: eventDate ? berlinIso(new Date(Date.parse(eventDate) + 14 * 864e5).toISOString().slice(0, 10), "23:59") : null,
-        ai_enabled: pkg !== "privat",
-        ai_styles: ["glamour", "superheld", "animation", "comic"],
-        ai_limit: pkg === "business" ? 300 : pkg === "addon" ? 150 : 0,
-      })
-      .select("id")
-      .single();
-    if (data) id = data.id;
-    else if (error && error.code !== "23505") return { error: "Event konnte nicht angelegt werden." };
-  }
-  if (!id) return { error: "Event konnte nicht angelegt werden." };
+  const plan = getPlan(str(formData, "plan", 20));
+  const res = await provisionVbEvent({
+    plan: plan.id,
+    occasion: getOccasion(str(formData, "occasion", 20)).id,
+    title: str(formData, "title", 120),
+    frameText: str(formData, "frame_text", 60),
+    eventDate: str(formData, "event_date", 10) || null,
+    contactName: str(formData, "contact_name", 120),
+    contactEmail: str(formData, "contact_email", 200),
+    sendMail: formData.get("send_mail") === "on",
+  });
+  if ("error" in res) return { error: res.error };
   paths();
-  redirect(`/admin/visionbooth/${id}`);
+  redirect(`/admin/visionbooth/${res.id}`);
+}
+
+/** VisionBooth zu einer bestehenden Buchung anlegen – Anlass, Kunde und Datum kommen aus der Buchung. */
+export async function createVbForBooking(bookingId: string, _prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const { data: b } = await createAdminClient()
+    .from("bookings")
+    .select("id, couple_names, customer_name, company, email, event_date, occasion, customer_type, event_days")
+    .eq("id", bookingId)
+    .maybeSingle();
+  if (!b) return { error: "Buchung nicht gefunden." };
+  const firma = b.customer_type === "business" || Boolean(b.company);
+  const res = await provisionVbEvent({
+    plan: getPlan(str(formData, "plan", 20) || addonPlanFor(firma)).id,
+    occasion: getOccasion(str(formData, "occasion", 20) || guessOccasion(b.occasion, firma)).id,
+    title: [b.occasion, b.company || b.couple_names || b.customer_name].filter(Boolean).join(" · ") || "VisionBooth",
+    frameText: str(formData, "frame_text", 60) || b.company || b.couple_names || b.customer_name,
+    eventDate: b.event_date,
+    eventDays: b.event_days ?? 1,
+    contactName: b.customer_name || b.couple_names,
+    contactEmail: b.email,
+    bookingId: b.id,
+    sendMail: formData.get("send_mail") === "on",
+  });
+  if ("error" in res) return { error: res.error };
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  paths(res.id);
+  return { success: true };
 }
 
 export async function updateVbEvent(_prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
@@ -164,5 +164,29 @@ export async function sendVbManageLink(eventId: string): Promise<AdminActionResu
   const mail = vbManageMail({ name: e.contact_name, title: e.frame_text || e.title, date: e.event_date, url: vbManageUrl(e.manage_token) });
   const r = await sendEmail({ to: e.contact_email, ...mail });
   if (!r.sent) return { error: "Mail konnte nicht verschickt werden." };
+  return { success: true };
+}
+
+/** Foto-Missionen eines Events speichern (Admin). */
+export async function updateVbChallengesAdmin(eventId: string, _prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  let raw: unknown = [];
+  try {
+    raw = JSON.parse(String(formData.get("challenges") ?? "[]"));
+  } catch {
+    return { error: "Ungültige Eingabe." };
+  }
+  const { error } = await createAdminClient().from("vb_events").update({ challenges: parseChallenges(raw) }).eq("id", eventId);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  paths(eventId);
+  return { success: true };
+}
+
+/** Kontaktformular eines Events speichern (Admin). */
+export async function updateVbLeadsAdmin(eventId: string, _prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const { error } = await createAdminClient().from("vb_events").update({ leads: leadConfigFromForm(formData) }).eq("id", eventId);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  paths(eventId);
   return { success: true };
 }

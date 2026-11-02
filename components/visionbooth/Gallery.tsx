@@ -8,9 +8,37 @@ interface Photo {
   kind: string;
   createdAt: string;
   url: string;
+  likes?: number;
 }
 
 const PAGE = 60;
+
+function guestKey(): string {
+  try {
+    let k = localStorage.getItem("vb-guest");
+    if (!k) {
+      k = crypto.randomUUID();
+      localStorage.setItem("vb-guest", k);
+    }
+    return k;
+  } catch {
+    return "";
+  }
+}
+
+function Heart({ on, className = "" }: { on: boolean; className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" className={className} aria-hidden>
+      <path
+        d="M12 20.5s-7.5-4.6-9.3-9.2C1.4 7.9 3.6 4.5 7 4.5c2 0 3.6 1.1 5 3 1.4-1.9 3-3 5-3 3.4 0 5.6 3.4 4.3 6.8-1.8 4.6-9.3 9.2-9.3 9.2z"
+        fill={on ? "#ff4d6d" : "none"}
+        stroke={on ? "#ff4d6d" : "currentColor"}
+        strokeWidth="1.8"
+        strokeLinejoin="round"
+      />
+    </svg>
+  );
+}
 
 const fileName = (p: Photo, i: number) =>
   `visionbooth-${String(i + 1).padStart(3, "0")}${p.kind === "ki" ? "-ki" : ""}.jpg`;
@@ -20,7 +48,12 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"alle" | "ki">("alle");
+  const [filter, setFilter] = useState<"alle" | "ki" | "top">("alle");
+  const [topList, setTopList] = useState<Photo[] | null>(null);
+  const [liked, setLiked] = useState<Set<string>>(new Set());
+  const [likes, setLikes] = useState<Record<string, number>>({});
+  const [burst, setBurst] = useState<string | null>(null);
+  const lastTap = useRef(0);
   const [open, setOpen] = useState<number | null>(null);
   const [zip, setZip] = useState<{ done: number; total: number } | null>(null);
   const [zipError, setZipError] = useState<string | null>(null);
@@ -50,7 +83,61 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
     return () => io.disconnect();
   }, [loadMore]);
 
-  const shown = filter === "ki" ? photos.filter((p) => p.kind === "ki") : photos;
+  // Eigene Herzen merken (nur auf diesem Gerät)
+  const likedKey = `vb-likes-${event.slug}`;
+  useEffect(() => {
+    try {
+      setLiked(new Set(JSON.parse(localStorage.getItem(likedKey) ?? "[]")));
+    } catch {
+      /* privates Surfen */
+    }
+  }, [likedKey]);
+
+  // Beliebteste Fotos erst laden, wenn der Filter gewählt wird
+  useEffect(() => {
+    if (filter !== "top" || topList) return;
+    fetch(`/api/vb/${event.slug}/photos?sort=top&limit=100`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { photos: [] }))
+      .then((d: { photos: Photo[] }) => setTopList(d.photos))
+      .catch(() => setTopList([]));
+  }, [filter, topList, event.slug]);
+
+  const likeCount = (p: Photo) => likes[p.id] ?? p.likes ?? 0;
+
+  async function toggleLike(p: Photo, force?: boolean) {
+    const on = force ?? !liked.has(p.id);
+    if (on === liked.has(p.id)) return;
+    const next = new Set(liked);
+    if (on) next.add(p.id);
+    else next.delete(p.id);
+    setLiked(next);
+    setLikes((l) => ({ ...l, [p.id]: Math.max(0, likeCount(p) + (on ? 1 : -1)) }));
+    if (on) {
+      setBurst(p.id);
+      setTimeout(() => setBurst((b) => (b === p.id ? null : b)), 800);
+      try {
+        navigator.vibrate?.(18);
+      } catch {
+        /* iPhone */
+      }
+    }
+    try {
+      localStorage.setItem(likedKey, JSON.stringify([...next].slice(-500)));
+    } catch {
+      /* privates Surfen */
+    }
+    const res = await fetch(`/api/vb/${event.slug}/like`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-vb-guest": guestKey() },
+      body: JSON.stringify({ photoId: p.id, on }),
+    }).catch(() => null);
+    if (res?.ok) {
+      const { likes: n } = await res.json();
+      setLikes((l) => ({ ...l, [p.id]: n }));
+    }
+  }
+
+  const shown = filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
   const hasAi = photos.some((p) => p.kind === "ki");
 
   const step = useCallback(
@@ -148,15 +235,20 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
 
         {total > 0 && (
           <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            {hasAi && (
-              <div className="flex rounded-full bg-white/10 p-1 text-sm">
-                {(["alle", "ki"] as const).map((f) => (
-                  <button key={f} onClick={() => setFilter(f)} className={`rounded-full px-4 py-1.5 ${filter === f ? "bg-white text-[#0d0d0f]" : "text-white/70"}`}>
-                    {f === "alle" ? "Alle" : "✨ KI-Bilder"}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex rounded-full bg-white/10 p-1 text-sm">
+              {(hasAi ? (["alle", "top", "ki"] as const) : (["alle", "top"] as const)).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => {
+                    setFilter(f);
+                    setOpen(null);
+                  }}
+                  className={`rounded-full px-4 py-1.5 transition ${filter === f ? "bg-white text-[#0d0d0f]" : "text-white/70"}`}
+                >
+                  {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : "✨ KI"}
+                </button>
+              ))}
+            </div>
             <button onClick={downloadAll} disabled={Boolean(zip)} className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10 disabled:opacity-60">
               {zip ? `ZIP wird erstellt … ${zip.done}/${zip.total}` : "Alle herunterladen (ZIP)"}
             </button>
@@ -167,14 +259,35 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
 
       <section className="mx-auto grid max-w-6xl grid-cols-2 gap-1.5 px-1.5 pb-16 sm:grid-cols-3 sm:gap-2 sm:px-4 lg:grid-cols-4">
         {shown.map((p, i) => (
-          <button key={p.id} onClick={() => setOpen(i)} className="relative overflow-hidden rounded-md bg-white/5">
-            <img src={p.url} alt="" loading="lazy" className="aspect-[4/5] w-full object-cover transition hover:scale-[1.02]" />
-            {p.kind === "ki" && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px]">✨ KI</span>}
-          </button>
+          <div key={p.id} className="relative overflow-hidden rounded-md bg-white/5">
+            <button onClick={() => setOpen(i)} className="block w-full">
+              <img src={p.url} alt="" loading="lazy" className="aspect-[4/5] w-full object-cover transition hover:scale-[1.02]" />
+            </button>
+            {p.kind === "ki" && <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px]">✨ KI</span>}
+            {filter === "top" && i < 3 && <span className="pointer-events-none absolute right-1.5 top-1.5 text-xl drop-shadow">{["🥇", "🥈", "🥉"][i]}</span>}
+            <button
+              onClick={() => toggleLike(p)}
+              className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold backdrop-blur"
+              aria-label={liked.has(p.id) ? "Herz entfernen" : "Herz geben"}
+            >
+              <Heart on={liked.has(p.id)} className={`h-4 w-4 ${burst === p.id ? "vb-heart" : ""}`} />
+              {likeCount(p) > 0 && likeCount(p)}
+            </button>
+          </div>
         ))}
       </section>
       <div ref={sentinel} className="pb-10 text-center text-xs text-white/40">
-        {loading ? "Lädt …" : done && photos.length === 0 ? "Noch keine Fotos in der Galerie." : ""}
+        {filter === "top"
+          ? topList === null
+            ? "Lädt …"
+            : topList.length === 0
+              ? "Noch keine Herzen vergeben – tippe auf ♡ bei deinen Lieblingsfotos."
+              : ""
+          : loading
+            ? "Lädt …"
+            : done && photos.length === 0
+              ? "Noch keine Fotos in der Galerie."
+              : ""}
       </div>
 
       {current && (
@@ -197,7 +310,20 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
             </button>
           </div>
           <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
-            <img src={current.url} alt="" className="max-h-full max-w-full rounded object-contain" />
+            <img
+              src={current.url}
+              alt=""
+              className="max-h-full max-w-full select-none rounded object-contain"
+              onClick={() => {
+                // Doppeltippen = Herz
+                const now = Date.now();
+                if (now - lastTap.current < 300) toggleLike(current, true);
+                lastTap.current = now;
+              }}
+            />
+            {burst === current.id && (
+              <Heart on className="vb-heart-burst pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_8px_30px_rgba(255,77,109,0.6)]" />
+            )}
             {open! > 0 && (
               <button onClick={() => step(-1)} className="absolute left-2 z-10 hidden h-12 w-12 rounded-full bg-black/60 text-2xl text-white ring-1 ring-white/20 sm:block" aria-label="Zurück">
                 ‹
@@ -209,8 +335,16 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
               </button>
             )}
           </div>
-          <div className="flex justify-center px-4 py-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
-            <button onClick={() => download(current, photos.length - 1 - photos.indexOf(current))} className="w-full max-w-xs rounded-full py-3.5 font-semibold" style={{ background: gold, color: onAccent(gold) }}>
+          <div className="flex items-center justify-center gap-3 px-4 py-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+            <button
+              onClick={() => toggleLike(current)}
+              className="flex h-[52px] min-w-[52px] items-center justify-center gap-1.5 rounded-full bg-white/10 px-4 text-sm font-semibold"
+              aria-label={liked.has(current.id) ? "Herz entfernen" : "Herz geben"}
+            >
+              <Heart on={liked.has(current.id)} className={`h-6 w-6 ${burst === current.id ? "vb-heart" : ""}`} />
+              {likeCount(current) > 0 && likeCount(current)}
+            </button>
+            <button onClick={() => download(current, Math.max(0, photos.length - 1 - photos.indexOf(current)))} className="w-full max-w-xs rounded-full py-3.5 font-semibold" style={{ background: gold, color: onAccent(gold) }}>
               Foto speichern
             </button>
           </div>

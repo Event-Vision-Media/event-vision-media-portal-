@@ -3,7 +3,12 @@ import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
-import { setVbPhotoHiddenByCustomer, updateVbDesign } from "@/app/actions/vb-customer";
+import { setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads } from "@/app/actions/vb-customer";
+import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
+import { parseLeadConfig } from "@/components/visionbooth/leads";
+import { listVbLeads } from "@/lib/visionbooth-leads";
+import { VbChallengesEditor } from "@/components/visionbooth/customer/VbChallengesEditor";
+import { parseChallenges } from "@/components/visionbooth/challenges";
 import { VbCustomerDesignForm } from "@/components/visionbooth/customer/VbCustomerDesignForm";
 import { VbQrDownload } from "@/components/visionbooth/customer/VbQrDownload";
 import { VbPhotoGrid } from "@/components/admin/visionbooth/VbPhotoGrid";
@@ -128,9 +133,31 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
           </div>
         </section>
 
-        {/* 3 · Fotos */}
+        {/* 3 · Missionen */}
         <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={3} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
+          <Step n={3} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand." />
+          <div className="mt-5">
+            {deleted ? (
+              <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
+            ) : (
+              <VbChallengesEditor action={updateVbChallenges.bind(null, params.token)} initial={parseChallenges(event.challenges)} galleryEnabled={event.gallery_enabled} />
+            )}
+          </div>
+        </section>
+
+        {/* Firmen: Kontaktformular */}
+        {(event.package !== "privat" || parseLeadConfig(event.leads).enabled) && !deleted && (
+          <section className="rounded-3xl bg-white p-6 shadow-card">
+            <Step n={0} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." />
+            <div className="mt-5">
+              <VbLeadsEditor action={updateVbLeads.bind(null, params.token)} initial={parseLeadConfig(event.leads)} count={(await listVbLeads(event.id)).length} csvUrl={`/api/vb/verwalten/${params.token}/kontakte`} />
+            </div>
+          </section>
+        )}
+
+        {/* 4 · Fotos */}
+        <section className="rounded-3xl bg-white p-6 shadow-card">
+          <Step n={4} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
           <div className="mt-5 grid grid-cols-3 gap-3 text-center">
             <Kpi label="Fotos" value={photoTotal ?? 0} />
             <Kpi label="Gäste" value={new Set((guests ?? []).map((g) => g.guest_key)).size} />
@@ -163,7 +190,7 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
 function Step({ n, title, hint }: { n: number; title: string; hint: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-anthracite-900 text-sm font-bold text-white">{n}</span>
+      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-anthracite-900 text-sm font-bold text-white">{n || "★"}</span>
       <div>
         <h2 className="font-serif text-xl font-semibold text-anthracite-800">{title}</h2>
         <p className="mt-0.5 text-sm text-anthracite-500">{hint}</p>

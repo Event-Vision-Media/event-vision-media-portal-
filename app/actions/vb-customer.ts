@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
+import { parseChallenges } from "@/components/visionbooth/challenges";
+import { leadConfigFromForm } from "@/lib/visionbooth-leads";
 
 // Aktionen im Kundenbereich (/vb/verwalten/<token>). Berechtigung = geheimer Verwaltungs-Link.
 // Der Kunde darf Design, Texte, Logo, Formate und Galerie/Wand ändern und Fotos ausblenden –
@@ -59,6 +61,34 @@ export async function setVbPhotoHiddenByCustomer(token: string, photoId: string,
   if (!event) return { error: "Link ungültig." };
   const { error } = await createAdminClient().from("vb_photos").update({ hidden }).eq("id", photoId).eq("event_id", event.id);
   if (error) return { error: "Ging nicht." };
+  revalidatePath(`/vb/verwalten/${token}`);
+  return { success: true };
+}
+
+/** Foto-Missionen speichern (Liste als JSON aus dem Editor). */
+export async function updateVbChallenges(token: string, _prev: VbCustomerResult, formData: FormData): Promise<VbCustomerResult> {
+  const event = await loadVbEventByToken(token);
+  if (!event) return { error: "Link ungültig." };
+  if (event.photos_deleted_at) return { error: "Dieses Event ist abgeschlossen." };
+  let raw: unknown = [];
+  try {
+    raw = JSON.parse(String(formData.get("challenges") ?? "[]"));
+  } catch {
+    return { error: "Ungültige Eingabe." };
+  }
+  const { error } = await createAdminClient().from("vb_events").update({ challenges: parseChallenges(raw) }).eq("id", event.id);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  revalidatePath(`/vb/verwalten/${token}`);
+  return { success: true };
+}
+
+/** Kontaktformular (Firmen-Events) ein-/ausschalten und Texte anpassen. */
+export async function updateVbLeads(token: string, _prev: VbCustomerResult, formData: FormData): Promise<VbCustomerResult> {
+  const event = await loadVbEventByToken(token);
+  if (!event) return { error: "Link ungültig." };
+  if (event.photos_deleted_at) return { error: "Dieses Event ist abgeschlossen." };
+  const { error } = await createAdminClient().from("vb_events").update({ leads: leadConfigFromForm(formData) }).eq("id", event.id);
+  if (error) return { error: "Speichern fehlgeschlagen." };
   revalidatePath(`/vb/verwalten/${token}`);
   return { success: true };
 }
