@@ -1,6 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
+import QRCode from "qrcode";
 import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
+import { ScrollStory } from "@/components/visionbooth/site/ScrollStory";
+import { Reveal } from "@/components/visionbooth/site/Reveal";
+import { vbBaseUrl } from "@/lib/visionbooth";
 import { getPlan, vbTaxNote } from "@/components/visionbooth/packages";
 import { LANDLORD } from "@/lib/contract";
 
@@ -48,7 +52,9 @@ const FAQ = [
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
 
 /** Website visionbooth.de (läuft im Portal unter /vb, später eigene Domain). */
-export default function VisionBoothHome() {
+export default async function VisionBoothHome() {
+  const demoUrl = `${vbBaseUrl()}/vb/demo`;
+  const demoQr = await QRCode.toString(demoUrl, { type: "svg", margin: 1, color: { dark: "#0d0d0f", light: "#ffffff" } });
   return (
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
       <div className="vb-aurora" aria-hidden />
@@ -98,17 +104,19 @@ export default function VisionBoothHome() {
       <section className="relative mx-auto max-w-6xl px-5 py-16">
         <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">So einfach geht&apos;s</h2>
         <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {STEPS.map((s) => (
-            <div key={s.n} className="vb-glass rounded-3xl p-6">
+          {STEPS.map((s, i) => (
+            <Reveal key={s.n} delay={i * 120} className="vb-glass rounded-3xl p-6">
               <span className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>
                 {s.n}
               </span>
               <p className="vb-display mt-4 text-xl font-semibold">{s.title}</p>
               <p className="mt-2 text-[15px] leading-relaxed text-white/65">{s.text}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
       </section>
+
+      <ScrollStory />
 
       {/* Gemeinsame Galerie statt WhatsApp-Chaos */}
       <section className="relative mx-auto max-w-5xl px-5 py-16">
@@ -117,7 +125,7 @@ export default function VisionBoothHome() {
         </h2>
         <p className="mx-auto mt-3 max-w-xl text-center text-white/65">Schluss mit „Schickt mal eure Fotos in die Gruppe!“ – die Bilder aller Gäste landen automatisch an einem Ort.</p>
         <div className="mt-10 grid gap-4 md:grid-cols-2">
-          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
+          <Reveal className="rounded-3xl border border-white/10 bg-white/[0.03] p-6">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-white/45">Ohne VisionBooth</p>
             <ul className="mt-4 space-y-3 text-[15px] text-white/60">
               {[
@@ -132,8 +140,9 @@ export default function VisionBoothHome() {
                 </li>
               ))}
             </ul>
-          </div>
-          <div className="rounded-3xl p-6 ring-2" style={{ background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 18%, #141417), #141417 65%)", ["--tw-ring-color" as string]: "var(--a)" }}>
+          </Reveal>
+          <Reveal delay={150}>
+          <div className="h-full rounded-3xl p-6 ring-2" style={{ background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 18%, #141417), #141417 65%)", ["--tw-ring-color" as string]: "var(--a)" }}>
             <p className="text-sm font-semibold uppercase tracking-[0.2em]" style={{ color: "var(--a)" }}>Mit VisionBooth</p>
             <ul className="mt-4 space-y-3 text-[15px] text-white/85">
               {[
@@ -150,6 +159,7 @@ export default function VisionBoothHome() {
               ))}
             </ul>
           </div>
+          </Reveal>
         </div>
       </section>
 
@@ -185,26 +195,56 @@ export default function VisionBoothHome() {
       <section className="relative mx-auto max-w-6xl px-5 py-16">
         <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Mehr als eine Fotobox</h2>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f) => (
-            <div key={f.title} className="vb-glass rounded-3xl p-6">
+          {FEATURES.map((f, i) => (
+            <Reveal key={f.title} delay={(i % 3) * 110} className="vb-glass rounded-3xl p-6">
               <span className="text-3xl">{f.icon}</span>
               <p className="mt-3 text-lg font-bold">{f.title}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed text-white/65">{f.text}</p>
-            </div>
+            </Reveal>
           ))}
         </div>
+      </section>
+
+      {/* Jetzt selbst ausprobieren */}
+      <section className="relative mx-auto max-w-4xl px-5 py-12">
+        <Reveal>
+          <div className="relative overflow-hidden rounded-[32px] p-7 sm:p-10" style={{ background: "linear-gradient(135deg, color-mix(in srgb, var(--a) 30%, #141417), #141417 70%)" }}>
+            <div className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.3em]" style={{ color: "var(--a)" }}>Live-Demo</p>
+                <h2 className="vb-display mt-2 text-3xl font-semibold sm:text-4xl">Probier&apos;s jetzt selbst aus</h2>
+                <p className="mt-3 max-w-md text-white/70">
+                  Mach ein Foto mit Rahmen, verwandle dich mit KI und schau dir die Galerie an – genau so, wie es eure Gäste erleben. Kostenlos, ohne Anmeldung.
+                </p>
+                <a href="/vb/demo" className="vb-btn mt-6 inline-block rounded-full px-7 py-4 text-[16px] font-bold md:hidden">
+                  📸 Demo jetzt starten
+                </a>
+                <p className="mt-5 hidden text-sm text-white/55 md:block">Einfach den QR-Code mit der Handy-Kamera scannen →</p>
+              </div>
+              <div className="hidden md:block">
+                <div className="vb-wall-qr w-44 rounded-2xl bg-white p-2.5" dangerouslySetInnerHTML={{ __html: demoQr }} />
+                <p className="mt-2 text-center text-xs text-white/50">Scann mich 📱</p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
       </section>
 
       {/* Pakete */}
       <section id="pakete" className="relative mx-auto max-w-6xl px-5 py-16">
         <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Pakete</h2>
         <p className="mt-3 text-center text-white/65">Einmal zahlen, kein Abo. Link sofort nach der Buchung.</p>
-        <p className="mt-1 text-center text-xs text-white/40">{vbTaxNote()}</p>
+        <p className="mx-auto mt-4 max-w-xl rounded-2xl bg-white/5 px-4 py-3 text-center text-sm text-white/70">
+          💡 Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das z. B. beim Hochzeitspaket nur{" "}
+          {(getPlan("hochzeit").price / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
+        </p>
+        <p className="mt-2 text-center text-xs text-white/40">{vbTaxNote()}</p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {PLAN_CARDS.map((c) => {
+          {PLAN_CARDS.map((c, i) => {
             const p = getPlan(c.id);
             return (
-              <div key={c.id} className={`relative flex flex-col rounded-3xl p-6 ${c.tag ? "ring-2" : "vb-glass"}`} style={c.tag ? { background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 22%, #141417), #141417 60%)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
+              <Reveal key={c.id} delay={i * 100} className="flex">
+              <div className={`relative flex w-full flex-col rounded-3xl p-6 ${c.tag ? "ring-2" : "vb-glass"}`} style={c.tag ? { background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 22%, #141417), #141417 60%)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
                 {c.tag && (
                   <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>
                     {c.tag}
@@ -224,6 +264,7 @@ export default function VisionBoothHome() {
                   {p.label} buchen
                 </Link>
               </div>
+              </Reveal>
             );
           })}
         </div>
