@@ -24,6 +24,7 @@ import {
 } from "./frame";
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
 import type { Challenge } from "./challenges";
+import { photoBody } from "./thumb";
 import { LeadFormView, LeadTeaser } from "./LeadForm";
 import { RevealMoment, RevealPicker, useRevealState } from "./RevealGame";
 import type { RevealOption } from "./reveal";
@@ -287,14 +288,16 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     if (!consent) return;
     setVariant(v.id, { upload: "laeuft" });
     try {
-      const headers: Record<string, string> = { "content-type": "image/jpeg", "x-vb-guest": guestKey() };
+      const { body, multipart } = await photoBody(v.blob);
+      const headers: Record<string, string> = { "x-vb-guest": guestKey() };
+      if (!multipart) headers["content-type"] = "image/jpeg";
       if (v.style) {
         headers["x-vb-kind"] = "ki";
         headers["x-vb-style"] = v.style;
       }
       const m = v.id === "original" ? missionRef.current : null;
       if (m) headers["x-vb-challenge"] = m.id;
-      const res = await fetch(`/api/vb/${event.slug}/upload`, { method: "POST", headers, body: v.blob });
+      const res = await fetch(`/api/vb/${event.slug}/upload`, { method: "POST", headers, body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Upload fehlgeschlagen");
       setVariant(v.id, { upload: "ok" });

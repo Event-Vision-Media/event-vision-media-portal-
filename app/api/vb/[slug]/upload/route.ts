@@ -14,7 +14,8 @@ const GAST_PER_MINUTE = 40;
 const GAST_PER_DAY = 100;
 
 /**
- * Gäste-Upload: das fertige Foto (JPEG mit Rahmen) kommt als roher Body.
+ * Gäste-Upload: das fertige Foto (JPEG) kommt als roher Body – oder als multipart mit
+ * „photo“ und optional „thumb“ (kleines Vorschaubild, im Browser erzeugt).
  * Header x-vb-guest = zufällige Geräte-Kennung aus dem Browser (nur fürs Limit).
  */
 export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
@@ -27,10 +28,21 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   const len = Number(req.headers.get("content-length") ?? 0);
   if (len > VB_MAX_UPLOAD) return NextResponse.json({ error: "Foto zu groß" }, { status: 413 });
 
-  const buf = Buffer.from(await req.arrayBuffer());
+  let buf: Buffer;
+  let thumb: Buffer | null = null;
+  if ((req.headers.get("content-type") ?? "").includes("multipart/form-data")) {
+    const fd = await req.formData().catch(() => null);
+    const photo = fd?.get("photo");
+    const t = fd?.get("thumb");
+    if (!(photo instanceof Blob)) return NextResponse.json({ error: "Ungültiges Foto" }, { status: 400 });
+    buf = Buffer.from(await photo.arrayBuffer());
+    if (t instanceof Blob && t.size > 1000 && t.size < 400_000) thumb = Buffer.from(await t.arrayBuffer());
+  } else buf = Buffer.from(await req.arrayBuffer());
+  const isJpeg = (b: Buffer) => b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
   if (buf.length < 1000 || buf.length > VB_MAX_UPLOAD) return NextResponse.json({ error: "Ungültiges Foto" }, { status: 400 });
   // JPEG-Signatur prüfen (FF D8 FF)
-  if (buf[0] !== 0xff || buf[1] !== 0xd8 || buf[2] !== 0xff) return NextResponse.json({ error: "Nur JPEG erlaubt" }, { status: 415 });
+  if (!isJpeg(buf)) return NextResponse.json({ error: "Nur JPEG erlaubt" }, { status: 415 });
+  if (thumb && !isJpeg(thumb)) thumb = null;
 
   const supabase = createAdminClient();
   const isGast = req.headers.get("x-vb-kind") === "gast";
@@ -56,6 +68,13 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
     console.error("VisionBooth-Upload:", upErr);
     return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });
   }
+  // Vorschaubild neben dem Foto (gleicher Ordner – wird von der Löschfrist mit erfasst)
+  let thumbPath: string | null = null;
+  if (thumb) {
+    const tp = `${event.id}/${id}-t.jpg`;
+    const { error } = await supabase.storage.from(VB_BUCKET).upload(tp, thumb, { contentType: "image/jpeg", upsert: false });
+    if (!error) thumbPath = tp;
+  }
   const isAi = req.headers.get("x-vb-kind") === "ki";
   const kind = isAi ? "ki" : isGast ? "gast" : "foto";
   const style = isAi ? (req.headers.get("x-vb-style") ?? "").replace(/[^a-z]/g, "").slice(0, 30) || null : null;
@@ -64,10 +83,10 @@ export async function POST(req: NextRequest, { params }: { params: { slug: strin
   const challenge = kind === "foto" && guestKey && wanted ? parseChallenges(event.challenges).find((c) => c.id === wanted) ?? null : null;
   const { error: dbErr } = await supabase
     .from("vb_photos")
-    .insert({ id, event_id: event.id, kind, style, file_path: path, guest_key: guestKey, challenge_id: challenge?.id ?? null });
+    .insert({ id, event_id: event.id, kind, style, file_path: path, thumb_path: thumbPath, guest_key: guestKey, challenge_id: challenge?.id ?? null });
   if (dbErr) {
     console.error("VisionBooth-Foto:", dbErr);
-    await supabase.storage.from(VB_BUCKET).remove([path]);
+    await supabase.storage.from(VB_BUCKET).remove(thumbPath ? [path, thumbPath] : [path]);
     return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });
   }
   if (!challenge) return NextResponse.json({ ok: true, id });

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Sheet } from "./Missions";
+import { photoBody } from "./thumb";
 
 // Eigene Fotos aus der Handy-Galerie in die gemeinsame Galerie laden: mehrere auf einmal,
 // im Browser auf max. 2560 px verkleinert (schnell auch im Party-WLAN), 3 parallel, mit Wiederholung.
@@ -86,11 +87,16 @@ export function GuestUpload({ slug, deleteAfter, onDone }: { slug: string; delet
         set(job.i, { state: "laeuft" });
         try {
           const blob = await shrink(job.f);
+          const { body, multipart } = await photoBody(blob);
           let lastErr = "Upload fehlgeschlagen";
           let ok = false;
           for (let attempt = 0; attempt < 3 && !ok; attempt++) {
             if (attempt) await new Promise((r) => setTimeout(r, 1500 * attempt));
-            const res = await fetch(`/api/vb/${slug}/upload`, { method: "POST", headers: { "content-type": "image/jpeg", "x-vb-guest": g, "x-vb-kind": "gast" }, body: blob }).catch(() => null);
+            const res = await fetch(`/api/vb/${slug}/upload`, {
+              method: "POST",
+              headers: { ...(multipart ? {} : { "content-type": "image/jpeg" }), "x-vb-guest": g, "x-vb-kind": "gast" },
+              body,
+            }).catch(() => null);
             if (res?.ok) ok = true;
             else {
               const data = await res?.json().catch(() => ({}));

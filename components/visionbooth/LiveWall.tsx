@@ -10,6 +10,7 @@ interface Photo {
   kind: string;
   createdAt: string;
   url: string;
+  thumb?: string | null;
   likes?: number;
   mission?: { emoji: string; text: string; points: number; by: string | null } | null;
 }
@@ -162,7 +163,7 @@ export function LiveWall({
       <div className="vb-aurora" aria-hidden />
 
       <section className="relative flex flex-1 items-center justify-center overflow-hidden rounded-[2vw]">
-        {current && <img key={`bg${current.id}`} src={current.url} alt="" aria-hidden className="vb-wall-bg absolute inset-0 h-full w-full scale-125 object-cover blur-3xl" />}
+        {current && <img key={`bg${current.id}`} src={current.thumb || current.url} alt="" aria-hidden className="vb-wall-bg absolute inset-0 h-full w-full scale-125 object-cover blur-3xl" />}
         <span className="absolute left-[1.2vw] top-[1.2vw] z-10 flex items-center gap-[0.5vw] rounded-full bg-black/45 px-[1vw] py-[0.4vw] text-[0.95vw] font-semibold backdrop-blur">
           <span className="vb-live h-[0.7vw] w-[0.7vw] rounded-full bg-red-500" /> LIVE · {photos.length === 1 ? "1 Foto" : `${photos.length} Fotos`}
         </span>
@@ -265,7 +266,7 @@ export function LiveWall({
         ) : strip.length > 1 ? (
           <div className="grid w-full grid-cols-3 gap-[0.5vw]">
             {strip.map((p) => (
-              <img key={p.id} src={p.url} alt="" className={`aspect-[4/5] w-full rounded object-cover ${p.id === current?.id ? "ring-2" : "opacity-60"}`} style={{ ["--tw-ring-color" as string]: gold }} />
+              <img key={p.id} src={p.thumb || p.url} alt="" className={`aspect-[4/5] w-full rounded object-cover ${p.id === current?.id ? "ring-2" : "opacity-60"}`} style={{ ["--tw-ring-color" as string]: gold }} />
             ))}
           </div>
         ) : (

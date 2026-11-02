@@ -29,7 +29,7 @@ export async function vbBoard(event: VbEvent, guestKey: string | null, limit = 1
   const [{ data: rows }, { data: guests }, { data: liked }] = await Promise.all([
     supabase.from("vb_photos").select("guest_key, challenge_id").eq("event_id", event.id).eq("hidden", false).not("challenge_id", "is", null).limit(20000),
     supabase.from("vb_guests").select("guest_key, name").eq("event_id", event.id).limit(5000),
-    supabase.from("vb_photos").select("id, file_path, likes").eq("event_id", event.id).eq("hidden", false).gt("likes", 0).order("likes", { ascending: false }).order("created_at").limit(1),
+    supabase.from("vb_photos").select("id, file_path, thumb_path, likes").eq("event_id", event.id).eq("hidden", false).gt("likes", 0).order("likes", { ascending: false }).order("created_at").limit(1),
   ]);
 
   const done = new Map<string, Set<string>>();
@@ -56,7 +56,7 @@ export async function vbBoard(event: VbEvent, guestKey: string | null, limit = 1
   let topPhoto: Board["topPhoto"] = null;
   const best = liked?.[0];
   if (best) {
-    const { data } = await supabase.storage.from(VB_BUCKET).createSignedUrl(best.file_path, 60 * 60 * 6);
+    const { data } = await supabase.storage.from(VB_BUCKET).createSignedUrl(best.thumb_path || best.file_path, 60 * 60 * 6);
     if (data?.signedUrl) topPhoto = { id: best.id, url: data.signedUrl, likes: best.likes };
   }
 

@@ -9,6 +9,8 @@ interface Photo {
   kind: string;
   createdAt: string;
   url: string;
+  /** kleines Vorschaubild (600 px) – fehlt bei älteren Fotos */
+  thumb?: string | null;
   likes?: number;
 }
 
@@ -304,7 +306,13 @@ export function Gallery({
             style={{ animationDelay: `${(i % 12) * 35}ms` }}
           >
             <button onClick={() => setOpen(i)} className="block h-full w-full">
-              <img src={p.url} alt="" loading="lazy" className="aspect-[4/5] h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
+              <img
+                src={(hero && i === 0 ? null : p.thumb) || p.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="aspect-[4/5] h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]"
+              />
             </button>
             <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
             {hero && i === 0 && <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: gold, color: ink }}>Neuestes Foto</span>}
@@ -349,7 +357,7 @@ export function Gallery({
             touchX.current = null;
           }}
         >
-          <img src={current.url} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl" />
+          <img src={current.thumb || current.url} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl" />
           <div className="relative flex items-center justify-between px-4 py-3" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
             <span className="vb-glass rounded-full px-3 py-1.5 text-xs font-semibold text-white/80">
               {open! + 1} / {shown.length}

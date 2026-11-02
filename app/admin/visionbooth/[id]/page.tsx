@@ -34,7 +34,7 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
   const event = data as VbEvent & { package: string; contact_name: string | null; contact_email: string | null };
 
   const [{ data: photoRows }, { count: photoTotal }, { count: aiDone }, { data: aiStyleRows }, { count: aiFailed }, { data: guests }] = await Promise.all([
-    supabase.from("vb_photos").select("id, kind, style, file_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
+    supabase.from("vb_photos").select("id, kind, style, file_path, thumb_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fertig"),
     supabase.from("vb_ai_jobs").select("style").eq("event_id", event.id).eq("status", "fertig").limit(5000),
@@ -42,10 +42,10 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
     supabase.from("vb_photos").select("guest_key").eq("event_id", event.id).not("guest_key", "is", null).limit(5000),
   ]);
 
-  const paths = [...(photoRows ?? []).map((p) => p.file_path), ...(event.logo_path ? [event.logo_path] : [])];
+  const paths = [...(photoRows ?? []).flatMap((p) => (p.thumb_path ? [p.thumb_path, p.file_path] : [p.file_path])), ...(event.logo_path ? [event.logo_path] : [])];
   const { data: signed } = paths.length ? await supabase.storage.from(VB_BUCKET).createSignedUrls(paths, 60 * 60) : { data: [] };
   const url = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
-  const photos = (photoRows ?? []).map((p) => ({ id: p.id, kind: p.kind, style: p.style, hidden: p.hidden, createdAt: p.created_at, url: url.get(p.file_path) ?? "" }));
+  const photos = (photoRows ?? []).map((p) => ({ id: p.id, kind: p.kind, style: p.style, hidden: p.hidden, createdAt: p.created_at, url: url.get(p.thumb_path || p.file_path) ?? "", full: url.get(p.file_path) ?? "" }));
 
   const guestUrl = vbGuestUrl(event.slug);
   const qrSvg = await QRCode.toString(guestUrl, { type: "svg", margin: 1 });

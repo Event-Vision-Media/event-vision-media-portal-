@@ -10,6 +10,8 @@ interface Photo {
   hidden: boolean;
   createdAt: string;
   url: string;
+  /** Original in voller Größe (zum Öffnen); url ist ggf. nur das Vorschaubild */
+  full?: string;
 }
 
 /** Fotos eines Events; Klick aufs Auge blendet ein Foto auf Wand und Galerie aus/ein. */
@@ -49,7 +51,7 @@ export function VbPhotoGrid({
           const isHidden = hidden.get(p.id);
           return (
             <div key={p.id} className="group relative overflow-hidden rounded-lg bg-anthracite-900">
-              <a href={p.url} target="_blank">
+              <a href={p.full || p.url} target="_blank">
                 <img src={p.url} alt="" loading="lazy" className={`aspect-[4/5] w-full object-cover transition ${isHidden ? "opacity-25 grayscale" : ""}`} />
               </a>
               {p.kind === "ki" && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">✨ KI</span>}

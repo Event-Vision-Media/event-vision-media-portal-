@@ -28,7 +28,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const supabase = createAdminClient();
   let q = supabase
     .from("vb_photos")
-    .select("id, kind, file_path, created_at, likes, challenge_id, guest_key")
+    .select("id, kind, file_path, thumb_path, created_at, likes, challenge_id, guest_key")
     .eq("event_id", event.id)
     .eq("hidden", false);
   q = top
@@ -39,7 +39,8 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const { data: rows } = await q;
   if (!rows?.length) return NextResponse.json({ photos: [] });
 
-  const { data: signed } = await supabase.storage.from(VB_BUCKET).createSignedUrls(rows.map((r) => r.file_path), URL_TTL);
+  const files = [...rows.map((r) => r.file_path), ...rows.filter((r) => r.thumb_path).map((r) => r.thumb_path as string)];
+  const { data: signed } = await supabase.storage.from(VB_BUCKET).createSignedUrls(files, URL_TTL);
   const urls = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
 
   // Missionen mit Spitznamen (für „Mission erfüllt“ auf der Foto-Wand) – Geräte-Kennung bleibt intern
@@ -58,6 +59,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
           createdAt: r.created_at,
           likes: r.likes ?? 0,
           url: urls.get(r.file_path) ?? null,
+          thumb: (r.thumb_path && urls.get(r.thumb_path)) || null,
           mission: ch ? { emoji: ch.emoji, text: ch.text, points: ch.points, by: names.get(r.guest_key ?? "") ?? null } : null,
         };
       })

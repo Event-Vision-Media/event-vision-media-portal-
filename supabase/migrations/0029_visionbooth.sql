@@ -61,6 +61,8 @@ create table if not exists public.vb_photos (
   style text,
   source_photo_id uuid references public.vb_photos (id) on delete set null,
   file_path text not null,
+  -- kleines Vorschaubild (600 px), wird im Browser erzeugt; fehlt bei älteren Fotos
+  thumb_path text,
   width integer,
   height integer,
   -- anonyme Geräte-Kennung (zufällig im Browser erzeugt) für das KI-Limit pro Gast
