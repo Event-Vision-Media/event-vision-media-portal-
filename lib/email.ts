@@ -705,3 +705,66 @@ export function vbInvoiceMail(o: { name: string | null; title: string; number: s
     text: `${hello},\n\nvielen Dank für deine Buchung der VisionBooth für „${o.title}“. Im Anhang findest du deine Rechnung ${o.number} über ${euro}. Der Betrag ist bereits bezahlt.\n\nFragen: 0176 22748363\n\n${BRAND}`,
   };
 }
+
+// ---------- VisionBooth: Erinnerungen ----------
+
+const vbButton = (url: string, label: string) =>
+  `<div style="margin:22px 0;text-align:center"><a href="${esc(url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${esc(label)}</a></div>`;
+
+/** Eine Woche vorher: gestalten, QR-Aufsteller drucken, Link teilen. */
+export function vbBeforeMail(o: { name: string | null; title: string; date: string; days: number; manageUrl: string; posterUrl: string }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const when = o.days === 1 ? "morgen" : `in ${o.days} Tagen`;
+  return {
+    subject: `${o.days === 1 ? "Morgen" : `In ${o.days} Tagen`} geht's los – eure VisionBooth für „${o.title}“`,
+    html: layout(
+      "Bald ist es so weit 🎉",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">${when} ist euer Event „${esc(o.title)}“ am <strong>${esc(formatDateGerman(o.date))}</strong>. Damit eure Gäste direkt loslegen können, kurz checken:</p>
+<ul style="line-height:1.8;padding-left:20px">
+<li>✅ Design, Text und Logo passen?</li>
+<li>🖨️ QR-Aufsteller ausgedruckt (am besten auf festes Papier)?</li>
+<li>🎯 Missionen oder Spiele gewählt?</li>
+<li>📺 Foto-Wand: Laptop mit Beamer oder TV bereitstellen</li>
+</ul>
+${vbButton(o.manageUrl, "Meine VisionBooth öffnen")}
+<p style="text-align:center;font-size:13px"><a href="${esc(o.posterUrl)}" style="color:#a87731">QR-Aufsteller direkt drucken</a></p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele, Foto-Wand.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
+  };
+}
+
+/** Tag danach: Danke + Galerie-Link zum Teilen mit den Gästen. */
+export function vbAfterMail(o: { name: string | null; title: string; photos: number; galleryUrl: string; manageUrl: string; deleteDate: string }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  return {
+    subject: `${o.photos} Fotos von „${o.title}“ warten auf euch 📸`,
+    html: layout(
+      "Danke – was für ein Fest! 💛",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">eure Gäste haben <strong>${o.photos} Fotos</strong> in eurer VisionBooth geteilt. Alle Erinnerungen findet ihr an einem Ort – teilt den Galerie-Link gern mit euren Gästen, dort können sie auch eigene Handy-Fotos dazulegen:</p>
+${vbButton(o.galleryUrl, "Zur Galerie")}
+<p style="line-height:1.6">Tipp: In der Galerie könnt ihr mit „Alle (ZIP)“ alle Fotos auf einmal herunterladen. Die Fotos werden am <strong>${esc(formatDateGerman(o.deleteDate))}</strong> automatisch gelöscht.</p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Hat euch die VisionBooth gefallen? Über eine kurze Bewertung freuen wir uns riesig. Fragen: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\neure Gäste haben ${o.photos} Fotos geteilt. Galerie (gern an die Gäste weitergeben): ${o.galleryUrl}\n\nAlle Fotos als ZIP: in der Galerie „Alle (ZIP)“. Automatische Löschung am ${formatDateGerman(o.deleteDate)}.\n\n${BRAND}`,
+  };
+}
+
+/** 7 Tage vor der Löschung: jetzt sichern. */
+export function vbDeletionMail(o: { name: string | null; title: string; photos: number; days: number; deleteDate: string; galleryUrl: string }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  return {
+    subject: `Nur noch ${o.days} Tage: Fotos von „${o.title}“ jetzt sichern`,
+    html: layout(
+      "Jetzt eure Fotos sichern ⏳",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">aus Datenschutzgründen werden die <strong>${o.photos} Fotos</strong> von „${esc(o.title)}“ am <strong>${esc(formatDateGerman(o.deleteDate))}</strong> automatisch und endgültig gelöscht.</p>
+<p style="line-height:1.6">Ladet sie vorher mit einem Klick als ZIP herunter – in der Galerie oben auf <strong>„Alle (ZIP)“</strong> (am besten am Computer).</p>
+${vbButton(o.galleryUrl, "Fotos jetzt herunterladen")}
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Ihr braucht mehr Zeit? Meldet euch kurz bei uns: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\ndie ${o.photos} Fotos von „${o.title}“ werden am ${formatDateGerman(o.deleteDate)} automatisch gelöscht. Jetzt als ZIP sichern: ${o.galleryUrl} (oben „Alle (ZIP)“).\n\nMehr Zeit nötig? 0176 22748363\n\n${BRAND}`,
+  };
+}

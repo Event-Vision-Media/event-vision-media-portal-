@@ -1,13 +1,15 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { runJourneyMails } from "@/lib/journey-mails";
 import { cleanupVbPhotos } from "@/lib/visionbooth";
+import { runVbReminders } from "@/lib/visionbooth-reminders";
 
 export const dynamic = "force-dynamic";
 
 /**
  * Täglicher Automatik-Lauf (Vercel Cron, siehe vercel.json):
  * Erinnerungen vor dem Event + Galerie/Bewertungs-Mails danach,
- * außerdem: VisionBooth-Fotos nach Ablauf der Löschfrist entfernen.
+ * außerdem: VisionBooth-Fotos nach Ablauf der Löschfrist entfernen und Erinnerungen
+ * an Gastgeber (vor dem Event, Tag danach, vor der Löschung) schicken.
  *
  * Vercel schickt automatisch "Authorization: Bearer $CRON_SECRET".
  * Lokal zum Testen: /api/cron/daily?dry=1 (listet nur, verschickt nichts).
@@ -26,5 +28,9 @@ export async function GET(req: NextRequest) {
     console.error("VisionBooth-Löschung fehlgeschlagen:", e);
     return [];
   });
-  return NextResponse.json({ ok: true, dryRun, ...result, visionbooth });
+  const visionboothMails = await runVbReminders(dryRun).catch((e) => {
+    console.error("VisionBooth-Erinnerungen fehlgeschlagen:", e);
+    return [];
+  });
+  return NextResponse.json({ ok: true, dryRun, ...result, visionbooth, visionboothMails });
 }

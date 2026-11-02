@@ -194,3 +194,6 @@ alter table public.vb_orders add column if not exists invoice_number text;
 alter table public.vb_orders add column if not exists invoice_path text;
 alter table public.vb_orders add column if not exists invoice_error text;
 alter table public.vb_orders add column if not exists invoiced_at timestamptz;
+
+-- VisionBooth: verschickte Erinnerungs-Mails je Event ({vorher, danach, loeschung} = Zeitpunkt)
+alter table public.vb_events add column if not exists reminders jsonb not null default '{}'::jsonb;

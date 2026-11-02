@@ -3,7 +3,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
-import { weeklyPlanMail } from "@/lib/email";
+import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail } from "@/lib/email";
 import { SAMPLE_WEEKLY_PLAN } from "@/lib/weekly-plan-sample";
 
 export const dynamic = "force-dynamic";
@@ -68,6 +68,11 @@ export default async function AdminMailPreviewPage({ searchParams }: { searchPar
         inquiry_message: "Wir freuen uns schon sehr! Gibt es auch Requisiten zum Thema Gold?",
       }),
     },
+    { title: "VB 1 · VisionBooth: Kunden-Link (nach Buchung/Einrichtung)", mail: vbManageMail({ name: "Anna Beispiel", title: "Anna & Max", date: "2027-06-12", url: "https://visionbooth.de/vb/verwalten/beispiel" }) },
+    { title: "VB 2 · VisionBooth: Rechnung (nach Online-Zahlung, PDF im Anhang)", mail: vbInvoiceMail({ name: "Anna Beispiel", title: "Anna & Max", number: "RE1042", amount: 129 }) },
+    { title: "VB 3 · VisionBooth: Erinnerung vor dem Event (1–7 Tage vorher)", mail: vbBeforeMail({ name: "Anna Beispiel", title: "Anna & Max", date: "2027-06-12", days: 5, manageUrl: "https://visionbooth.de/vb/verwalten/beispiel", posterUrl: "https://visionbooth.de/vb/verwalten/beispiel/aufsteller" }) },
+    { title: "VB 4 · VisionBooth: Tag danach – Galerie (nur wenn Fotos)", mail: vbAfterMail({ name: "Anna Beispiel", title: "Anna & Max", photos: 412, galleryUrl: "https://visionbooth.de/vb/beispiel/galerie", manageUrl: "https://visionbooth.de/vb/verwalten/beispiel", deleteDate: "2027-12-12" }) },
+    { title: "VB 5 · VisionBooth: Vor der Löschung (1–7 Tage vorher, nur wenn Fotos)", mail: vbDeletionMail({ name: "Anna Beispiel", title: "Anna & Max", photos: 412, days: 7, deleteDate: "2027-12-12", galleryUrl: "https://visionbooth.de/vb/beispiel/galerie" }) },
   ];
 
   mails.push({
