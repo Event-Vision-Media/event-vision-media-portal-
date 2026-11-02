@@ -141,3 +141,26 @@ on conflict (id) do nothing;
 
 -- Testevent für die Entwicklung (nur im Testprojekt sinnvoll; Slug ist öffentlich bekannt)
 -- insert into public.vb_events (slug, title, frame_text) values ('demo', 'Demo-Event', 'Anna & Max · 2026');
+
+-- Online-Bestellungen von visionbooth.de (Stripe Checkout); daraus wird nach Zahlung das Event eingerichtet
+create table if not exists public.vb_orders (
+  id uuid primary key default gen_random_uuid(),
+  plan text not null,
+  occasion text not null,
+  title text not null,
+  frame_text text,
+  event_date date,
+  event_days integer not null default 1,
+  name text not null,
+  email text not null,
+  company text,
+  amount_cents integer not null,
+  status text not null default 'offen' check (status in ('offen', 'wird_eingerichtet', 'bezahlt', 'abgebrochen', 'fehler')),
+  stripe_session_id text unique,
+  stripe_payment_intent text,
+  vb_event_id uuid references public.vb_events (id) on delete set null,
+  paid_at timestamptz,
+  created_at timestamptz not null default now()
+);
+create index if not exists vb_orders_created_idx on public.vb_orders (created_at desc);
+alter table public.vb_orders enable row level security;

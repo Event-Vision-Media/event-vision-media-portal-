@@ -1,0 +1,284 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { useFormState, useFormStatus } from "react-dom";
+import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
+import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
+import { getOccasion, getPlan, VB_OCCASIONS, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { getTemplate } from "@/components/visionbooth/templates";
+
+const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
+const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
+const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
+  hochzeit: "Anna & Max",
+  geburtstag: "Lenas 30.",
+  party: "Abiball 2026",
+  firma: "Muster GmbH · Sommerfest",
+  weihnachtsfeier: "Muster GmbH · X-Mas",
+  messe: "Muster GmbH",
+  sonstiges: "Unser Event",
+};
+const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
+const STEPS = ["Anlass", "Paket", "Details", "Bezahlen"];
+const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+
+function PayButton({ price }: { price: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="vb-btn w-full rounded-full py-[18px] text-[17px] font-bold disabled:opacity-60">
+      {pending ? "Bezahlseite wird geöffnet …" : `Jetzt sicher bezahlen · ${euro(price)}`}
+    </button>
+  );
+}
+
+export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan: VbPlanId | null; cancelled: boolean; testMode: boolean }) {
+  const [step, setStep] = useState(initialPlan ? 0 : 0);
+  const [occasion, setOccasion] = useState<VbOccasionId | null>(null);
+  const [plan, setPlan] = useState<VbPlanId | null>(initialPlan);
+  const [frameText, setFrameText] = useState("");
+  const [date, setDate] = useState("");
+  const [days, setDays] = useState(1);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [state, action] = useFormState<VbShopResult, FormData>(startVbCheckout, {});
+  const top = useRef<HTMLDivElement>(null);
+
+  const go = (n: number) => {
+    setStep(n);
+    top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const p = plan ? getPlan(plan) : null;
+  const firma = Boolean(p?.firma) || occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
+  const today = new Date().toISOString().slice(0, 10);
+  const detailsOk = frameText.trim().length > 0 && date >= today && name.trim().length > 1 && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email);
+
+  return (
+    <div ref={top} className="mx-auto w-full max-w-xl scroll-mt-4 px-5 pb-16">
+      {/* Fortschritt */}
+      <div className="mb-8 flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <button key={s} type="button" onClick={() => i < step && go(i)} disabled={i >= step} className="flex-1 text-left">
+            <span className="block h-1.5 rounded-full transition-all" style={{ background: i <= step ? "var(--a)" : "rgba(255,255,255,0.15)" }} />
+            <span className={`mt-1.5 block text-[11px] font-semibold ${i === step ? "text-white" : "text-white/45"}`}>{s}</span>
+          </button>
+        ))}
+      </div>
+
+      {cancelled && step === 0 && <p className="vb-glass mb-6 rounded-2xl px-4 py-3 text-sm text-white/80">Die Bezahlung wurde abgebrochen – kein Problem, es wurde nichts berechnet. Du kannst einfach neu starten.</p>}
+
+      {step === 0 && (
+        <section key="s0" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Was feiert ihr?</h1>
+          <p className="mt-1 text-white/60">Danach richten wir Design und Missionen passend ein.</p>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {VB_OCCASIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => {
+                  setOccasion(o.id);
+                  if (!initialPlan || !plan) setPlan(OCC_PLAN[o.id]);
+                  go(1);
+                }}
+                className={`flex flex-col items-start gap-2 rounded-2xl p-4 text-left transition active:scale-[0.97] ${occasion === o.id ? "ring-2" : "vb-glass"}`}
+                style={occasion === o.id ? { background: "color-mix(in srgb, var(--a) 18%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+              >
+                <span className="text-3xl">{OCC_EMOJI[o.id]}</span>
+                <span className="text-[15px] font-semibold">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {step === 1 && occasion && (
+        <section key="s1" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Welches Paket?</h1>
+          <p className="mt-1 text-white/60">Unsere Empfehlung für {getOccasion(occasion).label}: das Paket „{getPlan(OCC_PLAN[occasion]).label}“.</p>
+          <div className="mt-6 space-y-3">
+            {SHOP_PLANS.map((id) => {
+              const pl = getPlan(id);
+              const rec = OCC_PLAN[occasion] === id;
+              const sel = plan === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPlan(id)}
+                  className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition active:scale-[0.99] ${sel ? "ring-2" : "vb-glass"}`}
+                  style={sel ? { background: "color-mix(in srgb, var(--a) 16%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+                >
+                  <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 ${sel ? "" : "border-white/30"}`} style={sel ? { borderColor: "var(--a)" } : undefined}>
+                    {sel && <span className="h-3 w-3 rounded-full" style={{ background: "var(--a)" }} />}
+                  </span>
+                  <span className="flex-1">
+                    <span className="flex items-center gap-2 text-[16px] font-bold">
+                      {pl.label}
+                      {rec && <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>Empfohlen</span>}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-white/60">{pl.summary}</span>
+                  </span>
+                  <span className="vb-display text-xl font-semibold">{euro(pl.price)}</span>
+                </button>
+              );
+            })}
+          </div>
+          <button type="button" disabled={!plan} onClick={() => go(2)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
+            Weiter
+          </button>
+        </section>
+      )}
+
+      {step === 2 && occasion && p && (
+        <section key="s2" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Eure Details</h1>
+          <p className="mt-1 text-white/60">So sieht euer Foto-Rahmen aus – alles später noch änderbar.</p>
+          <FramePreview occasion={occasion} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
+          <div className="mt-6 space-y-4">
+            <Field label="Text im Foto-Rahmen">
+              <input value={frameText} onChange={(e) => setFrameText(e.target.value)} maxLength={60} placeholder={`z. B. ${OCC_PLACEHOLDER[occasion]}`} className="vb-input" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Datum des Events">
+                <input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} className="vb-input" />
+              </Field>
+              {p.id === "messe" ? (
+                <Field label="Anzahl Tage">
+                  <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="vb-input">
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <option key={d} value={d}>
+                        {d} {d === 1 ? "Tag" : "Tage"}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <div />
+              )}
+            </div>
+            <Field label="Dein Name">
+              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={120} className="vb-input" />
+            </Field>
+            <Field label="E-Mail – hierhin schicken wir deinen Link">
+              <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={200} className="vb-input" />
+            </Field>
+            {firma && (
+              <Field label="Firma (für die Rechnung, optional)">
+                <input value={company} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" maxLength={120} className="vb-input" />
+              </Field>
+            )}
+          </div>
+          <button type="button" disabled={!detailsOk} onClick={() => go(3)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
+            Weiter zur Übersicht
+          </button>
+          {!detailsOk && <p className="mt-2 text-center text-xs text-white/45">Bitte Rahmen-Text, Datum, Name und E-Mail ausfüllen.</p>}
+        </section>
+      )}
+
+      {step === 3 && occasion && p && (
+        <form key="s3" action={action} className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Fast geschafft!</h1>
+          <p className="mt-1 text-white/60">Prüf kurz alles – nach der Zahlung ist eure VisionBooth sofort startklar.</p>
+          {[
+            ["plan", p.id],
+            ["occasion", occasion],
+            ["frame_text", frameText],
+            ["event_date", date],
+            ["event_days", String(days)],
+            ["name", name],
+            ["email", email],
+            ["company", company],
+          ].map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
+          <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
+            <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
+            <Row label="Anlass" value={`${OCC_EMOJI[occasion]} ${getOccasion(occasion).label}`} onEdit={() => go(0)} />
+            <Row label="Rahmen" value={frameText} onEdit={() => go(2)} />
+            <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(2)} />
+            <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(2)} />
+            <div className="flex items-center justify-between px-5 py-4">
+              <span className="font-semibold">Gesamt</span>
+              <span className="vb-display text-2xl font-semibold">{euro(p.price)}</span>
+            </div>
+          </div>
+          <label className="mt-5 flex items-start gap-3 text-[13px] leading-snug text-white/70">
+            <input type="checkbox" name="agb" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
+            <span>
+              Ich akzeptiere die <a href="/vb/agb" target="_blank" className="underline underline-offset-2">AGB</a> und habe die{" "}
+              <a href="https://fotobox-essen.com/datenschutz.html" target="_blank" className="underline underline-offset-2">Datenschutzhinweise</a> gelesen.
+            </span>
+          </label>
+          {state.error && <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.error}</p>}
+          <div className="mt-5">
+            <PayButton price={p.price} />
+          </div>
+          <p className="mt-3 text-center text-xs text-white/45">🔒 Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
+          {testMode && <p className="mt-2 text-center text-xs font-semibold text-amber-300">Testmodus – es wird kein echtes Geld abgebucht.</p>}
+        </form>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-semibold text-white/70">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Row({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+  return (
+    <div className="flex items-start gap-3 px-5 py-3.5">
+      <span className="w-16 flex-none text-[13px] text-white/50">{label}</span>
+      <span className="flex-1 text-[14px] font-medium">{value}</span>
+      <button type="button" onClick={onEdit} className="text-xs font-semibold text-white/50 underline underline-offset-2">
+        ändern
+      </button>
+    </div>
+  );
+}
+
+/** Live-Vorschau des Rahmens mit dem Beispielfoto (fiktive Personen). */
+function FramePreview({ occasion, text, date }: { occasion: VbOccasionId; text: string; date: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const img = useRef<HTMLImageElement | null>(null);
+  const fonts = useRef<VbFonts | undefined>(undefined);
+  const [ready, setReady] = useState(0);
+  const t = getTemplate(getOccasion(occasion).template);
+
+  useEffect(() => {
+    const i = new Image();
+    i.onload = () => {
+      img.current = i;
+      setReady((n) => n + 1);
+    };
+    i.src = "/visionbooth/stile/original.webp";
+    loadVbFonts(canvas.current).then((f) => {
+      fonts.current = f;
+      setReady((n) => n + 1);
+    });
+  }, []);
+
+  useEffect(() => {
+    const c = canvas.current;
+    if (!c || !img.current) return;
+    const sub = date ? new Date(date).toLocaleDateString("de-DE") : "";
+    drawFrame(c.getContext("2d")!, img.current, img.current.naturalWidth, img.current.naturalHeight, { template: t.id, text, subtext: sub, accent: t.accent, fonts: fonts.current });
+  }, [ready, text, date, t.id, t.accent]);
+
+  return (
+    <div className="mt-5 flex items-center gap-4">
+      <canvas ref={canvas} width={FRAME_W} height={FRAME_H} className="w-[44%] max-w-[200px] rounded-xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]" />
+      <p className="flex-1 text-[13px] leading-relaxed text-white/60">
+        Vorlage <strong className="text-white">{t.name}</strong>
+        <br />
+        Farbe, Logo und Vorlage kannst du nach der Buchung frei ändern – 10 Designs zur Auswahl.
+      </p>
+    </div>
+  );
+}

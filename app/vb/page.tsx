@@ -1,0 +1,234 @@
+import type { Metadata, Viewport } from "next";
+import Link from "next/link";
+import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
+import { getPlan } from "@/components/visionbooth/packages";
+import { LANDLORD } from "@/lib/contract";
+
+export const metadata: Metadata = {
+  title: "VisionBooth – die digitale Fotobox mit KI für dein Event",
+  description:
+    "QR-Code scannen, Foto machen, mit KI verwandeln – ganz ohne App. Digitale Fotobox mit Foto-Missionen, Live-Foto-Wand und Galerie für Hochzeit, Geburtstag und Firmenevents. Ab 79 €.",
+};
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
+
+const STEPS = [
+  { n: "1", title: "Buchen & gestalten", text: "Paket wählen, bezahlen – dein Link kommt sofort. Design, Texte und Logo stellst du selbst ein." },
+  { n: "2", title: "QR-Code aufstellen", text: "Tischaufsteller drucken oder Link teilen. Gäste scannen mit der Handy-Kamera – keine App nötig." },
+  { n: "3", title: "Feiern & teilen", text: "Fotos mit eurem Rahmen, KI-Verwandlungen, Missionen und Live-Foto-Wand. Danach alles als ZIP." },
+];
+
+const FEATURES = [
+  { icon: "✨", title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
+  { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste. Bringt Gäste zusammen – und sorgt für viel mehr Fotos." },
+  { icon: "📺", title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
+  { icon: "🖼️", title: "10 Design-Vorlagen", text: "Von Elegant Gold bis Neon Night – mit euren Namen, Datum und Logo. Jederzeit selbst änderbar." },
+  { icon: "🎞️", title: "Fotostreifen & Story", text: "Klassischer 3er-Fotostreifen und Story-Format für Instagram und WhatsApp." },
+  { icon: "❤️", title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
+];
+
+const PLAN_CARDS = [
+  { id: "party", tag: null, points: ["Eigener Foto-Rahmen & Design", "Fotostreifen & Story", "Foto-Missionen & Bestenliste", "Live-Foto-Wand & Galerie", "Link 7 Tage aktiv"] },
+  { id: "hochzeit", tag: "Beliebt", points: ["Alles aus Party", "150 KI-Verwandlungen", "Hochzeits-Missionen", "Link 14 Tage aktiv", "Galerie 6 Monate"] },
+  { id: "business", tag: null, points: ["Firmen-Design mit Logo", "300 KI-Verwandlungen", "Team-Missionen", "Gewinnspiel / Kontaktformular", "Kontakte als CSV"] },
+  { id: "messe", tag: null, points: ["Mehrtägig (bis 5 Tage)", "1.000 KI-Verwandlungen", "Marken-Rahmen", "Gewinnspiel / Kontaktformular", "Live-Foto-Wand für den Stand"] },
+] as const;
+
+const FAQ = [
+  { q: "Brauchen die Gäste eine App?", a: "Nein. Gäste scannen den QR-Code mit der normalen Handy-Kamera – die VisionBooth öffnet sich direkt im Browser, auf iPhone und Android." },
+  { q: "Wann bekomme ich meinen Link?", a: "Sofort nach der Bezahlung – per E-Mail und direkt auf der Bestätigungsseite. Dort gestaltest du alles selbst und druckst den QR-Aufsteller." },
+  { q: "Wie viele Gäste können mitmachen?", a: "So viele, wie ihr seid. Jeder Gast nutzt sein eigenes Handy. Die KI-Verwandlungen sind je Paket begrenzt (z. B. 150 bei der Hochzeit)." },
+  { q: "Was passiert mit den Fotos?", a: "Fotos erscheinen nur in Galerie und Foto-Wand, wenn der Gast das erlaubt. Nach Ablauf der Speicherzeit werden sie automatisch gelöscht – vorher könnt ihr alles als ZIP herunterladen." },
+  { q: "Kann ich Design und Texte später ändern?", a: "Ja, jederzeit in deinem persönlichen Bereich – Änderungen sind sofort für alle Gäste sichtbar." },
+  { q: "Gibt es das auch zusätzlich zu einer Fotobox?", a: "Ja! Wenn du bei uns eine Fotobox oder einen Fotospiegel mietest, gibt es die VisionBooth als günstiges Add-on dazu." },
+];
+
+const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+
+/** Website visionbooth.de (läuft im Portal unter /vb, später eigene Domain). */
+export default function VisionBoothHome() {
+  return (
+    <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
+      <div className="vb-aurora" aria-hidden />
+
+      <nav className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+        <span className="vb-display text-xl font-semibold">
+          Vision<span className="vb-gold-text">Booth</span>
+        </span>
+        <div className="flex items-center gap-2">
+          <a href="/vb/demo" className="hidden rounded-full px-4 py-2 text-sm font-semibold text-white/80 hover:text-white sm:inline-block">
+            Live-Demo
+          </a>
+          <Link href="/vb/buchen" className="vb-btn rounded-full px-5 py-2.5 text-sm font-bold">
+            Jetzt buchen
+          </Link>
+        </div>
+      </nav>
+
+      {/* Hero */}
+      <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-6 md:grid-cols-[1.1fr_1fr] md:pt-12">
+        <div className="text-center md:text-left">
+          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">📱 Die Fotobox im Handy deiner Gäste</span>
+          <h1 className="vb-in vb-display mt-5 text-[2.6rem] font-semibold leading-[1.05] sm:text-6xl" style={{ animationDelay: "80ms" }}>
+            Jedes Handy wird zur <span className="vb-gold-text">Fotobox</span> – mit KI-Magie.
+          </h1>
+          <p className="vb-in mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-white/70 md:mx-0" style={{ animationDelay: "160ms" }}>
+            QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und sofort teilen. Ganz ohne App, ohne Aufbau – für Hochzeit, Geburtstag und Firmenevent.
+          </p>
+          <div className="vb-in mt-8 flex flex-col items-center gap-3 sm:flex-row md:justify-start" style={{ animationDelay: "240ms" }}>
+            <Link href="/vb/buchen" className="vb-btn w-full rounded-full px-8 py-4 text-center text-[17px] font-bold sm:w-auto">
+              Jetzt buchen – ab {euro(getPlan("party").price)}
+            </Link>
+            <a href="/vb/demo" className="vb-glass w-full rounded-full px-8 py-4 text-center text-[16px] font-semibold sm:w-auto">
+              Live-Demo am Handy testen
+            </a>
+          </div>
+          <p className="vb-in mt-5 text-[13px] text-white/50" style={{ animationDelay: "320ms" }}>
+            ✓ Link sofort nach Buchung &nbsp; ✓ Keine App &nbsp; ✓ Fotos werden automatisch gelöscht
+          </p>
+        </div>
+        <div className="vb-in" style={{ animationDelay: "200ms" }}>
+          <PhoneDemo />
+        </div>
+      </section>
+
+      {/* So funktioniert's */}
+      <section className="relative mx-auto max-w-6xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">So einfach geht&apos;s</h2>
+        <div className="mt-10 grid gap-4 md:grid-cols-3">
+          {STEPS.map((s) => (
+            <div key={s.n} className="vb-glass rounded-3xl p-6">
+              <span className="flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>
+                {s.n}
+              </span>
+              <p className="vb-display mt-4 text-xl font-semibold">{s.title}</p>
+              <p className="mt-2 text-[15px] leading-relaxed text-white/65">{s.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* KI-Stile */}
+      <section className="relative py-16">
+        <div className="mx-auto max-w-6xl px-5 text-center">
+          <h2 className="vb-display text-3xl font-semibold sm:text-4xl">
+            Ein Selfie. <span className="vb-gold-text">Acht Welten.</span>
+          </h2>
+          <p className="mx-auto mt-3 max-w-xl text-white/65">Gäste tippen einen Stil an – Sekunden später sind sie Superheld, Filmstar oder Comicfigur. Und bleiben dabei erkennbar.</p>
+        </div>
+        <div className="vb-scroll mt-10 flex gap-3 overflow-x-auto px-5 pb-2 md:mx-auto md:grid md:max-w-6xl md:grid-cols-4 md:overflow-visible">
+          {[
+            ["original", "📸 Original"],
+            ["glamour", "🎬 Hollywood"],
+            ["superheld", "🦸 Superheld"],
+            ["animation", "🧸 3D-Animation"],
+            ["comic", "💥 Comic"],
+            ["vintage", "🕺 Vintage"],
+            ["neon", "🌈 Neon"],
+            ["weihnachten", "🎄 Weihnachten"],
+          ].map(([k, l]) => (
+            <figure key={k} className="relative w-[46vw] max-w-[220px] flex-none overflow-hidden rounded-3xl ring-1 ring-white/10 md:w-auto md:max-w-none">
+              <img src={`/visionbooth/stile/${k}.webp`} alt={l} loading="lazy" className="aspect-[4/5] w-full object-cover" />
+              <figcaption className="absolute inset-x-2 bottom-2 rounded-full bg-black/60 px-3 py-1.5 text-center text-[13px] font-semibold backdrop-blur">{l}</figcaption>
+            </figure>
+          ))}
+        </div>
+        <p className="mt-4 text-center text-xs text-white/40">Beispiele mit KI-generierten Personen</p>
+      </section>
+
+      {/* Funktionen */}
+      <section className="relative mx-auto max-w-6xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Mehr als eine Fotobox</h2>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {FEATURES.map((f) => (
+            <div key={f.title} className="vb-glass rounded-3xl p-6">
+              <span className="text-3xl">{f.icon}</span>
+              <p className="mt-3 text-lg font-bold">{f.title}</p>
+              <p className="mt-1.5 text-[15px] leading-relaxed text-white/65">{f.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Pakete */}
+      <section id="pakete" className="relative mx-auto max-w-6xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Pakete</h2>
+        <p className="mt-3 text-center text-white/65">Einmal zahlen, kein Abo. Link sofort nach der Buchung.</p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {PLAN_CARDS.map((c) => {
+            const p = getPlan(c.id);
+            return (
+              <div key={c.id} className={`relative flex flex-col rounded-3xl p-6 ${c.tag ? "ring-2" : "vb-glass"}`} style={c.tag ? { background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 22%, #141417), #141417 60%)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
+                {c.tag && (
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>
+                    {c.tag}
+                  </span>
+                )}
+                <p className="text-lg font-bold">{p.label}</p>
+                <p className="vb-display mt-2 text-4xl font-semibold">{euro(p.price)}</p>
+                <ul className="mt-5 flex-1 space-y-2 text-[14px] text-white/75">
+                  {c.points.map((pt) => (
+                    <li key={pt} className="flex gap-2">
+                      <span style={{ color: "var(--a)" }}>✓</span>
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+                <Link href={`/vb/buchen?paket=${c.id}`} className={`mt-6 rounded-full py-3 text-center text-sm font-bold ${c.tag ? "vb-btn" : "border border-white/20 hover:bg-white/10"}`}>
+                  {p.label} buchen
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+        <p className="mt-6 text-center text-sm text-white/55">
+          Du mietest bei uns schon eine Fotobox oder einen Fotospiegel? Dann gibt&apos;s die VisionBooth als Add-on ab {euro(getPlan("addon-privat").price)} –{" "}
+          <a href="https://fotobox-essen.com" className="underline underline-offset-2">fotobox-essen.com</a>
+        </p>
+      </section>
+
+      {/* FAQ */}
+      <section className="relative mx-auto max-w-3xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Häufige Fragen</h2>
+        <div className="mt-8 space-y-2">
+          {FAQ.map((f) => (
+            <details key={f.q} className="vb-glass group rounded-2xl px-5 py-4">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 text-[16px] font-semibold">
+                {f.q}
+                <span className="text-xl text-white/50 transition group-open:rotate-45">+</span>
+              </summary>
+              <p className="mt-3 text-[15px] leading-relaxed text-white/65">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      {/* Abschluss */}
+      <section className="relative mx-auto max-w-4xl px-5 pb-20 pt-8 text-center">
+        <div className="vb-glass rounded-[32px] px-6 py-12">
+          <h2 className="vb-display text-3xl font-semibold sm:text-4xl">
+            Bereit für <span className="vb-gold-text">unvergessliche Fotos</span>?
+          </h2>
+          <p className="mx-auto mt-3 max-w-md text-white/65">In zwei Minuten gebucht – und eure VisionBooth ist sofort startklar.</p>
+          <div className="mt-7 flex flex-col items-center justify-center gap-3 sm:flex-row">
+            <Link href="/vb/buchen" className="vb-btn rounded-full px-8 py-4 text-[17px] font-bold">
+              Jetzt buchen
+            </Link>
+            <a href="/vb/demo" className="text-sm font-semibold text-white/70 underline underline-offset-4">
+              Erst mal die Demo testen
+            </a>
+          </div>
+        </div>
+      </section>
+
+      <footer className="relative border-t border-white/10 px-5 py-8 text-center text-[13px] text-white/45">
+        <p>VisionBooth ist ein Angebot von Event Vision Media · {LANDLORD.phone} · {LANDLORD.email}</p>
+        <p className="mt-2 space-x-4">
+          <a href="https://fotobox-essen.com/impressum.html" className="hover:text-white">Impressum</a>
+          <a href="https://fotobox-essen.com/datenschutz.html" className="hover:text-white">Datenschutz</a>
+          <a href="/vb/agb" className="hover:text-white">AGB</a>
+        </p>
+      </footer>
+    </main>
+  );
+}
