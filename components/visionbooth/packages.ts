@@ -78,6 +78,20 @@ export function defaultGames(plan: VbPlanId, occasion: VbOccasionId): VbGames {
   return { missions: Boolean(o.challenges), reveal: Boolean(o.reveal), leads: plan === "business" || plan === "messe" };
 }
 
+/**
+ * Welche Spiele zum Anlass passen (Kundenbereich zeigt diese oben, den Rest eingeklappt).
+ * Ohne Anlass (ältere Events) passt alles.
+ */
+export function relevantGames(occasion: string | null | undefined, plan: string | null | undefined): VbGames {
+  if (!occasion || !VB_OCCASIONS.some((o) => o.id === occasion)) return { missions: true, reveal: true, leads: true };
+  const firmaAnlass = occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
+  return {
+    missions: occasion !== "messe",
+    reveal: occasion === "babyparty",
+    leads: firmaAnlass || (Boolean(plan) && getPlan(plan).firma),
+  };
+}
+
 /** Freitext-Anlass aus Buchung/Anfrage („Hochzeit am See“, „Firmenjubiläum“ …) einem Anlass zuordnen. */
 export function guessOccasion(text: string | null | undefined, firma = false): VbOccasionId {
   const t = (text ?? "").toLowerCase();

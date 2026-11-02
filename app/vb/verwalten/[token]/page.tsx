@@ -16,6 +16,7 @@ import { VbQrDownload } from "@/components/visionbooth/customer/VbQrDownload";
 import { VbPhotoGrid } from "@/components/admin/visionbooth/VbPhotoGrid";
 import { CopyField } from "@/components/admin/CopyField";
 import { LANDLORD } from "@/lib/contract";
+import { relevantGames } from "@/components/visionbooth/packages";
 
 export const dynamic = "force-dynamic";
 
@@ -54,6 +55,14 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
   const closed = vbClosedReason(event);
   const t = getTemplate(event.template ?? event.frame_style);
   const deleted = Boolean(event.photos_deleted_at);
+  // Spiele: Zähler und Reihenfolge für die Schritte (siehe unten)
+  const [tips, leadCount] = await Promise.all([tipCounts(event.id), listVbLeads(event.id).then((l) => l.length)]);
+  const fit = relevantGames(event.occasion, event.plan);
+  const photoStep = [
+    fit.missions || parseChallenges(event.challenges).length > 0,
+    !deleted && (fit.leads || parseLeadConfig(event.leads).enabled),
+    !deleted && (fit.reveal || parseReveal(event.reveal).enabled),
+  ].filter(Boolean).length;
   const status = deleted ? "Abgeschlossen" : closed ? (closed.includes("öffnet") ? "Startet bald" : closed.includes("noch nicht") ? "In Vorbereitung" : "Beendet") : "Live";
 
   return (
@@ -136,41 +145,68 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
           </div>
         </section>
 
-        {/* 3 · Missionen */}
-        <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={3} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand." />
-          <div className="mt-5">
-            {deleted ? (
-              <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
-            ) : (
-              <VbChallengesEditor action={updateVbChallenges.bind(null, params.token)} initial={parseChallenges(event.challenges)} galleryEnabled={event.gallery_enabled} />
-            )}
-          </div>
-        </section>
-
-        {/* Tippspiel */}
-        {!deleted && (
-          <section className="rounded-3xl bg-white p-6 shadow-card">
-            <Step n={0} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." />
-            <div className="mt-5">
-              <VbRevealEditor action={updateVbReveal.bind(null, params.token)} initial={parseReveal(event.reveal)} counts={await tipCounts(event.id)} />
-            </div>
-          </section>
-        )}
-
-        {/* Firmen: Kontaktformular */}
-        {(event.package !== "privat" || parseLeadConfig(event.leads).enabled) && !deleted && (
-          <section className="rounded-3xl bg-white p-6 shadow-card">
-            <Step n={0} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." />
-            <div className="mt-5">
-              <VbLeadsEditor action={updateVbLeads.bind(null, params.token)} initial={parseLeadConfig(event.leads)} count={(await listVbLeads(event.id)).length} csvUrl={`/api/vb/verwalten/${params.token}/kontakte`} />
-            </div>
-          </section>
-        )}
+        {/* Spiele: passend zum Anlass oben, der Rest eingeklappt */}
+        {(() => {
+          const missions = (n: number) => (
+            <section key="m" className="rounded-3xl bg-white p-6 shadow-card">
+              <Step n={n} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand." />
+              <div className="mt-5">
+                {deleted ? (
+                  <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
+                ) : (
+                  <VbChallengesEditor action={updateVbChallenges.bind(null, params.token)} initial={parseChallenges(event.challenges)} galleryEnabled={event.gallery_enabled} />
+                )}
+              </div>
+            </section>
+          );
+          const reveal = (n: number) => (
+            <section key="r" className="rounded-3xl bg-white p-6 shadow-card">
+              <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." />
+              <div className="mt-5">
+                <VbRevealEditor action={updateVbReveal.bind(null, params.token)} initial={parseReveal(event.reveal)} counts={tips} />
+              </div>
+            </section>
+          );
+          const leads = (n: number) => (
+            <section key="l" className="rounded-3xl bg-white p-6 shadow-card">
+              <Step n={n} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." />
+              <div className="mt-5">
+                <VbLeadsEditor action={updateVbLeads.bind(null, params.token)} initial={parseLeadConfig(event.leads)} count={leadCount} csvUrl={`/api/vb/verwalten/${params.token}/kontakte`} />
+              </div>
+            </section>
+          );
+          // oben: passt zum Anlass oder ist schon eingeschaltet
+          const items = [
+            { key: "missions", top: fit.missions || parseChallenges(event.challenges).length > 0, render: missions, done: false },
+            { key: "leads", top: fit.leads || parseLeadConfig(event.leads).enabled, render: leads, done: deleted },
+            { key: "reveal", top: fit.reveal || parseReveal(event.reveal).enabled, render: reveal, done: deleted },
+          ];
+          const top = items.filter((i) => i.top && !i.done);
+          const more = items.filter((i) => !i.top && !i.done);
+          return (
+            <>
+              {top.map((i, n) => i.render(3 + n))}
+              {more.length > 0 && (
+                <details className="group rounded-3xl bg-white p-6 shadow-card">
+                  <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                    <span>
+                      <span className="block font-serif text-xl font-semibold text-anthracite-800">Weitere Spiele &amp; Extras</span>
+                      <span className="mt-0.5 block text-sm text-anthracite-500">
+                        {more.map((i) => (i.key === "missions" ? "🎯 Missionen" : i.key === "reveal" ? "🔮 Tippspiel" : "🎁 Gewinnspiel")).join(" · ")} – passt nicht zu jedem Anlass, aber jederzeit möglich
+                      </span>
+                    </span>
+                    <span className="text-2xl text-anthracite-400 transition group-open:rotate-45">+</span>
+                  </summary>
+                  <div className="mt-5 space-y-6">{more.map((i) => i.render(0))}</div>
+                </details>
+              )}
+            </>
+          );
+        })()}
 
         {/* 4 · Fotos */}
         <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={4} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
+          <Step n={3 + photoStep} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
           <div className="mt-5 grid grid-cols-3 gap-3 text-center">
             <Kpi label="Fotos" value={photoTotal ?? 0} />
             <Kpi label="Gäste" value={new Set((guests ?? []).map((g) => g.guest_key)).size} />
