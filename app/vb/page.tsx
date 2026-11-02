@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
-import { ScrollStory } from "@/components/visionbooth/site/ScrollStory";
+import { StoryScenes } from "@/components/visionbooth/site/StoryScenes";
 import { Reveal } from "@/components/visionbooth/site/Reveal";
 import { vbBaseUrl } from "@/lib/visionbooth";
 import { getPlan, vbTaxNote } from "@/components/visionbooth/packages";
@@ -116,7 +116,7 @@ export default async function VisionBoothHome() {
         </div>
       </section>
 
-      <ScrollStory />
+      <StoryScenes />
 
       {/* Gemeinsame Galerie statt WhatsApp-Chaos */}
       <section className="relative mx-auto max-w-5xl px-5 py-16">
