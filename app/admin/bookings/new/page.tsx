@@ -8,7 +8,8 @@ import type { Extra, ExtraVariant } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function NewBookingPage({ searchParams }: { searchParams: { alt?: string } }) {
+export default async function NewBookingPage(props: { searchParams: Promise<{ alt?: string }> }) {
+  const searchParams = await props.searchParams;
   const legacy = searchParams.alt === "1";
   const supabase = createAdminClient();
   const [{ data: extras }, { data: variants }] = await Promise.all([

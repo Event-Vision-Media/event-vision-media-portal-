@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const {
     data: { user },
-  } = await createClient().auth.getUser();
+  } = await (await createClient()).auth.getUser();
   if (!user) return NextResponse.json({ error: "Nicht angemeldet." }, { status: 401 });
 
   const since = new Date(Date.now() - 90 * 86_400_000).toISOString(); // Google nimmt Klicks bis 90 Tage zurück an

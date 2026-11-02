@@ -21,7 +21,8 @@ const VIEWS = {
 
 type ViewKey = keyof typeof VIEWS;
 
-export default async function AdminInquiriesPage({ searchParams }: { searchParams: { view?: string } }) {
+export default async function AdminInquiriesPage(props: { searchParams: Promise<{ view?: string }> }) {
+  const searchParams = await props.searchParams;
   const view: ViewKey = (searchParams.view as ViewKey) in VIEWS ? (searchParams.view as ViewKey) : "offen";
   const supabase = createAdminClient();
 

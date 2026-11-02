@@ -59,11 +59,10 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   personalisierung_komplett: "Komplett",
 };
 
-export default async function AdminBookingDetailPage({
-  params,
-}: {
-  params: { id: string };
+export default async function AdminBookingDetailPage(props: {
+  params: Promise<{ id: string }>;
 }) {
+  const params = await props.params;
   const supabase = createAdminClient();
 
   const [

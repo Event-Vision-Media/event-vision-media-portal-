@@ -17,11 +17,10 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   personalisierung_komplett: "Komplett",
 };
 
-export default async function AdminBookingsPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; sort?: string; view?: string };
+export default async function AdminBookingsPage(props: {
+  searchParams: Promise<{ status?: string; sort?: string; view?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const supabase = createAdminClient();
   const [
     { data: bookings },

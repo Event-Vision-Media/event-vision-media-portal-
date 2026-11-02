@@ -10,7 +10,8 @@ export const dynamic = "force-dynamic";
  * Rechnungs-PDF herunterladen: leitet auf einen kurzlebigen, signierten Link weiter.
  * Zugriff nur für den eingeloggten Kunden der jeweiligen Buchung oder für Admins.
  */
-export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_req: NextRequest, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const supabase = createAdminClient();
   const [{ data: invoice }, guestBooking, isAdmin] = await Promise.all([
     supabase.from("booking_invoices").select("booking_id, file_path, file_name").eq("id", params.id).maybeSingle(),

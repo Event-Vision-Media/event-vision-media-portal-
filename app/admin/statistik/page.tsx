@@ -56,7 +56,8 @@ const cityOf = (loc: string | null) => loc?.match(/\b\d{5}\s+([^,]+)/)?.[1]?.tri
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)} %` : "–");
 
 /** Auswertung der Website-Anfragen: Abschlussquote, Umsatz, Upsells, Herkunft. */
-export default async function AdminStatsPage({ searchParams }: { searchParams: { zeitraum?: string } }) {
+export default async function AdminStatsPage(props: { searchParams: Promise<{ zeitraum?: string }> }) {
+  const searchParams = await props.searchParams;
   const range: RangeKey = (searchParams.zeitraum as RangeKey) in RANGES ? (searchParams.zeitraum as RangeKey) : "90";
   const since = new Date(Date.now() - RANGES[range].days * 86_400_000).toISOString();
   const { data } = await createAdminClient()

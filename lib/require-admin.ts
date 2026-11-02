@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/server";
  * jedem Fall über die Middleware laufen.
  */
 export async function isAdminAuthenticated(): Promise<boolean> {
-  const supabase = createClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();

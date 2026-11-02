@@ -17,7 +17,8 @@ function fmt(iso: string, opts: Intl.DateTimeFormatOptions) {
 }
 
 /** Kalender: Woche (Standard) oder Monat mit Aufbau, Event und Abbau. */
-export default async function AdminCalendarPage({ searchParams }: { searchParams: { ansicht?: string; datum?: string } }) {
+export default async function AdminCalendarPage(props: { searchParams: Promise<{ ansicht?: string; datum?: string }> }) {
+  const searchParams = await props.searchParams;
   const view = searchParams.ansicht === "monat" ? "monat" : "woche";
   const today = todayBerlin();
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(searchParams.datum ?? "") ? searchParams.datum! : today;

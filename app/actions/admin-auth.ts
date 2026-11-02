@@ -18,7 +18,7 @@ export async function adminLogin(
     return { error: "Bitte E-Mail und Passwort eingeben." };
   }
 
-  const supabase = createClient();
+  const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
@@ -29,7 +29,7 @@ export async function adminLogin(
 }
 
 export async function adminLogout() {
-  const supabase = createClient();
+  const supabase = await createClient();
   await supabase.auth.signOut();
   redirect("/admin");
 }

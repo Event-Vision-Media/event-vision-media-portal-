@@ -40,7 +40,7 @@ export async function loginWithBookingCode(
     return { error: "Bitte gib deinen Zugangscode oder dein Passwort ein." };
   }
 
-  const ip = headers().get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
+  const ip = (await headers()).get("x-forwarded-for")?.split(",")[0].trim() || "unknown";
   if (recentFailures(ip).length >= MAX_FAILURES) {
     return { error: "Zu viele Versuche. Bitte warte ein paar Minuten und versuche es dann erneut." };
   }
@@ -96,7 +96,7 @@ export async function loginWithBookingCode(
   }
 
   failedLogins.delete(ip);
-  setBookingSessionCookie(booking.id);
+  await setBookingSessionCookie(booking.id);
   // Für den Admin: „Kunde war im Portal“ (höchstens ein Eintrag je 6 Std.)
   try {
     const since = new Date(Date.now() - 6 * 3600 * 1000).toISOString();
@@ -114,6 +114,6 @@ export async function loginWithBookingCode(
 }
 
 export async function logoutAction() {
-  clearBookingSessionCookie();
+  await clearBookingSessionCookie();
   redirect("/");
 }

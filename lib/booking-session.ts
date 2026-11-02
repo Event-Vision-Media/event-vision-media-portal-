@@ -6,8 +6,8 @@ import { PORTAL_LIFECYCLES, type Booking } from "@/lib/types";
 
 const COOKIE_NAME = "fb_booking_id";
 
-export function setBookingSessionCookie(bookingId: string) {
-  cookies().set(COOKIE_NAME, bookingId, {
+export async function setBookingSessionCookie(bookingId: string) {
+  (await cookies()).set(COOKIE_NAME, bookingId, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
@@ -17,8 +17,8 @@ export function setBookingSessionCookie(bookingId: string) {
   });
 }
 
-export function clearBookingSessionCookie() {
-  cookies().delete(COOKIE_NAME);
+export async function clearBookingSessionCookie() {
+  (await cookies()).delete(COOKIE_NAME);
 }
 
 /**
@@ -26,7 +26,7 @@ export function clearBookingSessionCookie() {
  * Gibt null zurück, wenn keine gültige Session/Buchung existiert.
  */
 export async function getCurrentBooking(): Promise<Booking | null> {
-  const bookingId = cookies().get(COOKIE_NAME)?.value;
+  const bookingId = (await cookies()).get(COOKIE_NAME)?.value;
   if (!bookingId) return null;
 
   const supabase = createAdminClient();

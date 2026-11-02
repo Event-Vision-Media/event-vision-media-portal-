@@ -12,7 +12,8 @@ export const dynamic = "force-dynamic";
  * Vorschau aller automatischen E-Mails mit Beispieldaten – zum Prüfen von
  * Texten und Design, ohne eine echte E-Mail zu verschicken.
  */
-export default async function AdminMailPreviewPage({ searchParams }: { searchParams: { typ?: string } }) {
+export default async function AdminMailPreviewPage(props: { searchParams: Promise<{ typ?: string }> }) {
+  const searchParams = await props.searchParams;
   const business = searchParams.typ === "business";
   const priced = business
     ? priceSelection(["spiegel-gold"], ["branding", "betreuung"], 2, true)

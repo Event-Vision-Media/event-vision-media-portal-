@@ -8,7 +8,8 @@ import { getLatestContract } from "@/lib/contract-server";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminContractPage({ params }: { params: { id: string } }) {
+export default async function AdminContractPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const contract = await getLatestContract(params.id);
   return (
     <div className="min-h-screen bg-sand-50">
