@@ -221,53 +221,75 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
   }
 
   const gold = event.accent;
+  const ink = onAccent(gold);
   const current = open !== null ? shown[open] : null;
+  const hero = filter === "alle" && shown.length > 2;
+  const filters = hasAi ? (["alle", "top", "ki"] as const) : (["alle", "top"] as const);
 
   return (
-    <main className="min-h-[100dvh] bg-[#0d0d0f] text-white">
-      <header className="mx-auto max-w-6xl px-4 pb-6 pt-10 text-center">
-        {event.logoUrl && <img src={event.logoUrl} alt="" className="mx-auto mb-5 max-h-16 max-w-[50%] object-contain" />}
-        <p className="text-xs uppercase tracking-[0.3em] text-white/50">VisionBooth · Galerie</p>
-        <h1 className="mt-2 font-serif text-3xl sm:text-4xl" style={{ color: gold }}>
+    <main className="vb" style={{ ["--a" as string]: gold, ["--ink" as string]: ink }}>
+      <div className="vb-aurora" aria-hidden />
+
+      <header className="relative mx-auto max-w-6xl px-5 pb-5 pt-10 text-center">
+        {event.logoUrl ? (
+          <img src={event.logoUrl} alt="" className="vb-in mx-auto mb-5 max-h-16 max-w-[50%] object-contain" />
+        ) : (
+          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/75">Galerie</span>
+        )}
+        <h1 className="vb-in vb-display vb-gold-text mt-4 text-[2.4rem] font-semibold leading-[1.08] sm:text-5xl" style={{ animationDelay: "80ms" }}>
           {event.frameText}
         </h1>
-        <p className="mt-2 text-sm text-white/60">{total === 1 ? "1 Foto" : `${total} Fotos`}</p>
+        <p className="vb-in mt-3 text-sm text-white/60" style={{ animationDelay: "140ms" }}>
+          {total === 1 ? "1 Foto" : `${total} Fotos`} · tippe ♡ bei deinen Lieblingen
+        </p>
+        <a href={`/vb/${event.slug}`} className="vb-in vb-glass mt-4 inline-flex items-center gap-2 rounded-full px-4 py-2 text-[13px] font-semibold text-white/90" style={{ animationDelay: "200ms" }}>
+          📸 Selbst ein Foto machen
+        </a>
+      </header>
 
-        {total > 0 && (
-          <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
-            <div className="flex rounded-full bg-white/10 p-1 text-sm">
-              {(hasAi ? (["alle", "top", "ki"] as const) : (["alle", "top"] as const)).map((f) => (
+      {total > 0 && (
+        <div className="sticky top-0 z-30 px-3 py-2" style={{ background: "linear-gradient(#0a0a0c 55%, transparent)" }}>
+          <div className="mx-auto flex max-w-6xl items-center justify-between gap-2">
+            <div className="vb-glass flex rounded-full p-1 text-[13px] font-semibold">
+              {filters.map((f) => (
                 <button
                   key={f}
                   onClick={() => {
                     setFilter(f);
                     setOpen(null);
                   }}
-                  className={`rounded-full px-4 py-1.5 transition ${filter === f ? "bg-white text-[#0d0d0f]" : "text-white/70"}`}
+                  className={`rounded-full px-3.5 py-1.5 transition ${filter === f ? "" : "text-white/70"}`}
+                  style={filter === f ? { background: gold, color: ink } : undefined}
                 >
                   {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : "✨ KI"}
                 </button>
               ))}
             </div>
-            <button onClick={downloadAll} disabled={Boolean(zip)} className="rounded-full border border-white/20 px-4 py-2 text-sm font-medium hover:bg-white/10 disabled:opacity-60">
-              {zip ? `ZIP wird erstellt … ${zip.done}/${zip.total}` : "Alle herunterladen (ZIP)"}
+            <button onClick={downloadAll} disabled={Boolean(zip)} className="vb-glass flex-none rounded-full px-3.5 py-2 text-[13px] font-semibold text-white/90 disabled:opacity-60" aria-label="Alle Fotos als ZIP herunterladen">
+              {zip ? `${zip.done}/${zip.total} …` : "⬇︎ Alle (ZIP)"}
             </button>
           </div>
-        )}
-        {zipError && <p className="mx-auto mt-3 max-w-sm text-xs text-red-300">{zipError}</p>}
-      </header>
+          {zipError && <p className="mx-auto mt-2 max-w-sm text-center text-xs text-red-300">{zipError}</p>}
+        </div>
+      )}
 
-      <section className="mx-auto grid max-w-6xl grid-cols-2 gap-1.5 px-1.5 pb-16 sm:grid-cols-3 sm:gap-2 sm:px-4 lg:grid-cols-4">
+      <section className="relative mx-auto grid max-w-6xl grid-cols-2 gap-2 px-2 pb-16 pt-2 sm:grid-cols-3 sm:gap-3 sm:px-4 lg:grid-cols-4">
         {shown.map((p, i) => (
-          <div key={p.id} className="relative overflow-hidden rounded-md bg-white/5">
-            <button onClick={() => setOpen(i)} className="block w-full">
-              <img src={p.url} alt="" loading="lazy" className="aspect-[4/5] w-full object-cover transition hover:scale-[1.02]" />
+          <div
+            key={p.id}
+            className={`vb-in group relative overflow-hidden rounded-2xl bg-white/5 ring-1 ring-white/10 ${hero && i === 0 ? "col-span-2 row-span-2" : ""}`}
+            style={{ animationDelay: `${(i % 12) * 35}ms` }}
+          >
+            <button onClick={() => setOpen(i)} className="block h-full w-full">
+              <img src={p.url} alt="" loading="lazy" className="aspect-[4/5] h-full w-full object-cover transition duration-500 group-hover:scale-[1.04]" />
             </button>
-            {p.kind === "ki" && <span className="pointer-events-none absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px]">✨ KI</span>}
-            {filter === "top" && i < 3 && <span className="pointer-events-none absolute right-1.5 top-1.5 text-xl drop-shadow">{["🥇", "🥈", "🥉"][i]}</span>}
+            <span className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-black/60 to-transparent" />
+            {hero && i === 0 && <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full px-2.5 py-1 text-[11px] font-bold" style={{ background: gold, color: ink }}>Neuestes Foto</span>}
+            {p.kind === "ki" && <span className={`pointer-events-none absolute ${hero && i === 0 ? "left-2.5 top-10" : "left-2 top-2"} rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold backdrop-blur`}>✨ KI</span>}
+            {filter === "top" && i < 3 && <span className="pointer-events-none absolute right-2 top-2 text-2xl drop-shadow">{["🥇", "🥈", "🥉"][i]}</span>}
             <button
               onClick={() => toggleLike(p)}
-              className="absolute bottom-1.5 right-1.5 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 text-[11px] font-semibold backdrop-blur"
+              className="absolute bottom-2 right-2 flex items-center gap-1 rounded-full bg-black/45 px-2.5 py-1.5 text-[12px] font-semibold backdrop-blur transition active:scale-90"
               aria-label={liked.has(p.id) ? "Herz entfernen" : "Herz geben"}
             >
               <Heart on={liked.has(p.id)} className={`h-4 w-4 ${burst === p.id ? "vb-heart" : ""}`} />
@@ -276,23 +298,24 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
           </div>
         ))}
       </section>
-      <div ref={sentinel} className="pb-10 text-center text-xs text-white/40">
-        {filter === "top"
-          ? topList === null
-            ? "Lädt …"
-            : topList.length === 0
-              ? "Noch keine Herzen vergeben – tippe auf ♡ bei deinen Lieblingsfotos."
-              : ""
-          : loading
-            ? "Lädt …"
-            : done && photos.length === 0
-              ? "Noch keine Fotos in der Galerie."
-              : ""}
+
+      <div ref={sentinel} className="relative px-5 pb-12 text-center text-sm text-white/50">
+        {filter === "top" ? (
+          topList === null ? (
+            "Lädt …"
+          ) : topList.length === 0 ? (
+            <Empty icon="❤️" title="Noch keine Herzen" text="Tippe auf ♡ bei deinen Lieblingsfotos – die beliebtesten erscheinen hier." />
+          ) : null
+        ) : loading ? (
+          "Lädt …"
+        ) : done && photos.length === 0 ? (
+          <Empty icon="📸" title="Noch keine Fotos" text="Sei die oder der Erste – die Fotos aller Gäste erscheinen hier." cta={{ href: `/vb/${event.slug}`, label: "Erstes Foto machen" }} />
+        ) : null}
       </div>
 
       {current && (
         <div
-          className="fixed inset-0 z-50 flex flex-col bg-black/95"
+          className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-black"
           onTouchStart={(e) => (touchX.current = e.touches[0].clientX)}
           onTouchEnd={(e) => {
             if (touchX.current === null) return;
@@ -301,19 +324,21 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
             touchX.current = null;
           }}
         >
-          <div className="flex items-center justify-between px-4 py-3 text-sm text-white/70">
-            <span>
+          <img src={current.url} alt="" aria-hidden className="pointer-events-none absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl" />
+          <div className="relative flex items-center justify-between px-4 py-3" style={{ paddingTop: "max(0.75rem, env(safe-area-inset-top))" }}>
+            <span className="vb-glass rounded-full px-3 py-1.5 text-xs font-semibold text-white/80">
               {open! + 1} / {shown.length}
             </span>
-            <button onClick={() => setOpen(null)} className="h-10 w-10 rounded-full bg-white/10 text-lg" aria-label="Schließen">
+            <button onClick={() => setOpen(null)} className="vb-glass h-11 w-11 rounded-full text-lg" aria-label="Schließen">
               ✕
             </button>
           </div>
-          <div className="relative flex min-h-0 flex-1 items-center justify-center px-2">
+          <div className="relative flex min-h-0 flex-1 items-center justify-center px-3">
             <img
+              key={current.id}
               src={current.url}
               alt=""
-              className="max-h-full max-w-full select-none rounded object-contain"
+              className="vb-pop max-h-full max-w-full select-none rounded-2xl object-contain shadow-[0_30px_80px_-20px_rgba(0,0,0,0.9)]"
               onClick={() => {
                 // Doppeltippen = Herz
                 const now = Date.now();
@@ -325,31 +350,47 @@ export function Gallery({ event, total }: { event: { slug: string; frameText: st
               <Heart on className="vb-heart-burst pointer-events-none absolute left-1/2 top-1/2 h-28 w-28 -translate-x-1/2 -translate-y-1/2 drop-shadow-[0_8px_30px_rgba(255,77,109,0.6)]" />
             )}
             {open! > 0 && (
-              <button onClick={() => step(-1)} className="absolute left-2 z-10 hidden h-12 w-12 rounded-full bg-black/60 text-2xl text-white ring-1 ring-white/20 sm:block" aria-label="Zurück">
+              <button onClick={() => step(-1)} className="vb-glass absolute left-3 z-10 hidden h-12 w-12 rounded-full text-2xl sm:block" aria-label="Zurück">
                 ‹
               </button>
             )}
             {open! < shown.length - 1 && (
-              <button onClick={() => step(1)} className="absolute right-2 z-10 hidden h-12 w-12 rounded-full bg-black/60 text-2xl text-white ring-1 ring-white/20 sm:block" aria-label="Weiter">
+              <button onClick={() => step(1)} className="vb-glass absolute right-3 z-10 hidden h-12 w-12 rounded-full text-2xl sm:block" aria-label="Weiter">
                 ›
               </button>
             )}
           </div>
-          <div className="flex items-center justify-center gap-3 px-4 py-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
+          <div className="relative flex items-center justify-center gap-3 px-4 py-4" style={{ paddingBottom: "max(1rem, env(safe-area-inset-bottom))" }}>
             <button
               onClick={() => toggleLike(current)}
-              className="flex h-[52px] min-w-[52px] items-center justify-center gap-1.5 rounded-full bg-white/10 px-4 text-sm font-semibold"
+              className="vb-glass flex h-[54px] min-w-[54px] items-center justify-center gap-1.5 rounded-full px-4 text-sm font-semibold transition active:scale-90"
               aria-label={liked.has(current.id) ? "Herz entfernen" : "Herz geben"}
             >
               <Heart on={liked.has(current.id)} className={`h-6 w-6 ${burst === current.id ? "vb-heart" : ""}`} />
               {likeCount(current) > 0 && likeCount(current)}
             </button>
-            <button onClick={() => download(current, Math.max(0, photos.length - 1 - photos.indexOf(current)))} className="w-full max-w-xs rounded-full py-3.5 font-semibold" style={{ background: gold, color: onAccent(gold) }}>
+            <button onClick={() => download(current, Math.max(0, photos.length - 1 - photos.indexOf(current)))} className="vb-btn w-full max-w-xs rounded-full py-4 text-[16px] font-bold">
               Foto speichern
             </button>
           </div>
+          <p className="relative pb-3 text-center text-[11px] text-white/40">Doppeltippen = ❤️ · wischen = nächstes Foto</p>
         </div>
       )}
     </main>
+  );
+}
+
+function Empty({ icon, title, text, cta }: { icon: string; title: string; text: string; cta?: { href: string; label: string } }) {
+  return (
+    <div className="vb-in vb-glass mx-auto mt-4 max-w-sm rounded-3xl px-6 py-8">
+      <p className="text-4xl">{icon}</p>
+      <p className="vb-display mt-3 text-xl font-semibold text-white">{title}</p>
+      <p className="mt-1 text-sm text-white/60">{text}</p>
+      {cta && (
+        <a href={cta.href} className="vb-btn mt-5 inline-block rounded-full px-6 py-3 text-sm font-bold">
+          {cta.label}
+        </a>
+      )}
+    </div>
   );
 }

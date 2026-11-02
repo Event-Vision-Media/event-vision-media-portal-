@@ -5,6 +5,7 @@
   position: relative;
   min-height: 100dvh;
   overflow-x: hidden;
+  overflow-x: clip; /* clip statt hidden: sonst klebt die Filterleiste der Galerie nicht */
   background: #0a0a0c;
   color: #fff;
   font-family: var(--vb-font-ui), system-ui, -apple-system, sans-serif;
@@ -192,4 +193,18 @@
   35% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
   70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -60%) scale(1.05); }
+}
+
+/* Foto-Wand */
+.vb-wall-bg { opacity: 0.35; animation: vb-fade-bg 1.2s ease both; }
+.vb-wall-in { animation: vb-wall-in 1s cubic-bezier(0.2, 1, 0.3, 1) both, vb-kenburns 14s ease-in-out 1s both; }
+@keyframes vb-wall-in { from { opacity: 0; transform: scale(0.92) translateY(2%); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes vb-kenburns { to { transform: scale(1.025); } }
+.vb-wall-progress { animation: vb-wall-prog var(--dur, 6s) linear both; }
+@keyframes vb-wall-prog { from { width: 0; } to { width: 100%; } }
+.vb-wall-qr { box-shadow: 0 0 0 0 color-mix(in srgb, var(--a) 55%, transparent); animation: vb-pulse 2.6s ease-in-out infinite; }
+.vb-live { animation: vb-live 1.4s ease-in-out infinite; }
+@keyframes vb-live { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .vb-wall-in, .vb-wall-qr, .vb-live { animation: none; }
 }

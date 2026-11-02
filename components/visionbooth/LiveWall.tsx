@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { onAccent } from "./frame";
 
 interface Photo {
   id: string;
@@ -138,20 +139,29 @@ export function LiveWall({
 
   const gold = event.accent;
   const strip = photos.slice(0, 6);
+  const ink = onAccent(gold);
 
   return (
-    <main className="flex h-screen w-screen gap-[2vw] overflow-hidden bg-[#0d0d0f] p-[2vw] text-white">
-      <section className="relative flex flex-1 items-center justify-center">
+    <main className="vb flex h-screen w-screen gap-[1.6vw] overflow-hidden p-[1.6vw]" style={{ ["--a" as string]: gold, ["--ink" as string]: ink, minHeight: 0 }}>
+      <div className="vb-aurora" aria-hidden />
+
+      <section className="relative flex flex-1 items-center justify-center overflow-hidden rounded-[2vw]">
+        {current && <img key={`bg${current.id}`} src={current.url} alt="" aria-hidden className="vb-wall-bg absolute inset-0 h-full w-full scale-125 object-cover blur-3xl" />}
+        <span className="absolute left-[1.2vw] top-[1.2vw] z-10 flex items-center gap-[0.5vw] rounded-full bg-black/45 px-[1vw] py-[0.4vw] text-[0.95vw] font-semibold backdrop-blur">
+          <span className="vb-live h-[0.7vw] w-[0.7vw] rounded-full bg-red-500" /> LIVE · {photos.length === 1 ? "1 Foto" : `${photos.length} Fotos`}
+        </span>
         {current ? (
           <>
-            <img key={current.id} src={current.url} alt="" className="max-h-full max-w-full animate-fade-in rounded-lg object-contain shadow-2xl" />
+            <img key={current.id} src={current.url} alt="" className="vb-wall-in relative max-h-[92%] max-w-[92%] rounded-[1.2vw] object-contain shadow-[0_3vw_6vw_-1.5vw_rgba(0,0,0,0.9)] ring-1 ring-white/15" />
             {isNew && !current.mission && (
-              <span className="absolute left-4 top-4 animate-fade-in rounded-full px-5 py-2 text-[1.4vw] font-semibold text-[#0d0d0f]" style={{ background: gold }}>
-                Gerade aufgenommen ✨
-              </span>
+              <div className="absolute inset-x-0 top-[5%] z-10 flex justify-center">
+                <span className="vb-pop rounded-full px-[1.6vw] py-[0.6vw] text-[1.4vw] font-bold shadow-xl" style={{ background: gold, color: ink }}>
+                  Gerade aufgenommen ✨
+                </span>
+              </div>
             )}
             {current.mission && (
-              <div key={`m${current.id}`} className="vb-wall-mission absolute bottom-[3%] left-1/2 flex -translate-x-1/2 items-center gap-[1vw] whitespace-nowrap rounded-full bg-black/75 py-[0.7vw] pl-[0.8vw] pr-[1.6vw] text-[1.35vw] shadow-2xl ring-1 ring-white/15 backdrop-blur">
+              <div key={`m${current.id}`} className="vb-wall-mission absolute bottom-[3%] left-1/2 z-10 flex -translate-x-1/2 items-center gap-[1vw] whitespace-nowrap rounded-full bg-black/75 py-[0.7vw] pl-[0.8vw] pr-[1.6vw] text-[1.35vw] shadow-2xl ring-1 ring-white/15 backdrop-blur">
                 <span className="flex h-[3vw] w-[3vw] items-center justify-center rounded-full text-[1.7vw]" style={{ background: gold }}>
                   {current.mission.emoji}
                 </span>
@@ -162,30 +172,34 @@ export function LiveWall({
                 <span className="font-bold" style={{ color: gold }}>+{current.mission.points}</span>
               </div>
             )}
+            {!isNew && photos.length > 1 && (
+              <span key={`p${current.id}`} className="vb-wall-progress absolute bottom-0 left-0 h-[0.35vw] rounded-full" style={{ background: gold, ["--dur" as string]: `${ROTATE_MS}ms` }} />
+            )}
           </>
         ) : (
-          <p className="text-center font-serif text-[2.4vw] text-white/60">Die ersten Fotos erscheinen gleich hier …</p>
+          <div className="relative text-center">
+            <p className="vb-display vb-gold-text text-[3.4vw] font-semibold">Gleich geht&apos;s los!</p>
+            <p className="mt-[0.8vw] text-[1.4vw] text-white/60">Scannt den QR-Code – eure Fotos erscheinen hier.</p>
+          </div>
         )}
       </section>
 
-      <aside className="flex w-[24vw] flex-col items-center justify-between py-[1vw] text-center">
+      <aside className="vb-glass relative flex w-[24vw] flex-col items-center justify-between rounded-[2vw] px-[1.4vw] py-[1.6vw] text-center">
         <div>
-          {event.logoUrl && <img src={event.logoUrl} alt="" className="mx-auto mb-[1.5vw] max-h-[7vw] max-w-[80%] object-contain" />}
-          <p className="font-serif text-[2.4vw] leading-tight" style={{ color: gold }}>
-            {event.frameText}
-          </p>
+          {event.logoUrl && <img src={event.logoUrl} alt="" className="mx-auto mb-[1.2vw] max-h-[6vw] max-w-[80%] object-contain" />}
+          <p className="vb-display vb-gold-text text-[2.4vw] font-semibold leading-tight">{event.frameText}</p>
         </div>
 
         <div className="w-full">
-          <p className="font-serif text-[2vw]">Mach mit! 📸</p>
-          <p className="mt-[0.4vw] text-[1vw] text-white/60">QR-Code scannen, Foto machen – es erscheint hier.</p>
-          <div className="mx-auto mt-[1vw] w-[15vw] rounded-xl bg-white p-[0.6vw]" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-          <p className="mt-[0.6vw] text-[0.9vw] text-white/40">{guestUrl}</p>
+          <p className="vb-display text-[1.9vw] font-semibold">Mach mit! 📸</p>
+          <p className="mt-[0.3vw] text-[0.95vw] text-white/60">QR-Code scannen, Foto machen – es erscheint hier.</p>
+          <div className="vb-wall-qr mx-auto mt-[1vw] w-[14vw] rounded-[1vw] bg-white p-[0.6vw]" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+          <p className="mt-[0.6vw] text-[0.85vw] text-white/40">{guestUrl}</p>
         </div>
 
         {missions && board ? (
           <div className="w-full text-left">
-            <p className="mb-[0.6vw] text-center font-serif text-[1.5vw]">🏆 Bestenliste</p>
+            <p className="vb-display mb-[0.6vw] text-center text-[1.5vw] font-semibold">🏆 Bestenliste</p>
             {board.top.length === 0 ? (
               <p className="text-center text-[0.95vw] text-white/50">Erfülle Foto-Missionen und lande hier!</p>
             ) : (
@@ -218,7 +232,7 @@ export function LiveWall({
         ) : (
           <div />
         )}
-        <p className="text-[0.8vw] tracking-[0.3em] text-white/30">VISIONBOOTH</p>
+        <p className="text-[0.75vw] tracking-[0.35em] text-white/30">VISIONBOOTH</p>
       </aside>
     </main>
   );
