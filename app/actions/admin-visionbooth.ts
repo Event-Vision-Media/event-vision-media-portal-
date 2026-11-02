@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
-import { vbManageUrl, VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
+import { deleteVbPhoto, vbManageUrl, VB_BUCKET, VB_RETENTION_CHOICES } from "@/lib/visionbooth";
 import { sendEmail, vbManageMail } from "@/lib/email";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
@@ -201,6 +201,14 @@ export async function updateVbRevealAdmin(eventId: string, _prev: AdminActionRes
   if (!e) return { error: "Event nicht gefunden." };
   const { error } = await supabase.from("vb_events").update({ reveal: revealFromForm(e.reveal, formData) }).eq("id", eventId);
   if (error) return { error: "Speichern fehlgeschlagen." };
+  paths(eventId);
+  return { success: true };
+}
+
+/** Foto endgültig löschen (Admin). */
+export async function deleteVbPhotoAdmin(eventId: string, photoId: string): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  if (!(await deleteVbPhoto(eventId, photoId))) return { error: "Löschen fehlgeschlagen." };
   paths(eventId);
   return { success: true };
 }

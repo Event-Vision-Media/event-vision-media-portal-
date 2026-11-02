@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadVbEventByToken, VB_BUCKET } from "@/lib/visionbooth";
+import { deleteVbPhoto, loadVbEventByToken, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges } from "@/components/visionbooth/challenges";
 import { leadConfigFromForm } from "@/lib/visionbooth-leads";
@@ -101,6 +101,15 @@ export async function updateVbReveal(token: string, _prev: VbCustomerResult, for
   if (event.photos_deleted_at) return { error: "Dieses Event ist abgeschlossen." };
   const { error } = await createAdminClient().from("vb_events").update({ reveal: revealFromForm(event.reveal, formData) }).eq("id", event.id);
   if (error) return { error: "Speichern fehlgeschlagen." };
+  revalidatePath(`/vb/verwalten/${token}`);
+  return { success: true };
+}
+
+/** Foto endgültig löschen (Gastgeber). */
+export async function deleteVbPhotoByCustomer(token: string, photoId: string): Promise<VbCustomerResult> {
+  const event = await loadVbEventByToken(token);
+  if (!event) return { error: "Link ungültig." };
+  if (!(await deleteVbPhoto(event.id, photoId))) return { error: "Löschen fehlgeschlagen." };
   revalidatePath(`/vb/verwalten/${token}`);
   return { success: true };
 }

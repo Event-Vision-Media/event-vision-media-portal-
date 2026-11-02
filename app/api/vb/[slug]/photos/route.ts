@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, VB_BUCKET } from "@/lib/visionbooth";
 import { parseChallenges } from "@/components/visionbooth/challenges";
+import { cleanGuestKey } from "@/lib/visionbooth-board";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,9 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
   const before = req.nextUrl.searchParams.get("before");
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit")) || 40, 100);
   const top = req.nextUrl.searchParams.get("sort") === "top";
+  // Eigene Fotos dieses Geräts (Reiter „Meine Fotos“, Löschen) – die Geräte-Kennung selbst wird nie ausgeliefert
+  const me = cleanGuestKey(req.headers.get("x-vb-guest"));
+  const mineOnly = req.nextUrl.searchParams.get("mine") === "1" && me;
   const offset = Math.max(0, Number(req.nextUrl.searchParams.get("offset")) || 0);
 
   const supabase = createAdminClient();
@@ -31,6 +35,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
     .select("id, kind, file_path, thumb_path, created_at, likes, challenge_id, guest_key")
     .eq("event_id", event.id)
     .eq("hidden", false);
+  if (mineOnly) q = q.eq("guest_key", me);
   q = top
     ? q.gt("likes", 0).order("likes", { ascending: false }).order("created_at", { ascending: false }).range(offset, offset + limit - 1)
     : q.order("created_at", { ascending: false }).limit(limit);
@@ -58,6 +63,7 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
           kind: r.kind,
           createdAt: r.created_at,
           likes: r.likes ?? 0,
+          mine: Boolean(me && r.guest_key === me),
           url: urls.get(r.file_path) ?? null,
           thumb: (r.thumb_path && urls.get(r.thumb_path)) || null,
           mission: ch ? { emoji: ch.emoji, text: ch.text, points: ch.points, by: names.get(r.guest_key ?? "") ?? null } : null,

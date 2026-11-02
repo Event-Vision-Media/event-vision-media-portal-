@@ -201,3 +201,15 @@ export async function cleanupVbPhotos(dryRun = false): Promise<{ event: string; 
   }
   return out;
 }
+
+/** Ein Foto endgültig löschen: Datei, Vorschaubild und Eintrag (Herzen/Missionspunkte fallen mit weg). */
+export async function deleteVbPhoto(eventId: string, photoId: string, guestKey?: string): Promise<boolean> {
+  const supabase = createAdminClient();
+  let q = supabase.from("vb_photos").select("id, file_path, thumb_path").eq("id", photoId).eq("event_id", eventId);
+  if (guestKey) q = q.eq("guest_key", guestKey);
+  const { data: p } = await q.maybeSingle();
+  if (!p) return false;
+  await supabase.storage.from(VB_BUCKET).remove([p.file_path, ...(p.thumb_path ? [p.thumb_path] : [])]);
+  const { error } = await supabase.from("vb_photos").delete().eq("id", p.id);
+  return !error;
+}

@@ -3,7 +3,7 @@ import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
-import { setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal } from "@/app/actions/vb-customer";
+import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal } from "@/app/actions/vb-customer";
 import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
 import { parseReveal } from "@/components/visionbooth/reveal";
 import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
@@ -185,10 +185,10 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
             {deleted ? (
               <p className="text-sm text-anthracite-500">Die Fotos wurden am {fmtDate(event.photos_deleted_at!)} gelöscht.</p>
             ) : (
-              <VbPhotoGrid eventId={event.id} photos={photos} toggle={setVbPhotoHiddenByCustomer.bind(null, params.token)} />
+              <VbPhotoGrid eventId={event.id} photos={photos} toggle={setVbPhotoHiddenByCustomer.bind(null, params.token)} remove={deleteVbPhotoByCustomer.bind(null, params.token)} />
             )}
           </div>
-          <p className="mt-3 text-xs text-anthracite-400">Ausgeblendete Fotos verschwinden von Galerie und Foto-Wand (spätestens nach einer Minute).</p>
+          <p className="mt-3 text-xs text-anthracite-400">Ausgeblendete Fotos verschwinden von Galerie und Foto-Wand (spätestens nach einer Minute) und lassen sich wieder einblenden. 🗑 löscht ein Foto endgültig.</p>
         </section>
 
         <p className="px-2 text-center text-xs text-anthracite-400">

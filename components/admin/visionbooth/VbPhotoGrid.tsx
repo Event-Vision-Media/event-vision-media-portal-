@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { setVbPhotoHidden } from "@/app/actions/admin-visionbooth";
+import { deleteVbPhotoAdmin, setVbPhotoHidden } from "@/app/actions/admin-visionbooth";
 
 interface Photo {
   id: string;
@@ -19,17 +19,30 @@ export function VbPhotoGrid({
   eventId,
   photos,
   toggle,
+  remove,
 }: {
   eventId: string;
   photos: Photo[];
   /** Kundenbereich: eigene Aktion (an den Verwaltungs-Link gebunden); sonst Admin-Aktion */
   toggle?: (photoId: string, hidden: boolean) => Promise<{ error?: string }>;
+  /** Kundenbereich: Löschen über den Verwaltungs-Link; sonst Admin-Aktion */
+  remove?: (photoId: string) => Promise<{ error?: string }>;
 }) {
+  const [gone, setGone] = useState<Set<string>>(new Set());
   const [hidden, setHidden] = useState(() => new Map(photos.map((p) => [p.id, p.hidden])));
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
   if (!photos.length) return <p className="text-sm text-anthracite-400">Noch keine Fotos.</p>;
+
+  function del(id: string) {
+    if (!window.confirm("Foto endgültig löschen? Das kann nicht rückgängig gemacht werden.")) return;
+    start(async () => {
+      const r = remove ? await remove(id) : await deleteVbPhotoAdmin(eventId, id);
+      if (r.error) setError(r.error);
+      else setGone((g) => new Set(g).add(id));
+    });
+  }
 
   function flip(id: string) {
     const next = !hidden.get(id);
@@ -47,14 +60,26 @@ export function VbPhotoGrid({
     <>
       {error && <p className="mb-2 text-sm text-red-600">{error}</p>}
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4">
-        {photos.map((p) => {
+        {photos.filter((p) => !gone.has(p.id)).map((p) => {
           const isHidden = hidden.get(p.id);
           return (
             <div key={p.id} className="group relative overflow-hidden rounded-lg bg-anthracite-900">
               <a href={p.full || p.url} target="_blank">
                 <img src={p.url} alt="" loading="lazy" className={`aspect-[4/5] w-full object-cover transition ${isHidden ? "opacity-25 grayscale" : ""}`} />
               </a>
-              {p.kind === "ki" && <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">✨ KI</span>}
+              {(p.kind === "ki" || p.kind === "gast") && (
+                <span className="absolute left-1.5 top-1.5 rounded-full bg-black/60 px-2 py-0.5 text-[10px] text-white">{p.kind === "ki" ? "✨ KI" : "📷 Gast"}</span>
+              )}
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => del(p.id)}
+                className="absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/90 text-xs opacity-90 hover:bg-red-50"
+                aria-label="Foto endgültig löschen"
+                title="Endgültig löschen"
+              >
+                🗑
+              </button>
               <button
                 type="button"
                 disabled={pending}

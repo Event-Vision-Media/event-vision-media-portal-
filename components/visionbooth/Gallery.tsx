@@ -12,6 +12,8 @@ interface Photo {
   /** kleines Vorschaubild (600 px) – fehlt bei älteren Fotos */
   thumb?: string | null;
   likes?: number;
+  /** von diesem Gerät geteilt → darf gelöscht werden */
+  mine?: boolean;
 }
 
 const PAGE = 60;
@@ -60,7 +62,9 @@ export function Gallery({
   const [photos, setPhotos] = useState<Photo[]>([]);
   const [done, setDone] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [filter, setFilter] = useState<"alle" | "ki" | "top">("alle");
+  const [filter, setFilter] = useState<"alle" | "ki" | "top" | "meine">("alle");
+  const [mineList, setMineList] = useState<Photo[] | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [topList, setTopList] = useState<Photo[] | null>(null);
   const [liked, setLiked] = useState<Set<string>>(new Set());
   const [likes, setLikes] = useState<Record<string, number>>({});
@@ -77,7 +81,7 @@ export function Gallery({
     setLoading(true);
     try {
       const last = photos[photos.length - 1]?.createdAt;
-      const res = await fetch(`/api/vb/${event.slug}/photos?limit=${PAGE}${last ? `&before=${encodeURIComponent(last)}` : ""}`, { cache: "no-store" });
+      const res = await fetch(`/api/vb/${event.slug}/photos?limit=${PAGE}${last ? `&before=${encodeURIComponent(last)}` : ""}`, { cache: "no-store", headers: { "x-vb-guest": guestKey() } });
       const { photos: next = [] } = res.ok ? ((await res.json()) as { photos: Photo[] }) : { photos: [] };
       setPhotos((p) => [...p, ...next.filter((n) => !p.some((x) => x.id === n.id))]);
       if (next.length < PAGE) setDone(true);
@@ -108,7 +112,7 @@ export function Gallery({
   // Beliebteste Fotos erst laden, wenn der Filter gewählt wird
   useEffect(() => {
     if (filter !== "top" || topList) return;
-    fetch(`/api/vb/${event.slug}/photos?sort=top&limit=100`, { cache: "no-store" })
+    fetch(`/api/vb/${event.slug}/photos?sort=top&limit=100`, { cache: "no-store", headers: { "x-vb-guest": guestKey() } })
       .then((r) => (r.ok ? r.json() : { photos: [] }))
       .then((d: { photos: Photo[] }) => setTopList(d.photos))
       .catch(() => setTopList([]));
@@ -149,17 +153,27 @@ export function Gallery({
     }
   }
 
+  /** Eigene Fotos dieses Geräts (Reiter „Meine“ erscheint nur, wenn es welche gibt) */
+  const loadMine = useCallback(async () => {
+    const res = await fetch(`/api/vb/${event.slug}/photos?mine=1&limit=100`, { cache: "no-store", headers: { "x-vb-guest": guestKey() } }).catch(() => null);
+    if (res?.ok) setMineList(((await res.json()) as { photos: Photo[] }).photos);
+  }, [event.slug]);
+  useEffect(() => {
+    loadMine();
+  }, [loadMine]);
+
   /** Nach eigenen Uploads: neueste Fotos holen und vorne einfügen */
   const refreshNewest = useCallback(async () => {
-    const res = await fetch(`/api/vb/${event.slug}/photos?limit=100`, { cache: "no-store" }).catch(() => null);
+    const res = await fetch(`/api/vb/${event.slug}/photos?limit=100`, { cache: "no-store", headers: { "x-vb-guest": guestKey() } }).catch(() => null);
     if (!res?.ok) return;
     const { photos: fresh } = (await res.json()) as { photos: Photo[] };
     setPhotos((p) => [...fresh, ...p.filter((x) => !fresh.some((f) => f.id === x.id))]);
     setFilter("alle");
     setTopList(null);
-  }, [event.slug]);
+    loadMine();
+  }, [event.slug, loadMine]);
 
-  const shown = filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
+  const shown = filter === "meine" ? mineList ?? [] : filter === "ki" ? photos.filter((p) => p.kind === "ki") : filter === "top" ? topList ?? [] : photos;
   const hasAi = photos.some((p) => p.kind === "ki");
 
   const step = useCallback(
@@ -206,7 +220,7 @@ export function Gallery({
       let all = [...photos];
       let last = all[all.length - 1]?.createdAt;
       while (!done) {
-        const res = await fetch(`/api/vb/${event.slug}/photos?limit=100${last ? `&before=${encodeURIComponent(last)}` : ""}`, { cache: "no-store" });
+        const res = await fetch(`/api/vb/${event.slug}/photos?limit=100${last ? `&before=${encodeURIComponent(last)}` : ""}`, { cache: "no-store", headers: { "x-vb-guest": guestKey() } });
         const { photos: next = [] } = res.ok ? ((await res.json()) as { photos: Photo[] }) : { photos: [] };
         all = [...all, ...next.filter((n) => !all.some((x) => x.id === n.id))];
         last = next[next.length - 1]?.createdAt;
@@ -246,7 +260,22 @@ export function Gallery({
   const ink = onAccent(gold);
   const current = open !== null ? shown[open] : null;
   const hero = filter === "alle" && shown.length > 2;
-  const filters = hasAi ? (["alle", "top", "ki"] as const) : (["alle", "top"] as const);
+  const filters = [...(["alle", "top"] as const), ...(hasAi ? (["ki"] as const) : []), ...(mineList?.length ? (["meine"] as const) : [])];
+
+  /** Eigenes Foto endgültig löschen */
+  async function removeMine(p: Photo) {
+    if (!window.confirm("Dieses Foto endgültig löschen? Es verschwindet für alle aus Galerie und Foto-Wand.")) return;
+    setDeleting(true);
+    const res = await fetch(`/api/vb/${event.slug}/photos/${p.id}`, { method: "DELETE", headers: { "x-vb-guest": guestKey() } }).catch(() => null);
+    setDeleting(false);
+    if (!res?.ok) return window.alert("Das hat leider nicht geklappt – bitte versuch es nochmal.");
+    const drop = (l: Photo[] | null) => l?.filter((x) => x.id !== p.id) ?? null;
+    setPhotos((l) => l.filter((x) => x.id !== p.id));
+    setTopList(drop);
+    setMineList(drop);
+    setOpen((i) => (i === null || shown.length <= 1 ? null : Math.min(i, shown.length - 2)));
+  }
+  const isMine = (p: Photo) => Boolean(p.mine || mineList?.some((m) => m.id === p.id));
 
   return (
     <main className="vb" style={{ ["--a" as string]: gold, ["--ink" as string]: ink }}>
@@ -286,7 +315,7 @@ export function Gallery({
                   className={`rounded-full px-3.5 py-1.5 transition ${filter === f ? "" : "text-white/70"}`}
                   style={filter === f ? { background: gold, color: ink } : undefined}
                 >
-                  {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : "✨ KI"}
+                  {f === "alle" ? "Neueste" : f === "top" ? "❤️ Beliebt" : f === "ki" ? "✨ KI" : "👤 Meine"}
                 </button>
               ))}
             </div>
@@ -405,8 +434,20 @@ export function Gallery({
             <button onClick={() => download(current, Math.max(0, photos.length - 1 - photos.indexOf(current)))} className="vb-btn w-full max-w-xs rounded-full py-4 text-[16px] font-bold">
               Foto speichern
             </button>
+            {isMine(current) && (
+              <button
+                onClick={() => removeMine(current)}
+                disabled={deleting}
+                className="vb-glass flex h-[54px] w-[54px] flex-none items-center justify-center rounded-full text-xl transition active:scale-90 disabled:opacity-50"
+                aria-label="Mein Foto löschen"
+              >
+                🗑
+              </button>
+            )}
           </div>
-          <p className="relative pb-3 text-center text-[11px] text-white/40">Doppeltippen = ❤️ · wischen = nächstes Foto</p>
+          <p className="relative pb-3 text-center text-[11px] text-white/40">
+            Doppeltippen = ❤️ · wischen = nächstes Foto{isMine(current) ? " · 🗑 = dein Foto löschen" : ""}
+          </p>
         </div>
       )}
     </main>

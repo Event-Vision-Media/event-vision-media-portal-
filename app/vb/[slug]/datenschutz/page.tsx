@@ -62,7 +62,7 @@ export default async function VisionBoothPrivacyPage({ params }: { params: { slu
             Veranstalter dieses Events zeigen (Art. 6 Abs. 1 lit. a DSGVO). Die Galerie ist nur über den Event-Link erreichbar und nicht in Suchmaschinen zu finden.
           </p>
           <p className="mt-2">
-            Du kannst deine Einwilligung jederzeit widerrufen: Schreib uns kurz an {LANDLORD.email} (am besten mit Uhrzeit des Fotos) – wir löschen dein Foto dann umgehend.
+            Du kannst deine Einwilligung jederzeit widerrufen: Eigene Fotos löschst du selbst in der Galerie unter „Meine“ (mit dem Handy, mit dem du sie geteilt hast). Ansonsten schreib uns kurz an {LANDLORD.email} (am besten mit Uhrzeit des Fotos) oder wende dich an den Gastgeber – wir löschen dein Foto dann umgehend.
           </p>
         </Section>
 
