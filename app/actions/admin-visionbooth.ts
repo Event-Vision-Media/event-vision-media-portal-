@@ -10,6 +10,7 @@ import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges } from "@/components/visionbooth/challenges";
 import { leadConfigFromForm } from "@/lib/visionbooth-leads";
+import { revealFromForm } from "@/lib/visionbooth-reveal";
 import { addonPlanFor, getOccasion, getPlan, guessOccasion } from "@/components/visionbooth/packages";
 import { berlinIso, provisionVbEvent } from "@/lib/visionbooth-provision";
 import type { AdminActionResult } from "@/app/actions/admin";
@@ -186,6 +187,18 @@ export async function updateVbChallengesAdmin(eventId: string, _prev: AdminActio
 export async function updateVbLeadsAdmin(eventId: string, _prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
   if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
   const { error } = await createAdminClient().from("vb_events").update({ leads: leadConfigFromForm(formData) }).eq("id", eventId);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  paths(eventId);
+  return { success: true };
+}
+
+/** Tippspiel eines Events einstellen oder auflösen (Admin). */
+export async function updateVbRevealAdmin(eventId: string, _prev: AdminActionResult, formData: FormData): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const supabase = createAdminClient();
+  const { data: e } = await supabase.from("vb_events").select("reveal").eq("id", eventId).maybeSingle();
+  if (!e) return { error: "Event nicht gefunden." };
+  const { error } = await supabase.from("vb_events").update({ reveal: revealFromForm(e.reveal, formData) }).eq("id", eventId);
   if (error) return { error: "Speichern fehlgeschlagen." };
   paths(eventId);
   return { success: true };

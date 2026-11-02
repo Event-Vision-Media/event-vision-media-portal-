@@ -30,6 +30,21 @@ export const CHALLENGE_SETS: { id: string; label: string; emoji: string; items: 
     ],
   },
   {
+    id: "babyparty",
+    label: "Babyparty",
+    emoji: "🍼",
+    items: [
+      c("b1", "🤰", "Selfie mit den werdenden Eltern", 30),
+      c("b2", "💗", "Gruppenfoto Team Rosa", 20),
+      c("b3", "💙", "Gruppenfoto Team Blau", 20),
+      c("b4", "👶", "Deine beste Baby-Grimasse", 10),
+      c("b5", "🫶", "Zeigt gemeinsam ein Herz mit den Händen", 10),
+      c("b6", "🧸", "Foto mit einem Kuscheltier", 10),
+      c("b7", "🔮", "Zeig mit einer Pose, was du tippst", 20),
+      c("b8", "👨‍👩‍👧", "Gruppenfoto mit 6 oder mehr Leuten", 30),
+    ],
+  },
+  {
     id: "geburtstag",
     label: "Geburtstag",
     emoji: "🎂",

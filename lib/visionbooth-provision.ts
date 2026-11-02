@@ -4,7 +4,9 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, vbManageMail } from "@/lib/email";
 import { vbManageUrl } from "@/lib/visionbooth";
 import { CHALLENGE_SETS } from "@/components/visionbooth/challenges";
-import { getOccasion, getPlan, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { defaultGames, getOccasion, getPlan, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { LEAD_DEFAULT } from "@/components/visionbooth/leads";
+import { REVEAL_DEFAULT } from "@/components/visionbooth/reveal";
 import { getTemplate } from "@/components/visionbooth/templates";
 
 // Ein VisionBooth-Event komplett einrichten – aus dem Admin, aus einer Fotobox-Buchung
@@ -39,6 +41,10 @@ export interface ProvisionInput {
   bookingId?: string | null;
   /** Kunden-Link gleich per Mail schicken */
   sendMail?: boolean;
+  /** Gewählte Spiele (Online-Buchung); fehlt = Vorauswahl je Paket/Anlass */
+  games?: VbGames;
+  /** Firma (für den Einwilligungstext des Gewinnspiels) */
+  company?: string | null;
 }
 
 export interface ProvisionResult {
@@ -56,7 +62,8 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
   if (!title) return { error: "Bitte einen Namen für das Event angeben." };
   const date = input.eventDate && /^\d{4}-\d{2}-\d{2}$/.test(input.eventDate) ? input.eventDate : null;
   const activeDays = plan.days + Math.max(0, (input.eventDays ?? 1) - 1);
-  const challenges = occ.challenges ? CHALLENGE_SETS.find((s) => s.id === occ.challenges)?.items ?? [] : [];
+  const games = input.games ?? defaultGames(plan.id, occ.id);
+  const challenges = games.missions && occ.challenges ? CHALLENGE_SETS.find((s) => s.id === occ.challenges)?.items ?? [] : [];
   const email = input.contactEmail?.trim().toLowerCase() || null;
 
   const supabase = createAdminClient();
@@ -89,6 +96,8 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     wall_enabled: true,
     gallery_enabled: true,
     challenges,
+    reveal: games.reveal ? { ...REVEAL_DEFAULT, enabled: true } : {},
+    leads: games.leads && plan.firma ? { ...LEAD_DEFAULT, enabled: true, sponsor: input.company?.trim() || input.contactName?.trim() || "" } : {},
   };
 
   let created: { id: string; slug: string; manage_token: string } | null = null;

@@ -13,7 +13,9 @@ import { vbClosedReason, vbDeleteAfter, vbGuestUrl, vbManageUrl, VB_BUCKET, type
 import { VbSendManageLink } from "@/components/admin/visionbooth/VbSendManageLink";
 import { VbChallengesEditor } from "@/components/visionbooth/customer/VbChallengesEditor";
 import { parseChallenges } from "@/components/visionbooth/challenges";
-import { updateVbChallengesAdmin, updateVbLeadsAdmin } from "@/app/actions/admin-visionbooth";
+import { updateVbChallengesAdmin, updateVbLeadsAdmin, updateVbRevealAdmin } from "@/app/actions/admin-visionbooth";
+import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
+import { parseReveal } from "@/components/visionbooth/reveal";
 import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
 import { parseLeadConfig } from "@/components/visionbooth/leads";
 import { listVbLeads } from "@/lib/visionbooth-leads";
@@ -131,6 +133,16 @@ export default async function AdminVisionBoothEventPage({ params }: { params: { 
               <h2 className="font-serif text-lg font-semibold text-anthracite-800">🎯 Foto-Missionen</h2>
               <div className="mt-4">
                 <VbChallengesEditor action={updateVbChallengesAdmin.bind(null, event.id)} initial={parseChallenges(event.challenges)} galleryEnabled={event.gallery_enabled} />
+              </div>
+            </Card>
+
+            <Card>
+              <h2 className="font-serif text-lg font-semibold text-anthracite-800">🔮 Tippspiel / Gender Reveal</h2>
+              <div className="mt-4">
+                <VbRevealEditor action={updateVbRevealAdmin.bind(null, event.id)} initial={parseReveal(event.reveal)} counts={await (async () => {
+                  const { data: t } = await supabase.from("vb_tips").select("choice").eq("event_id", event.id).limit(10000);
+                  return { a: (t ?? []).filter((x) => x.choice === "a").length, b: (t ?? []).filter((x) => x.choice === "b").length };
+                })()} />
               </div>
             </Card>
 

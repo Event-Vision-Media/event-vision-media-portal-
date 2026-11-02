@@ -3,7 +3,21 @@
 // Der Kunde kann Design und Missionen danach im Kundenbereich anpassen.
 
 export type VbPlanId = "party" | "hochzeit" | "business" | "messe" | "addon-privat" | "addon-firma";
-export type VbOccasionId = "hochzeit" | "geburtstag" | "party" | "firma" | "weihnachtsfeier" | "messe" | "sonstiges";
+export type VbOccasionId = "hochzeit" | "geburtstag" | "babyparty" | "party" | "firma" | "weihnachtsfeier" | "messe" | "sonstiges";
+
+/**
+ * Umsatzsteuer: „kleinunternehmer“ (§ 19 UStG, keine MwSt.) oder „regel“ (Preise inkl. 19 % MwSt.).
+ * Beim Wechsel zur Regelbesteuerung nur diesen Wert ändern – die Preise bleiben Endpreise.
+ */
+export const VB_TAX = "kleinunternehmer" as "kleinunternehmer" | "regel";
+export const vbTaxNote = () => (VB_TAX === "regel" ? "Alle Preise inkl. 19 % MwSt." : "Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.");
+
+/** Spiele, die bei der Buchung gewählt und später im Kundenbereich geändert werden können. */
+export interface VbGames {
+  missions: boolean;
+  reveal: boolean;
+  leads: boolean;
+}
 
 export interface VbPlan {
   id: VbPlanId;
@@ -37,10 +51,13 @@ export interface VbOccasion {
   /** Missions-Vorlage aus challenges.ts (leer = keine Missionen) */
   challenges: string | null;
   aiStyles: string[];
+  /** Gender-Reveal-Tippspiel vorausgewählt */
+  reveal?: boolean;
 }
 
 export const VB_OCCASIONS: VbOccasion[] = [
   { id: "hochzeit", label: "Hochzeit", template: "elegant-gold", challenges: "hochzeit", aiStyles: ["glamour", "vintage", "animation", "superheld"] },
+  { id: "babyparty", label: "Babyparty / Gender Reveal", template: "minimal-weiss", challenges: "babyparty", aiStyles: ["glamour", "animation", "vintage", "superheld"], reveal: true },
   { id: "geburtstag", label: "Geburtstag", template: "party-konfetti", challenges: "geburtstag", aiStyles: ["superheld", "comic", "animation", "glamour"] },
   { id: "party", label: "Party / Abiball", template: "neon", challenges: "party", aiStyles: ["neon", "comic", "superheld", "animation"] },
   { id: "firma", label: "Firmenfeier", template: "corporate", challenges: "firma", aiStyles: ["business", "superheld", "comic", "glamour"] },
@@ -52,10 +69,17 @@ export const VB_OCCASIONS: VbOccasion[] = [
 export const getPlan = (id: string | null | undefined) => VB_PLANS.find((p) => p.id === id) ?? VB_PLANS[0];
 export const getOccasion = (id: string | null | undefined) => VB_OCCASIONS.find((o) => o.id === id) ?? VB_OCCASIONS[VB_OCCASIONS.length - 1];
 
+/** Vorauswahl der Spiele je Paket und Anlass. */
+export function defaultGames(plan: VbPlanId, occasion: VbOccasionId): VbGames {
+  const o = getOccasion(occasion);
+  return { missions: Boolean(o.challenges), reveal: Boolean(o.reveal), leads: plan === "business" || plan === "messe" };
+}
+
 /** Freitext-Anlass aus Buchung/Anfrage („Hochzeit am See“, „Firmenjubiläum“ …) einem Anlass zuordnen. */
 export function guessOccasion(text: string | null | undefined, firma = false): VbOccasionId {
   const t = (text ?? "").toLowerCase();
   if (/hochzeit|trauung|polterabend|verlobung/.test(t)) return "hochzeit";
+  if (/gender|baby|reveal/.test(t)) return "babyparty";
   if (/weihnacht|xmas|advent|jahresabschluss/.test(t)) return "weihnachtsfeier";
   if (/messe|promo|ausstellung|kongress|roadshow/.test(t)) return "messe";
   if (/geburtstag|jubiläum.*jahre|\b\d{2}\.?\s*(geb|bday)|birthday|ü\d0/.test(t)) return "geburtstag";

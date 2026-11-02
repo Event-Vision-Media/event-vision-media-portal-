@@ -21,6 +21,7 @@ export interface VbOrder {
   email: string;
   company: string | null;
   amount_cents: number;
+  games: Partial<{ missions: boolean; reveal: boolean; leads: boolean }> | null;
   status: "offen" | "wird_eingerichtet" | "bezahlt" | "abgebrochen" | "fehler";
   stripe_session_id: string | null;
   vb_event_id: string | null;
@@ -107,6 +108,8 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     eventDays: order.event_days,
     contactName: order.name,
     contactEmail: order.email,
+    company: order.company,
+    games: order.games && Object.keys(order.games).length ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads) } : undefined,
     sendMail: true,
   });
   if ("error" in res) {

@@ -5,6 +5,7 @@ import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges, type Challenge } from "@/components/visionbooth/challenges";
 import { leadConsentText, parseLeadConfig, type LeadField } from "@/components/visionbooth/leads";
+import { parseReveal, type RevealOption } from "@/components/visionbooth/reveal";
 
 // VisionBooth: digitale Fotobox per QR-Code (Tabellen vb_*, Bucket "visionbooth", Migration 0029).
 
@@ -45,6 +46,8 @@ export interface VbEvent {
   challenges: unknown;
   /** Kontaktformular (jsonb, leads.ts) */
   leads: unknown;
+  /** Tippspiel / Gender Reveal (jsonb, reveal.ts) */
+  reveal: unknown;
   plan: string | null;
   occasion: string | null;
 }
@@ -68,6 +71,8 @@ export interface VbGuestEvent {
   challenges: Challenge[];
   /** Freiwilliges Kontaktformular (Firmen-Events) */
   leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
+  /** Tippspiel (Gender Reveal) */
+  reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
 }
 
 /** Event über den geheimen Verwaltungs-Link des Kunden laden. */
@@ -111,6 +116,10 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     aiPerGuest: e.ai_per_guest,
     deleteAfter: vbDeleteAfter(e).toISOString().slice(0, 10),
     challenges: e.gallery_enabled ? parseChallenges(e.challenges) : [],
+    reveal: (() => {
+      const r = parseReveal(e.reveal);
+      return r.enabled ? { question: r.question, options: r.options, result: r.result } : null;
+    })(),
     leads: (() => {
       const c = parseLeadConfig(e.leads);
       return c.enabled ? { title: c.title, text: c.text, fields: c.fields, consent: leadConsentText(c, e.contact_name || e.title) } : null;

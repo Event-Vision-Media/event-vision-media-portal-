@@ -4,13 +4,14 @@ import { useEffect, useRef, useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
-import { getOccasion, getPlan, VB_OCCASIONS, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 import { getTemplate } from "@/components/visionbooth/templates";
 
-const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
-const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
+const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", babyparty: "🍼", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
+const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
 const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   hochzeit: "Anna & Max",
+  babyparty: "Baby Muster 2027",
   geburtstag: "Lenas 30.",
   party: "Abiball 2026",
   firma: "Muster GmbH · Sommerfest",
@@ -19,7 +20,7 @@ const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   sonstiges: "Unser Event",
 };
 const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
-const STEPS = ["Anlass", "Paket", "Details", "Bezahlen"];
+const STEPS = ["Anlass", "Paket", "Spiele", "Details", "Bezahlen"];
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
 
 function PayButton({ price }: { price: number }) {
@@ -41,6 +42,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
+  const [games, setGames] = useState<VbGames | null>(null);
   const [state, action] = useFormState<VbShopResult, FormData>(startVbCheckout, {});
   const top = useRef<HTMLDivElement>(null);
 
@@ -124,13 +126,56 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               );
             })}
           </div>
-          <button type="button" disabled={!plan} onClick={() => go(2)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
+          <button
+            type="button"
+            disabled={!plan}
+            onClick={() => {
+              setGames(defaultGames(plan!, occasion));
+              go(2);
+            }}
+            className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50"
+          >
             Weiter
           </button>
         </section>
       )}
 
-      {step === 2 && occasion && p && (
+      {step === 2 && occasion && p && games && (
+        <section key="sg" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Spiele &amp; Extras</h1>
+          <p className="mt-1 text-white/60">Was zu {getOccasion(occasion).label} passt, ist schon ausgewählt – alles später im Kundenbereich änderbar.</p>
+          <div className="mt-6 space-y-3">
+            <GameToggle
+              on={games.missions}
+              onChange={(v) => setGames({ ...games, missions: v })}
+              emoji="🎯"
+              title="Foto-Missionen & Bestenliste"
+              text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand."
+            />
+            <GameToggle
+              on={games.reveal}
+              onChange={(v) => setGames({ ...games, reveal: v })}
+              emoji="🍼"
+              title="Gender-Reveal-Tippspiel"
+              text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
+            />
+            {p.firma && (
+              <GameToggle
+                on={games.leads}
+                onChange={(v) => setGames({ ...games, leads: v })}
+                emoji="🎁"
+                title="Gewinnspiel / Kontaktformular"
+                text="Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV."
+              />
+            )}
+          </div>
+          <button type="button" onClick={() => go(3)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold">
+            Weiter
+          </button>
+        </section>
+      )}
+
+      {step === 3 && occasion && p && (
         <section key="s2" className="vb-in">
           <h1 className="vb-display text-3xl font-semibold">Eure Details</h1>
           <p className="mt-1 text-white/60">So sieht euer Foto-Rahmen aus – alles später noch änderbar.</p>
@@ -169,14 +214,14 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               </Field>
             )}
           </div>
-          <button type="button" disabled={!detailsOk} onClick={() => go(3)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
+          <button type="button" disabled={!detailsOk} onClick={() => go(4)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
             Weiter zur Übersicht
           </button>
           {!detailsOk && <p className="mt-2 text-center text-xs text-white/45">Bitte Rahmen-Text, Datum, Name und E-Mail ausfüllen.</p>}
         </section>
       )}
 
-      {step === 3 && occasion && p && (
+      {step === 4 && occasion && p && (
         <form key="s3" action={action} className="vb-in">
           <h1 className="vb-display text-3xl font-semibold">Fast geschafft!</h1>
           <p className="mt-1 text-white/60">Prüf kurz alles – nach der Zahlung ist eure VisionBooth sofort startklar.</p>
@@ -189,18 +234,27 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             ["name", name],
             ["email", email],
             ["company", company],
+            ["games", JSON.stringify(games ?? defaultGames(p.id, occasion))],
           ].map(([k, v]) => (
             <input key={k} type="hidden" name={k} value={v} />
           ))}
           <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
             <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
             <Row label="Anlass" value={`${OCC_EMOJI[occasion]} ${getOccasion(occasion).label}`} onEdit={() => go(0)} />
-            <Row label="Rahmen" value={frameText} onEdit={() => go(2)} />
-            <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(2)} />
-            <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(2)} />
+            <Row
+              label="Spiele"
+              value={[games?.missions && "🎯 Missionen", games?.reveal && "🍼 Tippspiel", games?.leads && p.firma && "🎁 Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              onEdit={() => go(2)}
+            />
+            <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
+            <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(3)} />
+            <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(3)} />
             <div className="flex items-center justify-between px-5 py-4">
               <span className="font-semibold">Gesamt</span>
-              <span className="vb-display text-2xl font-semibold">{euro(p.price)}</span>
+              <span className="text-right">
+                <span className="vb-display block text-2xl font-semibold">{euro(p.price)}</span>
+                <span className="block text-[11px] text-white/45">{vbTaxNote()}</span>
+              </span>
             </div>
           </div>
           <label className="mt-5 flex items-start gap-3 text-[13px] leading-snug text-white/70">
@@ -280,5 +334,24 @@ function FramePreview({ occasion, text, date }: { occasion: VbOccasionId; text: 
         Farbe, Logo und Vorlage kannst du nach der Buchung frei ändern – 10 Designs zur Auswahl.
       </p>
     </div>
+  );
+}
+
+function GameToggle({ on, onChange, emoji, title, text }: { on: boolean; onChange: (v: boolean) => void; emoji: string; title: string; text: string }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange(!on)}
+      aria-pressed={on}
+      className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition active:scale-[0.99] ${on ? "ring-2" : "vb-glass"}`}
+      style={on ? { background: "color-mix(in srgb, var(--a) 14%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+    >
+      <span className="text-3xl">{emoji}</span>
+      <span className="flex-1">
+        <span className="block text-[15px] font-bold">{title}</span>
+        <span className="mt-0.5 block text-[13px] leading-snug text-white/60">{text}</span>
+      </span>
+      <span className="vb-switch" data-on={on} />
+    </button>
   );
 }

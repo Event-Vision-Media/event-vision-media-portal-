@@ -3,7 +3,9 @@ import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
-import { setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads } from "@/app/actions/vb-customer";
+import { setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal } from "@/app/actions/vb-customer";
+import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
+import { parseReveal } from "@/components/visionbooth/reveal";
 import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
 import { parseLeadConfig } from "@/components/visionbooth/leads";
 import { listVbLeads } from "@/lib/visionbooth-leads";
@@ -145,6 +147,16 @@ export default async function VisionBoothCustomerPage({ params }: { params: { to
           </div>
         </section>
 
+        {/* Tippspiel */}
+        {!deleted && (
+          <section className="rounded-3xl bg-white p-6 shadow-card">
+            <Step n={0} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." />
+            <div className="mt-5">
+              <VbRevealEditor action={updateVbReveal.bind(null, params.token)} initial={parseReveal(event.reveal)} counts={await tipCounts(event.id)} />
+            </div>
+          </section>
+        )}
+
         {/* Firmen: Kontaktformular */}
         {(event.package !== "privat" || parseLeadConfig(event.leads).enabled) && !deleted && (
           <section className="rounded-3xl bg-white p-6 shadow-card">
@@ -206,4 +218,9 @@ function Kpi({ label, value }: { label: string; value: number }) {
       <div className="mt-0.5 text-xs text-anthracite-500">{label}</div>
     </div>
   );
+}
+
+async function tipCounts(eventId: string) {
+  const { data } = await createAdminClient().from("vb_tips").select("choice").eq("event_id", eventId).limit(10000);
+  return { a: (data ?? []).filter((t) => t.choice === "a").length, b: (data ?? []).filter((t) => t.choice === "b").length };
 }

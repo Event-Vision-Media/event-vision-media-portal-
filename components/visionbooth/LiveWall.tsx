@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { onAccent } from "./frame";
+import { pct, useRevealState } from "./RevealGame";
+import type { RevealOption } from "./reveal";
 
 interface Photo {
   id: string;
@@ -41,7 +43,7 @@ export function LiveWall({
   qrSvg,
   guestUrl,
 }: {
-  event: { slug: string; frameText: string; accent: string; logoUrl: string | null; challenges: unknown[] };
+  event: { slug: string; frameText: string; accent: string; logoUrl: string | null; challenges: unknown[]; reveal: { question: string; options: [RevealOption, RevealOption] } | null };
   qrSvg: string;
   guestUrl: string;
 }) {
@@ -53,6 +55,20 @@ export function LiveWall({
   const photosRef = useRef<Photo[]>([]);
   const [board, setBoard] = useState<Board | null>(null);
   const missions = event.challenges.length > 0;
+  const [reveal] = useRevealState(event.slug, Boolean(event.reveal));
+  const [bigReveal, setBigReveal] = useState(false);
+  const lastResult = useRef<string | null | undefined>(undefined);
+  // Auflösung: 30 Sekunden groß über die ganze Wand (nur wenn sie live passiert)
+  useEffect(() => {
+    if (!reveal) return;
+    if (lastResult.current === null && reveal.result) {
+      setBigReveal(true);
+      const t = setTimeout(() => setBigReveal(false), 30000);
+      lastResult.current = reveal.result;
+      return () => clearTimeout(t);
+    }
+    lastResult.current = reveal.result;
+  }, [reveal]);
 
   // Bestenliste regelmäßig aktualisieren
   useEffect(() => {
@@ -190,6 +206,29 @@ export function LiveWall({
           <p className="vb-display vb-gold-text text-[2.4vw] font-semibold leading-tight">{event.frameText}</p>
         </div>
 
+        {reveal && event.reveal && (
+          <div className="w-full">
+            {reveal.result ? (
+              <p className="rounded-[1vw] px-[1vw] py-[0.8vw] text-[1.3vw] font-bold" style={{ background: event.reveal.options.find((o) => o.id === reveal.result)!.color }}>
+                {event.reveal.options.find((o) => o.id === reveal.result)!.emoji} Es wird ein {event.reveal.options.find((o) => o.id === reveal.result)!.label}!
+              </p>
+            ) : (
+              <>
+                <p className="text-[1vw] font-semibold text-white/80">🔮 {event.reveal.question}</p>
+                <div className="mt-[0.5vw] flex h-[2.2vw] overflow-hidden rounded-full text-[0.95vw] font-bold">
+                  <span className="flex items-center justify-start pl-[0.7vw] transition-[width] duration-1000" style={{ width: `${Math.max(12, Math.min(88, pct(reveal)))}%`, background: event.reveal.options[0].color }}>
+                    {event.reveal.options[0].emoji} {pct(reveal)}%
+                  </span>
+                  <span className="flex flex-1 items-center justify-end pr-[0.7vw]" style={{ background: event.reveal.options[1].color }}>
+                    {100 - pct(reveal)}% {event.reveal.options[1].emoji}
+                  </span>
+                </div>
+                <p className="mt-[0.3vw] text-[0.8vw] text-white/50">{reveal.counts.a + reveal.counts.b === 1 ? "1 Tipp" : `${reveal.counts.a + reveal.counts.b} Tipps`} · Auflösung folgt …</p>
+              </>
+            )}
+          </div>
+        )}
+
         <div className="w-full">
           <p className="vb-display text-[1.9vw] font-semibold">Mach mit! 📸</p>
           <p className="mt-[0.3vw] text-[0.95vw] text-white/60">QR-Code scannen, Foto machen – es erscheint hier.</p>
@@ -234,6 +273,47 @@ export function LiveWall({
         )}
         <p className="text-[0.75vw] tracking-[0.35em] text-white/30">VISIONBOOTH</p>
       </aside>
+
+      {bigReveal && reveal?.result && event.reveal && (() => {
+        const w = event.reveal.options.find((o) => o.id === reveal.result)!;
+        return (
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-center text-center" style={{ background: `radial-gradient(circle at 50% 40%, ${w.color}, #0a0a0c 80%)` }}>
+            <p className="vb-in text-[1.6vw] font-semibold uppercase tracking-[0.4em] text-white/85">Die Auflösung</p>
+            <p className="vb-points mt-[1vw] text-[12vw] leading-none">{w.emoji}</p>
+            <p className="vb-display vb-in mt-[1vw] text-[6vw] font-semibold" style={{ animationDelay: "600ms" }}>Es wird ein {w.label}!</p>
+            {reveal.winners && reveal.winners.length > 0 && (
+              <p className="vb-in mt-[1.5vw] max-w-[70vw] text-[1.6vw] text-white/85" style={{ animationDelay: "1200ms" }}>
+                🎉 Richtig getippt: {reveal.winners.slice(0, 12).join(", ")}{reveal.winners.length > 12 ? ` und ${reveal.winners.length - 12} weitere` : ""}
+              </p>
+            )}
+            <WallConfetti color={w.color} />
+          </div>
+        );
+      })()}
     </main>
+  );
+}
+
+/** Konfetti in der Ergebnis-Farbe für die Auflösung auf der Wand */
+function WallConfetti({ color }: { color: string }) {
+  const colors = [color, "#ffffff", color, "#ffe9a8"];
+  return (
+    <div className="vb-confetti" aria-hidden>
+      {Array.from({ length: 90 }, (_, i) => (
+        <i
+          key={i}
+          style={{
+            left: `${(i * 37) % 100}%`,
+            background: colors[i % colors.length],
+            width: 14,
+            height: 22,
+            ["--x" as string]: `${((i * 53) % 60) - 30}vw`,
+            ["--r" as string]: `${360 + ((i * 97) % 540)}deg`,
+            ["--d" as string]: `${2.6 + ((i * 13) % 20) / 10}s`,
+            ["--delay" as string]: `${((i * 7) % 30) / 10}s`,
+          }}
+        />
+      ))}
+    </div>
   );
 }

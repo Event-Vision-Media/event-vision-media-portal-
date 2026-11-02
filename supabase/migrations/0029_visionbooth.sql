@@ -164,3 +164,16 @@ create table if not exists public.vb_orders (
 );
 create index if not exists vb_orders_created_idx on public.vb_orders (created_at desc);
 alter table public.vb_orders enable row level security;
+
+-- Tippspiel (Gender Reveal): Konfiguration am Event, ein Tipp pro Gast
+alter table public.vb_events add column if not exists reveal jsonb not null default '{}'::jsonb;
+create table if not exists public.vb_tips (
+  event_id uuid not null references public.vb_events (id) on delete cascade,
+  guest_key text not null,
+  choice text not null check (choice in ('a', 'b')),
+  created_at timestamptz not null default now(),
+  primary key (event_id, guest_key)
+);
+alter table public.vb_tips enable row level security;
+-- Bei der Online-Buchung gewählte Spiele
+alter table public.vb_orders add column if not exists games jsonb not null default '{}'::jsonb;

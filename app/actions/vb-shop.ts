@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckout, stripeReady, type VbOrder } from "@/lib/visionbooth-shop";
-import { getOccasion, getPlan, VB_PLANS } from "@/components/visionbooth/packages";
+import { defaultGames, getOccasion, getPlan, VB_PLANS, type VbGames } from "@/components/visionbooth/packages";
 
 export interface VbShopResult {
   error?: string;
@@ -28,6 +28,13 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
   if (formData.get("agb") !== "on") return { error: "Bitte die AGB und die Datenschutzhinweise bestätigen." };
 
   const occ = getOccasion(str(formData, "occasion", 20));
+  let games: VbGames = defaultGames(plan.id, occ.id);
+  try {
+    const g = JSON.parse(String(formData.get("games") ?? "{}"));
+    games = { missions: g.missions === true, reveal: g.reveal === true, leads: g.leads === true && plan.firma };
+  } catch {
+    /* Vorauswahl behalten */
+  }
   const days = plan.id === "messe" ? Math.min(7, Math.max(1, Number(formData.get("event_days")) || 1)) : 1;
   const { data, error } = await createAdminClient()
     .from("vb_orders")
@@ -42,6 +49,7 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
       email,
       company: str(formData, "company", 120) || null,
       amount_cents: Math.round(plan.price * 100),
+      games,
     })
     .select("*")
     .single();

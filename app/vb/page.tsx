@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import Link from "next/link";
 import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
-import { getPlan } from "@/components/visionbooth/packages";
+import { getPlan, vbTaxNote } from "@/components/visionbooth/packages";
 import { LANDLORD } from "@/lib/contract";
 
 export const metadata: Metadata = {
@@ -22,8 +22,8 @@ const FEATURES = [
   { icon: "✨", title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
   { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste. Bringt Gäste zusammen – und sorgt für viel mehr Fotos." },
   { icon: "📺", title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
-  { icon: "🖼️", title: "10 Design-Vorlagen", text: "Von Elegant Gold bis Neon Night – mit euren Namen, Datum und Logo. Jederzeit selbst änderbar." },
-  { icon: "🎞️", title: "Fotostreifen & Story", text: "Klassischer 3er-Fotostreifen und Story-Format für Instagram und WhatsApp." },
+  { icon: "🔮", title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
+  { icon: "🖼️", title: "10 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night, mit Namen, Datum und Logo – dazu 3er-Fotostreifen und Story-Format." },
   { icon: "❤️", title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
 ];
 
@@ -154,6 +154,7 @@ export default function VisionBoothHome() {
       <section id="pakete" className="relative mx-auto max-w-6xl px-5 py-16">
         <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Pakete</h2>
         <p className="mt-3 text-center text-white/65">Einmal zahlen, kein Abo. Link sofort nach der Buchung.</p>
+        <p className="mt-1 text-center text-xs text-white/40">{vbTaxNote()}</p>
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {PLAN_CARDS.map((c) => {
             const p = getPlan(c.id);

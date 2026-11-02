@@ -25,6 +25,8 @@ import {
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
 import type { Challenge } from "./challenges";
 import { LeadFormView, LeadTeaser } from "./LeadForm";
+import { RevealMoment, RevealPicker, useRevealState } from "./RevealGame";
+import type { RevealOption } from "./reveal";
 import type { LeadField } from "./leads";
 import { BoardView, MissionList, MissionWinCard, NameForm, Sheet, type BoardData, type MissionWin } from "./Missions";
 
@@ -47,6 +49,8 @@ interface GuestEvent {
   challenges: Challenge[];
   /** Freiwilliges Kontaktformular (Firmen-Events) */
   leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
+  /** Tippspiel (Gender Reveal) */
+  reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
 }
 
 type Format = "einzel" | "streifen";
@@ -105,6 +109,35 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   const [myName, setMyName] = useState<string | null>(null);
   const [win, setWin] = useState<MissionWin | null>(null);
   const [nudge, setNudge] = useState(0);
+  // Tippspiel: eigener Tipp färbt App und Rahmen, nach der Auflösung die Ergebnis-Farbe
+  const [reveal, setReveal] = useRevealState(event.slug, Boolean(event.reveal), typeof window === "undefined" ? undefined : guestKey());
+  const [revealShown, setRevealShown] = useState(true);
+  const revealOpt = (id: "a" | "b" | null | undefined) => event.reveal?.options.find((o) => o.id === id);
+  const accent = revealOpt(reveal?.result)?.color ?? revealOpt(reveal?.mine)?.color ?? event.accent;
+  useEffect(() => {
+    if (!reveal?.result) return;
+    try {
+      const key = `vb-reveal-${event.slug}`;
+      if (localStorage.getItem(key) !== reveal.result) {
+        localStorage.setItem(key, reveal.result);
+        setRevealShown(false);
+        setConfetti((n) => n + 1);
+      }
+    } catch {
+      setRevealShown(false);
+    }
+  }, [reveal?.result, event.slug]);
+
+  async function pickTip(id: "a" | "b") {
+    buzz(25);
+    const res = await fetch(`/api/vb/${event.slug}/tipp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-vb-guest": guestKey() },
+      body: JSON.stringify({ choice: id }),
+    }).catch(() => null);
+    if (res?.ok) setReveal(await res.json());
+  }
+
   /** Mission, die mit dem nächsten Original-Upload eingereicht wird */
   const missionRef = useRef<Challenge | null>(null);
 
@@ -129,12 +162,12 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       template: event.template,
       text: event.frameText,
       subtext: event.subtext,
-      accent: event.accent,
+      accent,
       logo: logoRef.current,
       mirror,
       fonts: fontsRef.current,
     }),
-    [event]
+    [event, accent]
   );
 
   // Erledigte Missionen und Spitzname vom Server holen (z. B. nach Neuladen der Seite)
@@ -538,7 +571,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     setStep("kamera");
   }
 
-  const gold = event.accent;
+  const gold = accent;
   const ink = onAccent(gold);
   const busyStyle = event.aiStyles.find((s) => s.key === aiBusy);
   const backToStart = () => {
@@ -590,6 +623,12 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           </div>
 
           <div className="vb-in mt-8 space-y-4" style={{ animationDelay: "320ms" }}>
+            {event.reveal && !reveal?.result && <RevealPicker state={reveal} options={event.reveal.options} question={event.reveal.question} onPick={pickTip} />}
+            {event.reveal && reveal?.result && (
+              <button onClick={() => setRevealShown(false)} className="w-full rounded-2xl px-4 py-3.5 text-left text-[15px] font-semibold" style={{ background: `color-mix(in srgb, ${accent} 30%, transparent)`, border: `1px solid ${accent}` }}>
+                {revealOpt(reveal.result)?.emoji} Aufgelöst: Es wird ein {revealOpt(reveal.result)?.label}! 🎉
+              </button>
+            )}
             {missions.length > 0 && (
               <button onClick={() => setSheet("missionen")} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
                 <span className="vb-shimmer pointer-events-none absolute inset-0 opacity-40" />
@@ -845,6 +884,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           )}
         </section>
       )}
+
+      {reveal?.result && !revealShown && <RevealMoment state={reveal} onClose={() => setRevealShown(true)} />}
 
       {sheet === "missionen" && (
         <Sheet title="Foto-Missionen" onClose={() => setSheet(null)}>
