@@ -34,6 +34,7 @@ export default async function AdminVisionBoothPage() {
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <h1 className="font-serif text-2xl font-semibold text-anthracite-800">VisionBooth</h1>
         <p className="mt-1 text-sm text-anthracite-500">Digitale Fotobox per QR-Code: Events anlegen, Rahmen gestalten, QR-Code drucken, Fotos verwalten.</p>
+        <Link href="/admin/visionbooth/bestellungen" className="mt-3 inline-block rounded-lg border border-anthracite-200 bg-white px-3 py-1.5 text-sm hover:border-gold-300">🛒 Online-Bestellungen &amp; Rechnungen</Link>
 
         <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_340px]">
           <div className="space-y-3">

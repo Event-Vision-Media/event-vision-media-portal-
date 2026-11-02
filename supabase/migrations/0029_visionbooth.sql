@@ -186,3 +186,11 @@ alter table public.vb_orders add column if not exists games jsonb not null defau
 
 -- Online-Buchung: gewähltes Motto (Vorlage), z. B. beim Kindergeburtstag
 alter table public.vb_orders add column if not exists template text;
+
+-- Rechnungen für VisionBooth-Online-Bestellungen (Lexware) und Rechnungsadresse aus Stripe
+alter table public.vb_orders add column if not exists billing jsonb;
+alter table public.vb_orders add column if not exists invoice_id text;
+alter table public.vb_orders add column if not exists invoice_number text;
+alter table public.vb_orders add column if not exists invoice_path text;
+alter table public.vb_orders add column if not exists invoice_error text;
+alter table public.vb_orders add column if not exists invoiced_at timestamptz;

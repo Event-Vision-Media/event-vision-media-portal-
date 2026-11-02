@@ -11,6 +11,7 @@ import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges } from "@/components/visionbooth/challenges";
 import { leadConfigFromForm } from "@/lib/visionbooth-leads";
 import { revealFromForm } from "@/lib/visionbooth-reveal";
+import { issueVbInvoice, vbInvoiceDraftTest } from "@/lib/visionbooth-invoice";
 import { addonPlanFor, getOccasion, getPlan, guessOccasion } from "@/components/visionbooth/packages";
 import { berlinIso, provisionVbEvent } from "@/lib/visionbooth-provision";
 import type { AdminActionResult } from "@/app/actions/admin";
@@ -212,4 +213,21 @@ export async function deleteVbPhotoAdmin(eventId: string, photoId: string): Prom
   if (!(await deleteVbPhoto(eventId, photoId))) return { error: "Löschen fehlgeschlagen." };
   paths(eventId);
   return { success: true };
+}
+
+/** Rechnung einer bezahlten Online-Bestellung (erneut) über Lexware erstellen. */
+export async function retryVbInvoice(orderId: string): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  // hängengebliebene Sperre lösen (z. B. nach Abbruch)
+  await createAdminClient().from("vb_orders").update({ invoice_error: null }).eq("id", orderId).is("invoice_id", null);
+  const r = await issueVbInvoice(orderId);
+  revalidatePath("/admin/visionbooth/bestellungen");
+  return r.ok ? { success: true } : { error: r.error ?? "Fehler" };
+}
+
+/** Probe-Entwurf in Lexware anlegen (keine Rechnungsnummer, löschbar). */
+export async function lexwareDraftTest(): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const r = await vbInvoiceDraftTest();
+  return r.ok ? { success: true } : { error: r.error ?? "Fehler" };
 }

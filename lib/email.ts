@@ -689,3 +689,19 @@ export function vbManageMail(o: { name: string | null; title: string; date: stri
     text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. Hier gestaltest du sie (Vorlage, Text, Logo), druckst den QR-Aufsteller und siehst alle Fotos:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}`,
   };
 }
+
+export function vbInvoiceMail(o: { name: string | null; title: string; number: string; amount: number }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const euro = o.amount.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  return {
+    subject: `Deine Rechnung ${o.number} – VisionBooth – ${BRAND}`,
+    html: layout(
+      "Danke für deine Buchung 🧾",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">vielen Dank für deine Buchung der VisionBooth für „${esc(o.title)}“. Im Anhang findest du deine Rechnung <strong>${esc(o.number)}</strong> über <strong>${esc(euro)}</strong>.</p>
+<p style="line-height:1.6">Der Betrag ist bereits bezahlt – du musst nichts weiter tun.</p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen zur Rechnung? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\nvielen Dank für deine Buchung der VisionBooth für „${o.title}“. Im Anhang findest du deine Rechnung ${o.number} über ${euro}. Der Betrag ist bereits bezahlt.\n\nFragen: 0176 22748363\n\n${BRAND}`,
+  };
+}

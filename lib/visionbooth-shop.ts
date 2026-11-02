@@ -4,6 +4,21 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { vbBaseUrl } from "@/lib/visionbooth";
 import { provisionVbEvent } from "@/lib/visionbooth-provision";
 import { getOccasion, getPlan } from "@/components/visionbooth/packages";
+import { issueVbInvoice, type VbBilling } from "@/lib/visionbooth-invoice";
+
+/** Rechnungsadresse aus der Stripe-Zahlung (customer_details) übernehmen. */
+function billingFrom(session: any, order: VbOrder): VbBilling {
+  const d = session?.customer_details ?? {};
+  const a = d.address ?? {};
+  return {
+    name: d.name || order.name,
+    company: order.company,
+    street: [a.line1, a.line2].filter(Boolean).join(", ") || null,
+    zip: a.postal_code || null,
+    city: a.city || null,
+    country: a.country || "DE",
+  };
+}
 
 // Online-Buchung visionbooth.de: Bestellung → Stripe Checkout → nach Zahlung Event einrichten.
 // Stripe wird direkt über die REST-API angesprochen (kein SDK nötig). Schlüssel: STRIPE_SECRET_KEY,
@@ -54,6 +69,8 @@ export async function createCheckout(order: VbOrder): Promise<string> {
     mode: "payment",
     locale: "de",
     customer_email: order.email,
+    // Rechnungsadresse: bei Firmen-Paketen Pflicht (Rechnung > 250 €), sonst nur bei Bedarf
+    billing_address_collection: plan.firma || order.amount_cents > 25000 ? "required" : "auto",
     client_reference_id: order.id,
     "metadata[order_id]": order.id,
     "payment_intent_data[metadata][order_id]": order.id,
@@ -85,7 +102,12 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
 
   const { data: locked } = await supabase
     .from("vb_orders")
-    .update({ status: "wird_eingerichtet", stripe_payment_intent: session.payment_intent ?? null, paid_at: new Date().toISOString() })
+    .update({
+      status: "wird_eingerichtet",
+      stripe_payment_intent: session.payment_intent ?? null,
+      paid_at: new Date().toISOString(),
+      billing: billingFrom(session, order),
+    })
     .eq("id", order.id)
     .eq("status", "offen")
     .select("id")
@@ -120,6 +142,8 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     return { order, error: "Bezahlung ist angekommen, beim Einrichten gab es aber ein Problem. Wir melden uns sofort bei dir." };
   }
   await supabase.from("vb_orders").update({ status: "bezahlt", vb_event_id: res.id }).eq("id", order.id);
+  // Rechnung über Lexware (nur wenn aktiviert) – Fehler blockieren die Einrichtung nicht
+  await issueVbInvoice(order.id).catch((e) => console.error("VisionBooth-Rechnung:", e));
   return { order: { ...order, status: "bezahlt", vb_event_id: res.id }, manageUrl: res.manageUrl };
 }
 
