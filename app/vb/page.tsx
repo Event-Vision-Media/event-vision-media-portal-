@@ -5,7 +5,8 @@ import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
 import { StoryScenes } from "@/components/visionbooth/site/StoryScenes";
 import { Reveal } from "@/components/visionbooth/site/Reveal";
 import { vbBaseUrl } from "@/lib/visionbooth";
-import { getPlan, vbTaxNote } from "@/components/visionbooth/packages";
+import { getPlan } from "@/components/visionbooth/packages";
+import { PlanTabs } from "@/components/visionbooth/site/PlanTabs";
 import { LANDLORD } from "@/lib/contract";
 
 export const metadata: Metadata = {
@@ -24,19 +25,12 @@ const STEPS = [
 
 const FEATURES = [
   { icon: "✨", title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
-  { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste. Bringt Gäste zusammen – und sorgt für viel mehr Fotos." },
+  { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste – so machen auch die Fotofaulen mit, und ihr habt am Ende viel mehr Erinnerungen." },
   { icon: "📺", title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
   { icon: "🔮", title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
   { icon: "🖼️", title: "17 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night – dazu Kinder-Mottos wie Dino, Prinzessin oder Feuerwehr. Plus 3er-Fotostreifen und Story-Format." },
   { icon: "❤️", title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
 ];
-
-const PLAN_CARDS = [
-  { id: "party", tag: null, points: ["Eigener Foto-Rahmen & Design", "Fotostreifen & Story", "Foto-Missionen & Bestenliste", "Live-Foto-Wand & Galerie", "Link 7 Tage aktiv"] },
-  { id: "hochzeit", tag: "Beliebt", points: ["Alles aus Party", "150 KI-Verwandlungen", "Hochzeits-Missionen", "Link 14 Tage aktiv", "Galerie 6 Monate"] },
-  { id: "business", tag: null, points: ["Firmen-Design mit Logo", "300 KI-Verwandlungen", "Team-Missionen", "Gewinnspiel / Kontaktformular", "Kontakte als CSV"] },
-  { id: "messe", tag: null, points: ["Mehrtägig (bis 5 Tage)", "1.000 KI-Verwandlungen", "Marken-Rahmen", "Gewinnspiel / Kontaktformular", "Live-Foto-Wand für den Stand"] },
-] as const;
 
 const FAQ = [
   { q: "Brauchen die Gäste eine App?", a: "Nein. Gäste scannen den QR-Code mit der normalen Handy-Kamera – die VisionBooth öffnet sich direkt im Browser, auf iPhone und Android." },
@@ -234,44 +228,7 @@ export default async function VisionBoothHome() {
       <section id="pakete" className="relative mx-auto max-w-6xl px-5 py-16">
         <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">Pakete</h2>
         <p className="mt-3 text-center text-white/65">Einmal zahlen, kein Abo. Link sofort nach der Buchung.</p>
-        <p className="mx-auto mt-4 max-w-xl rounded-2xl bg-white/5 px-4 py-3 text-center text-sm text-white/70">
-          💡 Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das z. B. beim Hochzeitspaket nur{" "}
-          {(getPlan("hochzeit").price / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
-        </p>
-        <p className="mt-2 text-center text-xs text-white/40">{vbTaxNote()}</p>
-        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {PLAN_CARDS.map((c, i) => {
-            const p = getPlan(c.id);
-            return (
-              <Reveal key={c.id} delay={i * 100} className="flex">
-              <div className={`relative flex w-full flex-col rounded-3xl p-6 ${c.tag ? "ring-2" : "vb-glass"}`} style={c.tag ? { background: "linear-gradient(160deg, color-mix(in srgb, var(--a) 22%, #141417), #141417 60%)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
-                {c.tag && (
-                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full px-3 py-1 text-xs font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>
-                    {c.tag}
-                  </span>
-                )}
-                <p className="text-lg font-bold">{p.label}</p>
-                <p className="vb-display mt-2 text-4xl font-semibold">{euro(p.price)}</p>
-                <ul className="mt-5 flex-1 space-y-2 text-[14px] text-white/75">
-                  {c.points.map((pt) => (
-                    <li key={pt} className="flex gap-2">
-                      <span style={{ color: "var(--a)" }}>✓</span>
-                      {pt}
-                    </li>
-                  ))}
-                </ul>
-                <Link href={`/vb/buchen?paket=${c.id}`} className={`mt-6 rounded-full py-3 text-center text-sm font-bold ${c.tag ? "vb-btn" : "border border-white/20 hover:bg-white/10"}`}>
-                  {p.label} buchen
-                </Link>
-              </div>
-              </Reveal>
-            );
-          })}
-        </div>
-        <p className="mt-6 text-center text-sm text-white/55">
-          Du mietest bei uns schon eine Fotobox oder einen Fotospiegel? Dann gibt&apos;s die VisionBooth als Add-on ab {euro(getPlan("addon-privat").price)} –{" "}
-          <a href="https://fotobox-essen.com" className="underline underline-offset-2">fotobox-essen.com</a>
-        </p>
+        <PlanTabs />
       </section>
 
       {/* FAQ */}
