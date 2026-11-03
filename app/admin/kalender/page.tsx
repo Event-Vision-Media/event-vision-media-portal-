@@ -8,6 +8,7 @@ const KIND: Record<CalendarKind, { icon: string; label: string; self: string; cl
   aufbau: { icon: "🚚", label: "Aufbau", self: "Übergabe", cls: "border-l-sky-500 bg-sky-50" },
   event: { icon: "🎉", label: "Event", self: "Event", cls: "border-l-gold-500 bg-gold-50" },
   abbau: { icon: "📦", label: "Abbau", self: "Rückgabe", cls: "border-l-violet-500 bg-violet-50" },
+  termin: { icon: "📌", label: "Eigener Termin", self: "Eigener Termin", cls: "border-l-emerald-500 bg-emerald-50" },
 };
 
 const WD = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
@@ -56,6 +57,7 @@ export default async function AdminCalendarPage(props: { searchParams: Promise<{
     aufbau: entries.filter((e) => e.kind === "aufbau").length,
     event: new Set(entries.filter((e) => e.kind === "event").map((e) => e.bookingId)).size,
     abbau: entries.filter((e) => e.kind === "abbau").length,
+    termin: entries.filter((e) => e.kind === "termin").length,
   };
 
   return (
@@ -78,6 +80,7 @@ export default async function AdminCalendarPage(props: { searchParams: Promise<{
             <Link href={href(prev)} aria-label="Zurück" className="rounded-full border border-anthracite-200 bg-white px-3 py-1.5 text-anthracite-600 hover:border-gold-300">←</Link>
             <Link href={href(today)} className="rounded-full border border-anthracite-200 bg-white px-4 py-1.5 text-anthracite-600 hover:border-gold-300">Heute</Link>
             <Link href={href(next)} aria-label="Weiter" className="rounded-full border border-anthracite-200 bg-white px-3 py-1.5 text-anthracite-600 hover:border-gold-300">→</Link>
+            <Link href="/admin/kalender/termine" className="rounded-full bg-anthracite-800 px-4 py-1.5 font-medium text-white hover:bg-anthracite-700">+ Eigener Termin</Link>
           </div>
         </div>
 
@@ -85,6 +88,7 @@ export default async function AdminCalendarPage(props: { searchParams: Promise<{
           <span>🚚 {counts.aufbau} × Aufbau/Übergabe</span>
           <span>🎉 {counts.event} Events</span>
           <span>📦 {counts.abbau} × Abbau/Rückgabe</span>
+          {counts.termin > 0 && <span>📌 {counts.termin} × eigener Termin</span>}
           <span className="text-anthracite-400">Gestrichelt = vorgemerkt, noch nicht bestätigt</span>
         </div>
 
@@ -126,7 +130,7 @@ export default async function AdminCalendarPage(props: { searchParams: Promise<{
                     <ul className="space-y-1">
                       {list.map((e) => (
                         <li key={e.id}>
-                          <Link href={`/admin/bookings/${e.bookingId}`} className={`block truncate rounded-md border-l-4 px-1.5 py-0.5 text-[11px] leading-snug text-anthracite-700 hover:brightness-95 ${KIND[e.kind].cls} ${e.lifecycle !== "bestaetigt" ? "border-dashed opacity-80" : ""}`} title={`${e.title} · ${e.devices}${e.place ? ` · ${e.place}` : ""}`}>
+                          <Link href={e.href} className={`block truncate rounded-md border-l-4 px-1.5 py-0.5 text-[11px] leading-snug text-anthracite-700 hover:brightness-95 ${KIND[e.kind].cls} ${e.lifecycle !== "bestaetigt" ? "border-dashed opacity-80" : ""}`} title={`${e.title} · ${e.devices}${e.place ? ` · ${e.place}` : ""}`}>
                             {KIND[e.kind].icon} {e.sort && e.kind !== "event" && e.sort !== "99:98" ? `${e.sort} ` : ""}{e.title.split(" · ")[0]}
                             {e.warnings.length > 0 && " ⚠️"}
                           </Link>
@@ -150,19 +154,20 @@ function Entry({ e }: { e: CalendarEntry }) {
   return (
     <li>
       <Link
-        href={`/admin/bookings/${e.bookingId}`}
+        href={e.href}
         className={`block rounded-lg border-l-4 px-2.5 py-2 text-xs transition hover:brightness-95 ${k.cls} ${e.lifecycle !== "bestaetigt" ? "border border-dashed border-anthracite-200" : ""}`}
       >
         <p className="font-semibold text-anthracite-800">
           {k.icon} {e.selfService ? k.self : k.label}
           {e.timeLabel ? (
             <span className="font-normal text-anthracite-600"> · {e.timeLabel}</span>
-          ) : e.kind !== "event" ? (
+          ) : e.kind === "aufbau" || e.kind === "abbau" ? (
             <span className="font-normal text-amber-700"> · Zeit offen</span>
           ) : null}
         </p>
         <p className="mt-0.5 font-medium text-anthracite-700">{e.title}</p>
-        <p className="text-anthracite-500">{e.devices}</p>
+        {e.devices && <p className="text-anthracite-500">{e.devices}</p>}
+        {e.note && <p className="whitespace-pre-line text-anthracite-500">{e.note}</p>}
         {e.place && <p className="text-anthracite-500">📍 {e.place}</p>}
         {e.lifecycle !== "bestaetigt" && <p className="mt-0.5 text-gold-700">vorgemerkt – bitte bestätigen</p>}
         {e.warnings.map((w) => <p key={w} className="mt-0.5 font-medium text-amber-700">{w.startsWith("🌙") ? w : `⚠️ ${w}`}</p>)}

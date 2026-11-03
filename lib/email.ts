@@ -664,7 +664,7 @@ export function weeklyPlanMail(plan: WeeklyPlan) {
   const url = portalUrl();
   const short = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
   const dayName = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
-  const KIND = { aufbau: ["🚚", "Aufbau"], event: ["🎉", "Event"], abbau: ["📦", "Abbau"] } as const;
+  const KIND = { aufbau: ["🚚", "Aufbau"], event: ["🎉", "Event"], abbau: ["📦", "Abbau"], termin: ["📌", "Eigener Termin"] } as const;
   const label = (i: WeeklyPlanItem) =>
     i.selfService ? (i.kind === "aufbau" ? "Abholung bei dir" : i.kind === "abbau" ? "Rückgabe bei dir" : "Event") : KIND[i.kind][1];
 
@@ -673,10 +673,10 @@ export function weeklyPlanMail(plan: WeeklyPlan) {
     .map((d) => `<h3 style="margin:22px 0 8px;font-family:Georgia,serif;font-size:17px;color:#1f2227;border-bottom:1px solid #ebdab3;padding-bottom:4px">${esc(dayName(d.date))}</h3>${d.items
       .map((i) => `<div style="margin:0 0 10px;padding:10px 12px;border-radius:10px;background:${i.warn ? "#fff7ed" : "#faf8f4"};border:1px solid ${i.warn ? "#fed7aa" : "#efe9dd"};font-size:14px;line-height:1.5">
 <div><strong>${KIND[i.kind][0]} ${esc(label(i))}${i.time ? ` · ${esc(i.time)}` : ""}</strong></div>
-<div>${esc(i.title)} <span style="color:#9ea5ad">(${esc(i.code)})</span></div>
-<div style="color:#4f5761">📸 ${esc(i.devices)}${i.place ? ` · 📍 ${esc(i.place)}` : ""}</div>
+<div>${esc(i.title)}${i.kind === "termin" ? "" : ` <span style="color:#9ea5ad">(${esc(i.code)})</span>`}</div>
+${i.devices ? `<div style="color:#4f5761">📸 ${esc(i.devices)}${i.place ? ` · 📍 ${esc(i.place)}` : ""}</div>` : ""}
 ${i.address ? `<div style="color:#4f5761">🧭 ${esc(i.address)}${i.phone ? ` · ☎️ ${esc(i.phone)}` : ""}</div>` : ""}
-${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#047857"}">${i.notes.map((n) => esc(n)).join(" · ")}</div>` : ""}
+${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.kind === "termin" ? "#4f5761" : "#047857"}">${i.notes.map((n) => esc(n)).join(" · ")}</div>` : ""}
 </div>`).join("")}`)
     .join("");
 
@@ -688,7 +688,7 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#04
     ? `<h2 style="margin:26px 0 8px;font-size:16px">⚠️ Noch offen (nächste 4 Wochen)</h2><ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.todos.map((t) => `<li><strong>${esc(short(t.date))}</strong> ${esc(t.title)} <span style="color:#9ea5ad">(${esc(t.code)})</span>: ${esc(t.text)}</li>`).join("")}</ul>`
     : `<p style="margin-top:22px;color:#047857">✓ Keine offenen Punkte in den nächsten 4 Wochen.</p>`;
   const next = `<h2 style="margin:26px 0 8px;font-size:16px">👀 Vorschau Woche danach</h2>${plan.nextWeek.length
-    ? `<ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.nextWeek.map((n) => `<li><strong>${esc(short(n.date))}</strong> ${esc(n.title)} · ${esc(n.devices)}${n.place ? ` · ${esc(n.place)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.nextWeek.map((n) => `<li><strong>${esc(short(n.date))}</strong> ${esc(n.title)}${n.devices ? ` · ${esc(n.devices)}` : ""}${n.place ? ` · ${esc(n.place)}` : ""}</li>`).join("")}</ul>`
     : `<p style="color:#6f7882;font-size:14px">Noch keine Einsätze.</p>`}`;
   const link = url
     ? `<p style="margin:24px 0 0"><a href="${esc(url)}/admin/kalender" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kalender</a></p>`
@@ -699,14 +699,14 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#04
 
   const textDays = plan.days
     .filter((d) => d.items.length)
-    .map((d) => `${dayName(d.date)}\n${d.items.map((i) => `- ${label(i)}${i.time ? ` (${i.time})` : ""}: ${i.title} [${i.code}] – ${i.devices}${i.place ? `, ${i.place}` : ""}${i.address ? `\n  ${i.address}${i.phone ? `, ${i.phone}` : ""}` : ""}${i.notes.length ? `\n  ${i.notes.join(" · ")}` : ""}`).join("\n")}`)
+    .map((d) => `${dayName(d.date)}\n${d.items.map((i) => `- ${label(i)}${i.time ? ` (${i.time})` : ""}: ${i.title}${i.kind === "termin" ? "" : ` [${i.code}] – ${i.devices}`}${i.place ? `, ${i.place}` : ""}${i.address ? `\n  ${i.address}${i.phone ? `, ${i.phone}` : ""}` : ""}${i.notes.length ? `\n  ${i.notes.join(" · ")}` : ""}`).join("\n")}`)
     .join("\n\n");
   const text = [
     `Wochenplan ${range}`,
     textDays || "Diese Woche stehen keine Einsätze an.",
     plan.deviceAlerts.length ? `Geräte-Check:\n${plan.deviceAlerts.map((a) => `- ${short(a.date)}: ${a.text}`).join("\n")}` : "",
     plan.todos.length ? `Noch offen:\n${plan.todos.map((t) => `- ${short(t.date)} ${t.title} (${t.code}): ${t.text}`).join("\n")}` : "Keine offenen Punkte.",
-    `Vorschau Woche danach:\n${plan.nextWeek.map((n) => `- ${short(n.date)} ${n.title} – ${n.devices}`).join("\n") || "Noch keine Einsätze."}`,
+    `Vorschau Woche danach:\n${plan.nextWeek.map((n) => `- ${short(n.date)} ${n.title}${n.devices ? ` – ${n.devices}` : ""}`).join("\n") || "Noch keine Einsätze."}`,
     url ? `Kalender: ${url}/admin/kalender` : "",
   ].filter(Boolean).join("\n\n");
 
