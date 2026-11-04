@@ -9,6 +9,7 @@ import { logActivity } from "@/lib/activity-log";
 import { rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, type Booking } from "@/lib/types";
+import { deliveryUpsells } from "@/lib/delivery-upsell";
 
 /** Erinnerung geht raus, sobald das Event höchstens so viele Tage entfernt ist … */
 const REMINDER_DAYS_BEFORE = 28;
@@ -172,7 +173,12 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
 
   for (const b of (upcoming ?? []) as Booking[]) {
     const openSteps = await openStepsFor(b);
-    const recs = (await getRecommendations(b, 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel }));
+    // Selbstabholung gebucht? Dann zuerst die bequeme Lieferung empfehlen
+    const delivery = deliveryUpsells(b.inquiry_items)[0];
+    const recs = [
+      ...(delivery ? [{ name: "Lieferung, Aufbau & Abholung durch uns", priceLabel: `+${delivery.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}` }] : []),
+      ...(await getRecommendations(b, delivery ? 1 : 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel })),
+    ];
     let sent = false;
     if (!dryRun) {
       const mail = reminderMail(toMailBooking(b), openSteps, recs);
