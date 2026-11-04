@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { CHALLENGE_POINTS, CHALLENGE_SETS, MAX_CHALLENGES, type Challenge } from "@/components/visionbooth/challenges";
 
 interface Result {
@@ -30,7 +30,7 @@ export function VbChallengesEditor({
   initial: Challenge[];
   galleryEnabled: boolean;
 }) {
-  const [state, formAction] = useFormState(action, {});
+  const [state, formAction] = useActionState(action, {});
   const [list, setList] = useState<Challenge[]>(initial);
   const [enabled, setEnabled] = useState(initial.length > 0);
 

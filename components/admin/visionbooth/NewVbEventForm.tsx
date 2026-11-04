@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { createVbEvent } from "@/app/actions/admin-visionbooth";
 import type { AdminActionResult } from "@/app/actions/admin";
 import { Button } from "@/components/ui/Button";
@@ -20,7 +20,7 @@ function Submit() {
 }
 
 export function NewVbEventForm() {
-  const [state, action] = useFormState(createVbEvent, initial);
+  const [state, action] = useActionState(createVbEvent, initial);
   const [plan, setPlan] = useState<VbPlanId>("party");
   const [occasion, setOccasion] = useState<VbOccasionId>("geburtstag");
   return (

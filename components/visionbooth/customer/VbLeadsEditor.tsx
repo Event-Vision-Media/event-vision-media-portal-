@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { LEAD_FIELDS, type LeadConfig } from "@/components/visionbooth/leads";
 
 interface Result {
@@ -20,7 +20,7 @@ function Submit() {
 
 /** Freiwilliges Kontaktformular (Gewinnspiel/Newsletter) einstellen + Kontakte als CSV. */
 export function VbLeadsEditor({ action, initial, count, csvUrl }: { action: (p: Result, f: FormData) => Promise<Result>; initial: LeadConfig; count: number; csvUrl: string }) {
-  const [state, formAction] = useFormState(action, {});
+  const [state, formAction] = useActionState(action, {});
   const [on, setOn] = useState(initial.enabled);
   return (
     <form action={formAction} className="space-y-4">

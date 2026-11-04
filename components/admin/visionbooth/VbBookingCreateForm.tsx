@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { createVbForBooking } from "@/app/actions/admin-visionbooth";
 import type { AdminActionResult } from "@/app/actions/admin";
 import { VbPlanOccasionFields, VbSetupPreview } from "@/components/admin/visionbooth/VbPlanFields";
@@ -20,7 +20,7 @@ export function VbBookingCreateForm({ bookingId, plan: p0, occasion: o0, hasEmai
   const [open, setOpen] = useState(false);
   const [plan, setPlan] = useState(p0);
   const [occasion, setOccasion] = useState(o0);
-  const [state, action] = useFormState<AdminActionResult, FormData>(createVbForBooking.bind(null, bookingId), {});
+  const [state, action] = useActionState<AdminActionResult, FormData>(createVbForBooking.bind(null, bookingId), {});
 
   if (!open) {
     return (

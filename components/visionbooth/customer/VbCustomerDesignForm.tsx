@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { VbDesignPicker } from "@/components/admin/visionbooth/VbDesignPicker";
 import type { VbCustomerResult } from "@/app/actions/vb-customer";
 
@@ -30,7 +30,7 @@ const label = "mb-1.5 block text-sm font-medium text-anthracite-600";
 
 /** Design der VisionBooth im Kundenbereich – Vorlage, Texte, Farbe, Logo, Formate. */
 export function VbCustomerDesignForm({ action, initial }: { action: (prev: VbCustomerResult, fd: FormData) => Promise<VbCustomerResult>; initial: Values }) {
-  const [state, formAction] = useFormState(action, {});
+  const [state, formAction] = useActionState(action, {});
   const [template, setTemplate] = useState(initial.template);
   const [frameText, setFrameText] = useState(initial.frameText);
   const [subtext, setSubtext] = useState(initial.subtext);

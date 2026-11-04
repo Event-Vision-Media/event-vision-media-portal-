@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
 import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
@@ -22,6 +22,10 @@ const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
 };
 const KID_MOTTOS = VB_TEMPLATES.filter((t) => t.group === "kinder");
 const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
+// Je Anlass nur die passenden Pakete (wie auf der Website Privat/Business) – „Sonstiges“ zeigt alle
+const BUSINESS_OCC: VbOccasionId[] = ["firma", "weihnachtsfeier", "messe"];
+const plansFor = (o: VbOccasionId): VbPlanId[] =>
+  o === "sonstiges" ? SHOP_PLANS : BUSINESS_OCC.includes(o) ? ["business", "messe"] : ["party", "hochzeit"];
 const STEPS = ["Anlass", "Paket", "Spiele", "Details", "Bezahlen"];
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
 
@@ -46,7 +50,8 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [company, setCompany] = useState("");
   const [games, setGames] = useState<VbGames | null>(null);
   const [motto, setMotto] = useState("dino");
-  const [state, action] = useFormState<VbShopResult, FormData>(startVbCheckout, {});
+  const [allPlans, setAllPlans] = useState(false);
+  const [state, action] = useActionState<VbShopResult, FormData>(startVbCheckout, {});
   const top = useRef<HTMLDivElement>(null);
 
   const go = (n: number) => {
@@ -83,7 +88,9 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 type="button"
                 onClick={() => {
                   setOccasion(o.id);
-                  if (!initialPlan || !plan) setPlan(OCC_PLAN[o.id]);
+                  setAllPlans(false);
+                  // Paket von der Website behalten, wenn es zum Anlass passt – sonst die Empfehlung
+                  if (!initialPlan || !plan || !plansFor(o.id).includes(plan)) setPlan(OCC_PLAN[o.id]);
                   go(1);
                 }}
                 className={`flex flex-col items-start gap-2 rounded-2xl p-4 text-left transition active:scale-[0.97] ${occasion === o.id ? "ring-2" : "vb-glass"}`}
@@ -102,7 +109,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           <h1 className="vb-display text-3xl font-semibold">Welches Paket?</h1>
           <p className="mt-1 text-white/60">Unsere Empfehlung für {getOccasion(occasion).label}: das Paket „{getPlan(OCC_PLAN[occasion]).label}“.</p>
           <div className="mt-6 space-y-3">
-            {SHOP_PLANS.map((id) => {
+            {(allPlans ? SHOP_PLANS : SHOP_PLANS.filter((id) => plansFor(occasion).includes(id) || id === plan)).map((id) => {
               const pl = getPlan(id);
               const rec = OCC_PLAN[occasion] === id;
               const sel = plan === id;
@@ -129,6 +136,11 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               );
             })}
           </div>
+          {!allPlans && plansFor(occasion).length < SHOP_PLANS.length && (
+            <button type="button" onClick={() => setAllPlans(true)} className="mt-3 text-sm text-white/55 underline underline-offset-2 hover:text-white">
+              Andere Pakete anzeigen
+            </button>
+          )}
           <button
             type="button"
             disabled={!plan}

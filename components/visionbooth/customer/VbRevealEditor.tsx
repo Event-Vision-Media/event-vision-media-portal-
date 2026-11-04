@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import type { RevealConfig } from "@/components/visionbooth/reveal";
 
 interface Result {
@@ -30,7 +30,7 @@ function Btn({ intent, children, className, confirmText, style }: { intent: stri
 
 /** Tippspiel (Gender Reveal): einschalten, Texte/Farben, Live-Stand und der Auflösen-Knopf. */
 export function VbRevealEditor({ action, initial, counts }: { action: (p: Result, f: FormData) => Promise<Result>; initial: RevealConfig; counts: { a: number; b: number } }) {
-  const [state, formAction] = useFormState(action, {});
+  const [state, formAction] = useActionState(action, {});
   const [on, setOn] = useState(initial.enabled);
   const total = counts.a + counts.b;
   const share = total ? Math.round((counts.a / total) * 100) : 50;

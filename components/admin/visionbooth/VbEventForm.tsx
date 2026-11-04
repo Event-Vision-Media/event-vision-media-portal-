@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useFormState, useFormStatus } from "react-dom";
+import { useActionState, useState } from "react";
+import { useFormStatus } from "react-dom";
 import { updateVbEvent } from "@/app/actions/admin-visionbooth";
 import type { AdminActionResult } from "@/app/actions/admin";
 import { Button } from "@/components/ui/Button";
@@ -53,7 +53,7 @@ const label = "mb-1.5 block text-sm font-medium text-anthracite-600";
 const section = "border-t border-anthracite-100 pt-5";
 
 export function VbEventForm({ event: e, styles }: { event: EventValues; styles: { key: string; label: string; emoji: string }[] }) {
-  const [state, action] = useFormState(updateVbEvent, initial);
+  const [state, action] = useActionState(updateVbEvent, initial);
   const [aiOn, setAiOn] = useState(e.aiEnabled);
   const [accent, setAccent] = useState(e.accent);
   const [template, setTemplate] = useState(e.template);
