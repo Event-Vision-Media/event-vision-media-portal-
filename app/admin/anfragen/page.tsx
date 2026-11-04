@@ -4,6 +4,7 @@ import { pickupSummary, travelSummary } from "@/lib/catalog";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { InquiryActions } from "@/components/admin/InquiryActions";
+import { BookingRowActions } from "@/components/admin/BookingRowActions";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { formatDateGerman, formatDateTimeGerman } from "@/lib/format";
@@ -184,6 +185,8 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
                       hasEmail={Boolean(b.email)}
                       offer={items.packages?.length ? { baseTotal, isFromPrice: Boolean(items.isFromPrice), lines, question: offer?.status === "aenderung" && offer.customer_note ? `Änderungswunsch: ${offer.customer_note}` : b.inquiry_message ?? null, sent: Boolean(offer) } : null}
                     />
+                  ) : b.lifecycle === "abgelehnt" || b.lifecycle === "storniert" ? (
+                    <BookingRowActions bookingId={b.id} />
                   ) : <span />}
                   <Link href={`/admin/bookings/${b.id}`} className="text-sm text-anthracite-400 hover:text-anthracite-700">
                     Buchungsdetails →

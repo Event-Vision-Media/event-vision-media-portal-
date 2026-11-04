@@ -185,14 +185,14 @@ export function reservationMail(b: MailBooking) {
         subject: `Ihr Termin ist vorgemerkt – ${BRAND}`,
         title: "Vielen Dank – Ihr Termin ist vorgemerkt",
         intro: `vielen Dank für Ihre Anfrage! Ihr Wunschtermin ist <strong>für Sie vorgemerkt</strong> und wird in dieser Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie von uns die Auftragsbestätigung – zusammen mit Ihrem persönlichen Zugang zum Kundenportal. Haben Sie uns eine Frage gestellt oder ist noch etwas zu klären, schicken wir Ihnen vorab ein persönliches Angebot. Dort unterschreiben Sie bequem den Mietvertrag und wählen Ihr Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie von uns die Auftragsbestätigung – zusammen mit Ihrem persönlichen Zugang zum Kundenportal. Haben Sie uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei Ihnen. Dort unterschreiben Sie bequem den Mietvertrag und wählen Ihr Layout.",
         call: "Fragen oder Wünsche? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
       }
     : {
         subject: `Dein Termin ist vorgemerkt – ${BRAND}`,
         title: "Danke – dein Termin ist vorgemerkt! ✨",
         intro: `vielen Dank für deine Anfrage! Dein Wunschtermin ist <strong>für dich vorgemerkt</strong> und wird in der Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du von uns die Auftragsbestätigung – zusammen mit deinem persönlichen Zugang zum Kundenportal. Hast du uns eine Frage gestellt oder ist noch etwas zu klären, schicken wir dir vorab ein persönliches Angebot. Dort unterschreibst du ganz bequem den Mietvertrag und wählst dein Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du von uns die Auftragsbestätigung – zusammen mit deinem persönlichen Zugang zum Kundenportal. Hast du uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei dir. Dort unterschreibst du ganz bequem den Mietvertrag und wählst dein Layout.",
         call: "Fragen oder Wünsche? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
       };
   const note = "Richtpreis, unverbindlich – verbindlich wird die Buchung mit unserer Auftragsbestätigung und dem Mietvertrag.";

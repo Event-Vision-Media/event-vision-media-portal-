@@ -152,6 +152,8 @@ export async function deleteBooking(bookingId: string): Promise<AdminActionResul
   }
 
   revalidatePath("/admin/dashboard");
+  revalidatePath("/admin/anfragen");
+  revalidatePath("/admin/statistik");
   return { success: true };
 }
 
