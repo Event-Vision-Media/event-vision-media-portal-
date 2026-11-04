@@ -4,7 +4,8 @@ import { loadVbEventByToken } from "@/lib/visionbooth";
 export const dynamic = "force-dynamic";
 
 /** App-Steckbrief (Web-App-Manifest) für den Kundenbereich – Name des Events unter dem App-Symbol. */
-export async function GET(_req: Request, { params }: { params: { token: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const event = await loadVbEventByToken(params.token);
   if (!event) return NextResponse.json({ error: "nicht gefunden" }, { status: 404 });
   const name = (event.frame_text || event.title).slice(0, 40);

@@ -11,11 +11,10 @@ import type { PersonalizedScreenProof, PersonalizedScreenRequest } from "@/lib/t
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminPersonalizedScreenPage({
-  searchParams,
-}: {
-  searchParams: { booking?: string };
+export default async function AdminPersonalizedScreenPage(props: {
+  searchParams: Promise<{ booking?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const supabase = createAdminClient();
   const { data: bookings } = await supabase
     .from("bookings")

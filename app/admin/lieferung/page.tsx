@@ -8,11 +8,10 @@ import type { Booking } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminDeliveryPickupPage({
-  searchParams,
-}: {
-  searchParams: { booking?: string };
+export default async function AdminDeliveryPickupPage(props: {
+  searchParams: Promise<{ booking?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const supabase = createAdminClient();
   const { data: bookings } = await supabase
     .from("bookings")

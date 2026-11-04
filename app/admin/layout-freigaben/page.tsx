@@ -12,11 +12,10 @@ import type { LayoutProof } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function AdminLayoutProofsPage({
-  searchParams,
-}: {
-  searchParams: { booking?: string };
+export default async function AdminLayoutProofsPage(props: {
+  searchParams: Promise<{ booking?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const supabase = createAdminClient();
   const [{ data: bookings }, { data: openSubmissions }] = await Promise.all([
     supabase.from("bookings").select("id, booking_code, couple_names").order("event_date", { ascending: true }),

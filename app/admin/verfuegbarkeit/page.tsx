@@ -33,11 +33,10 @@ interface AvailabilityRow {
   availability: AvailabilityInfo;
 }
 
-export default async function AdminAvailabilityPage({
-  searchParams,
-}: {
-  searchParams: { date?: string };
+export default async function AdminAvailabilityPage(props: {
+  searchParams: Promise<{ date?: string }>;
 }) {
+  const searchParams = await props.searchParams;
   const date = searchParams.date || todayDateString();
 
   const [board, { data: allBlocks }] = await Promise.all([

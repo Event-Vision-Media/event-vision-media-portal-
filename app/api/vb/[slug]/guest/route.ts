@@ -6,7 +6,8 @@ import { cleanGuestKey } from "@/lib/visionbooth-board";
 export const dynamic = "force-dynamic";
 
 /** Spitzname eines Gastes für die Bestenliste setzen oder ändern. */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   const closed = vbClosedReason(event);

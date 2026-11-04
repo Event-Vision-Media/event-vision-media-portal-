@@ -9,7 +9,8 @@ import { notifyTips } from "@/lib/visionbooth-push";
 export const dynamic = "force-dynamic";
 
 /** Stand des Tippspiels (Gäste-App fragt regelmäßig nach – so kommt die Auflösung live an). */
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || event.status === "entwurf") return NextResponse.json({ error: "nicht verfügbar" }, { status: 404 });
   const state = await vbRevealState(event, cleanGuestKey(req.headers.get("x-vb-guest")));
@@ -18,7 +19,8 @@ export async function GET(req: NextRequest, { params }: { params: { slug: string
 }
 
 /** Tipp abgeben oder ändern – bis zur Auflösung. */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   const closed = vbClosedReason(event);

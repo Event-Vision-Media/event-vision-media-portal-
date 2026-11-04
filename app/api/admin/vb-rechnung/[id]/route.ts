@@ -6,7 +6,8 @@ import { INVOICE_BUCKET } from "@/lib/invoices";
 export const dynamic = "force-dynamic";
 
 /** Rechnungs-PDF einer VisionBooth-Online-Bestellung (Admin). */
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!(await isAdminAuthenticated())) return NextResponse.json({ error: "Nicht angemeldet" }, { status: 401 });
   const supabase = createAdminClient();
   const { data: o } = await supabase.from("vb_orders").select("invoice_path, invoice_number").eq("id", params.id).maybeSingle();

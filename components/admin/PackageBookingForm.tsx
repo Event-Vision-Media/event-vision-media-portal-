@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { DIRECT_CHANNELS } from "@/lib/direct-channels";
 import { useRouter } from "next/navigation";
 import catalogData from "@/lib/catalog-data.json";
 import { createAdminPackageBooking } from "@/app/actions/admin-inquiries";
@@ -45,6 +46,9 @@ export function PackageBookingForm() {
   const [travelIncluded, setTravelIncluded] = useState(false);
   const [adjLabel, setAdjLabel] = useState("");
   const [adjAmount, setAdjAmount] = useState("");
+  // Bestandsbuchung (Termin stand schon vorher fest)
+  const [contractOnFile, setContractOnFile] = useState(false);
+  const [confirmSilently, setConfirmSilently] = useState(false);
   const biz = typ === "business";
 
   const packagesFor = (d: DeviceKey) => catalogData.packages.filter((p) => p.product === d && (biz || !("businessOnly" in p && p.businessOnly)));
@@ -124,7 +128,10 @@ export function PackageBookingForm() {
         pickup: delivered ? pickup : "",
         access,
         note: String(fd.get("note") ?? ""),
+        channel: String(fd.get("channel") ?? ""),
         offer,
+        contractOnFile,
+        confirmSilently,
       });
       if (r.error || !r.bookingId) return setError(r.error ?? "Unbekannter Fehler.");
       router.push(`/admin/bookings/${r.bookingId}`);
@@ -149,6 +156,13 @@ export function PackageBookingForm() {
         <label><span className={label}>{biz ? "Ansprechpartner *" : "Name *"}</span><input name="name" className="input-field" required /></label>
         <label><span className={label}>E-Mail *</span><input name="email" type="email" className="input-field" required /></label>
         <label><span className={label}>Telefon</span><input name="phone" className="input-field" /></label>
+        <label>
+          <span className={label}>Woher kommt die Buchung? *</span>
+          <select name="channel" className="input-field" required defaultValue="">
+            <option value="" disabled>Bitte wählen …</option>
+            {DIRECT_CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </label>
         <label>
           <span className={label}>Anlass</span>
           <select name="occasion" className="input-field">{ANLAESSE[typ].map((a) => <option key={a}>{a}</option>)}</select>
@@ -271,6 +285,18 @@ export function PackageBookingForm() {
         )}
       </section>
 
+      <section className="rounded-xl border border-anthracite-100 p-3">
+        <p className="font-semibold text-anthracite-800">Bestandsbuchung (Termin stand schon vorher fest)</p>
+        <label className="mt-2 flex items-start gap-2 text-anthracite-700">
+          <input type="checkbox" className="mt-1" checked={contractOnFile} onChange={(e) => setContractOnFile(e.target.checked)} />
+          <span>Mietvertrag liegt bereits vor <span className="block text-xs text-anthracite-500">Kunde wird nicht zum Unterschreiben aufgefordert, keine Vertrags-Erinnerungen.</span></span>
+        </label>
+        <label className="mt-2 flex items-start gap-2 text-anthracite-700">
+          <input type="checkbox" className="mt-1" checked={confirmSilently} onChange={(e) => setConfirmSilently(e.target.checked)} />
+          <span>Direkt bestätigen – ohne Mail <span className="block text-xs text-anthracite-500">Der Kunde bekommt erst etwas, wenn du in der Buchung auf „Portal-Zugang senden“ klickst. Bis dahin keine automatischen Mails. Bereits erhaltene Zahlungen danach in der Buchung abhaken.</span></span>
+        </label>
+      </section>
+
       <label className="block"><span className={label}>Notiz (intern, erscheint als Kundennachricht)</span><textarea name="note" rows={3} className="input-field" /></label>
 
       <div className="rounded-xl border border-gold-300 bg-gold-50 px-4 py-3">
@@ -278,7 +304,7 @@ export function PackageBookingForm() {
           <span className="text-anthracite-600">Preis{priced.days > 1 ? ` für ${priced.days} Tage` : ""} (ohne Fahrtkosten)</span>
           <strong className="font-serif text-lg text-anthracite-800">{priced.isFromPrice ? "ab " : ""}{formatEuro(priced.total)}</strong>
         </div>
-        <p className="mt-1 text-xs text-anthracite-500">Fahrtkosten werden aus der Adresse berechnet. Die Buchung erscheint unter „Anfragen“ – mit „Bestätigen“ bekommt der Kunde Zugang, Mietvertrag und Anzahlungsinfo.</p>
+        <p className="mt-1 text-xs text-anthracite-500">Fahrtkosten werden aus der Adresse berechnet. {confirmSilently ? "Die Buchung ist sofort bestätigt – den Portal-Zugang schickst du später selbst." : "Die Buchung erscheint unter „Anfragen“ – mit „Bestätigen“ bekommt der Kunde Zugang, Mietvertrag und Anzahlungsinfo."}</p>
       </div>
 
       {error && <p className="text-red-700">{error}</p>}

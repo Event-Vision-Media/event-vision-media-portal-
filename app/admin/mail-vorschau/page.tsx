@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
-import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail } from "@/lib/email";
+import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
+import { applyOffer } from "@/lib/catalog";
 import { SAMPLE_WEEKLY_PLAN } from "@/lib/weekly-plan-sample";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +13,8 @@ export const dynamic = "force-dynamic";
  * Vorschau aller automatischen E-Mails mit Beispieldaten – zum Prüfen von
  * Texten und Design, ohne eine echte E-Mail zu verschicken.
  */
-export default async function AdminMailPreviewPage({ searchParams }: { searchParams: { typ?: string } }) {
+export default async function AdminMailPreviewPage(props: { searchParams: Promise<{ typ?: string }> }) {
+  const searchParams = await props.searchParams;
   const business = searchParams.typ === "business";
   const priced = business
     ? priceSelection(["spiegel-gold"], ["branding", "betreuung"], 2, true)
@@ -33,11 +35,30 @@ export default async function AdminMailPreviewPage({ searchParams }: { searchPar
     inquiry_items: priced,
   };
 
+  const offerLines = [{ label: "2 Zusatzstunden Betreuung", amount: 120 }, { label: "Nachlass Wochentag", amount: -30 }];
+  const offerItems = applyOffer(priced, { lines: offerLines });
+  const offerSample: MailBooking = { ...sample, inquiry_items: offerItems, total_price: offerItems.total ?? null };
+  const offerInfo = {
+    message: business
+      ? "vielen Dank für Ihre Rückfrage! Eine längere Betreuung ist möglich – die zwei Zusatzstunden habe ich Ihnen unten mit eingerechnet."
+      : "Gern! Zwei Stunden länger sind kein Problem – die habe ich dir unten mit eingerechnet. Weil eure Feier an einem Freitag ist, gibt es außerdem 30 € Nachlass.",
+    validUntil: "2026-11-11",
+    url: "https://portal.fotobox-essen.com/angebot/beispiel",
+    version: 1,
+    reserved: true,
+  };
+
   const mails = [
     { title: "1 · Termin vorgemerkt (sofort nach der Anfrage, ohne Zugang)", mail: reservationMail(sample) },
     { title: "2 · Eingangsbestätigung (Termin belegt oder kurzfristig – du prüfst persönlich)", mail: inquiryReceivedMail(sample, "belegt") },
+    { title: "2a · Angebot (Knopf „Angebot senden“ – bei Rückfragen oder Anpassungen)", mail: offerMail(offerSample, offerInfo) },
+    { title: "2b · Erinnerung Angebot (3 Tage ohne Antwort)", mail: offerMail(offerSample, offerInfo, { reminder: true }) },
+    { title: "2c · Angebot abgelaufen (Termin wieder frei)", mail: offerExpiredMail(offerSample) },
+    { title: "2d · An dich: Änderungswunsch zum Angebot", mail: offerAdminMail({ ...offerSample, email: "anna@beispiel.de", phone: "0171 2345678" }, "aenderung", "Können wir statt 2 Zusatzstunden nur eine nehmen?") },
+    { title: "2e · An dich: Angebot angenommen – automatisch bestätigt", mail: offerAdminMail({ ...offerSample, email: "anna@beispiel.de", phone: "0171 2345678" }, "bestaetigt", null) },
     { title: "4a · Erinnerung Mietvertrag (3 Tage nach deiner Bestätigung, falls noch nicht unterschrieben)", mail: contractReminderMail(sample) },
     { title: "3 · Auftragsbestätigung mit Portal-Zugang (nach Klick auf „Bestätigen“)", mail: confirmationMail(sample) },
+    { title: "3b · Portal-Zugang für Bestandsbuchung (Knopf „Portal-Zugang senden“, Vertrag liegt vor)", mail: portalInviteMail(sample, { contractOnFile: true }) },
     { title: "4b · Erinnerung Anzahlung (7 Tage nach Vertragsunterschrift, falls nicht abgehakt)", mail: depositReminderMail(sample, depositFor(sample.total_price ?? 0), { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4c · Erinnerung Restzahlung per Überweisung (ca. 17 Tage vor dem Event, fällig 14 Tage vorher)", mail: restTransferReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0), "2027-05-29", { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4d · Hinweis Barzahlung bei Lieferung (1–2 Tage vorher)", mail: cashReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0)) },

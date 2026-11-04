@@ -8,7 +8,8 @@ export const dynamic = "force-dynamic";
  * Liefert das fertige KI-Bild über unsere eigene Adresse aus (gleiche Herkunft →
  * der Browser darf es in den Rahmen zeichnen). Gespeichert wird hier nichts.
  */
-export async function GET(req: NextRequest, { params }: { params: { slug: string; job: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string; job: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   const guestKey = (req.headers.get("x-vb-guest") ?? "").replace(/[^a-z0-9-]/gi, "").slice(0, 40);
   if (!event || !guestKey || !/^[0-9a-f-]{36}$/.test(params.job)) return new NextResponse(null, { status: 404 });

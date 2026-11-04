@@ -22,7 +22,8 @@ function weekday(date: string) {
 }
 
 /** Einsatz-Übersicht: alle kommenden Events mit Kontakt, Location, Logistik, Vertrag und Zahlung. */
-export default async function AdminOverviewPage({ searchParams }: { searchParams: { zeitraum?: string } }) {
+export default async function AdminOverviewPage(props: { searchParams: Promise<{ zeitraum?: string }> }) {
+  const searchParams = await props.searchParams;
   const range: RangeKey = (searchParams.zeitraum as RangeKey) in RANGES ? (searchParams.zeitraum as RangeKey) : "monat";
   const supabase = createAdminClient();
   const today = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });

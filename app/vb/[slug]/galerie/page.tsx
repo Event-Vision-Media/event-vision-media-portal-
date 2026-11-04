@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0d0d0f" };
 
 /** Event-Galerie: alle freigegebenen Fotos ansehen, einzeln oder gesammelt herunterladen. */
-export default async function VisionBoothGalleryPage({ params }: { params: { slug: string } }) {
+export default async function VisionBoothGalleryPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || !event.gallery_enabled || event.status === "entwurf") {
     return (

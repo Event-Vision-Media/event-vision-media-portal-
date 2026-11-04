@@ -1,5 +1,4 @@
 import "server-only";
-import { headers } from "next/headers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
@@ -135,16 +134,19 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
 }
 
 /**
- * Basis-Adresse für Gäste-Links und QR-Codes. Später eigene Domain (VB_PUBLIC_URL,
- * z. B. https://visionbooth.de), bis dahin die Adresse, unter der das Portal gerade läuft.
+ * Basis-Adresse für Gäste-Links und QR-Codes – fest aus der Konfiguration, nicht aus der Anfrage
+ * (funktioniert so auch im nächtlichen Cron-Lauf). Später eigene Domain über VB_PUBLIC_URL
+ * (z. B. https://visionbooth.de), bis dahin die Portal-Adresse. Vorschau-Deployments zeigen auf
+ * sich selbst, damit Test-Links nicht im Live-Portal landen.
  */
 export function vbBaseUrl(): string {
   const env = process.env.VB_PUBLIC_URL?.replace(/\/$/, "");
   if (env) return env;
-  const h = headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "";
-  const proto = h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+  if (process.env.VERCEL_ENV === "preview" && process.env.VERCEL_BRANCH_URL) return `https://${process.env.VERCEL_BRANCH_URL}`;
+  const portal = process.env.PORTAL_URL?.replace(/\/$/, "");
+  if (portal) return portal;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  return `http://localhost:${process.env.PORT ?? 3000}`;
 }
 
 export const vbGuestUrl = (slug: string) => `${vbBaseUrl()}/vb/${slug}`;

@@ -5,7 +5,8 @@ import { cleanGuestKey, vbBoard } from "@/lib/visionbooth-board";
 export const dynamic = "force-dynamic";
 
 /** Bestenliste der Foto-Missionen (Gäste-App und Foto-Wand). */
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || event.status === "entwurf") return NextResponse.json({ error: "nicht verfügbar" }, { status: 404 });
   const limit = Math.min(Number(req.nextUrl.searchParams.get("limit")) || 10, 20);

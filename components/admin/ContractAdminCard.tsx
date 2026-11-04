@@ -2,11 +2,26 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { CountersignButton } from "@/components/admin/CountersignButton";
+import { ContractOnFileToggle } from "@/components/admin/ContractOnFileToggle";
 import { formatDateTimeGerman } from "@/lib/format";
 import type { SignedContract } from "@/lib/contract-server";
 
 /** Mietvertrag in den Buchungsdetails (Admin). */
-export function ContractAdminCard({ bookingId, contract, required }: { bookingId: string; contract: SignedContract | null; required: boolean }) {
+export function ContractAdminCard({
+  bookingId,
+  contract,
+  required,
+  onFile = false,
+  digital = false,
+}: {
+  bookingId: string;
+  contract: SignedContract | null;
+  required: boolean;
+  /** Bestandsbuchung: Vertrag liegt außerhalb des Portals vor. */
+  onFile?: boolean;
+  /** Buchung läuft über den digitalen Ablauf (Website/Admin mit Paket). */
+  digital?: boolean;
+}) {
   return (
     <Card>
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -15,6 +30,8 @@ export function ContractAdminCard({ bookingId, contract, required }: { bookingId
           <Badge tone="success">Gegengezeichnet</Badge>
         ) : contract ? (
           <Badge tone="gold">Unterschrieben</Badge>
+        ) : onFile ? (
+          <Badge tone="success">Liegt vor</Badge>
         ) : required ? (
           <Badge tone="neutral">Offen</Badge>
         ) : (
@@ -23,16 +40,26 @@ export function ContractAdminCard({ bookingId, contract, required }: { bookingId
       </div>
 
       {!contract ? (
-        !required ? (
+        onFile ? (
+          <>
+            <p className="text-sm text-anthracite-500">
+              Der Mietvertrag liegt bereits vor (Papier/PDF). Der Kunde wird im Portal nicht zum Unterschreiben aufgefordert und bekommt keine Vertrags-Erinnerungen.
+            </p>
+            <ContractOnFileToggle bookingId={bookingId} onFile />
+          </>
+        ) : !required ? (
           <p className="text-sm text-anthracite-500">
             Im Admin angelegte Buchung – der Mietvertrag läuft hier wie bisher auf Papier. Den digitalen Vertrag
             erhalten automatisch alle Buchungen über die Website.
           </p>
         ) : (
+        <>
         <p className="text-sm text-anthracite-500">
           Der Kunde hat den Vertrag noch nicht unterschrieben. Er wird im Kundenportal automatisch passend zur Buchung
           erstellt und erscheint dort ganz oben.
         </p>
+        {digital && <ContractOnFileToggle bookingId={bookingId} onFile={false} />}
+        </>
         )
       ) : (
         <div className="space-y-4 text-sm">

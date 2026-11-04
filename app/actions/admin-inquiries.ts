@@ -4,32 +4,18 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
-import { checkDeviceAvailability, createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
+import { createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
 import { isUniqueViolation } from "@/lib/supabase/errors";
-import { confirmationMail, declineMail, sendEmail, type MailBooking } from "@/lib/email";
+import { declineMail, portalInviteMail, sendEmail } from "@/lib/email";
+import { confirmBooking, toMailBooking } from "@/lib/booking-confirm";
+import { supersedeOpenOffers } from "@/lib/offers";
+import { DIRECT_CHANNELS } from "@/lib/direct-channels";
 import { PACKAGES, PICKUP_OPTIONS, PRODUCT_LABELS, normalizeAccess, type DeviceKey, type PickupId } from "@/lib/catalog";
 
 export interface InquiryActionResult {
   success?: boolean;
   error?: string;
   mailSent?: boolean;
-}
-
-function toMailBooking(b: any): MailBooking {
-  return {
-    booking_code: b.booking_code,
-    customer_type: b.customer_type ?? null,
-    access_code: b.access_code ?? null,
-    custom_login_code: b.custom_login_code,
-    customer_name: b.customer_name,
-    couple_names: b.couple_names,
-    event_date: b.event_date,
-    event_days: b.event_days ?? 1,
-    location: b.location,
-    occasion: b.occasion,
-    total_price: b.total_price,
-    inquiry_items: b.inquiry_items,
-  };
 }
 
 /**
@@ -39,47 +25,9 @@ function toMailBooking(b: any): MailBooking {
  */
 export async function confirmInquiry(bookingId: string, force = false): Promise<InquiryActionResult> {
   if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
-  const supabase = createAdminClient();
-
-  const { data: b } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
-  if (!b) return { error: "Buchung nicht gefunden." };
-  if (!["anfrage", "reserviert"].includes(b.lifecycle)) return { error: "Diese Anfrage wurde bereits bearbeitet." };
-
-  if (!force) {
-    const devices = ((b.inquiry_items?.packages ?? []) as { product: DeviceKey }[]).map((p) => p.product);
-    const { available } = await checkDeviceAvailability(devices, b.event_date, b.event_days ?? 1, b.id);
-    if (!available) {
-      return { error: "Ein Gerät ist an diesem Termin bereits belegt. Trotzdem bestätigen?" };
-    }
-  }
-
-  const { error } = await supabase
-    .from("bookings")
-    .update({ lifecycle: "bestaetigt", confirmed_at: new Date().toISOString() })
-    .eq("id", bookingId);
-  if (error) return { error: "Konnte nicht gespeichert werden." };
-
-  // Bestätigung = Gegenzeichnung eines bereits unterschriebenen Mietvertrags
-  await supabase
-    .from("booking_contracts")
-    .update({ countersigned_at: new Date().toISOString() })
-    .eq("booking_id", bookingId)
-    .is("countersigned_at", null);
-
-  let mailSent = false;
-  let mailId: string | undefined;
-  if (b.email) {
-    const m = confirmationMail(toMailBooking(b));
-    const r = await sendEmail({ to: b.email, ...m });
-    mailSent = r.sent;
-    mailId = r.id;
-  }
-  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? ` – 📧 Auftragsbestätigung mit Portal-Zugang an ${b.email}` : " (keine E-Mail verschickt)"}`);
-  if (mailId) await logActivity(bookingId, "mail_bestaetigung", mailId);
-
-  revalidatePath("/admin/anfragen");
-  revalidatePath("/admin/dashboard");
-  return { success: true, mailSent };
+  const res = await confirmBooking(bookingId, { force, via: "admin" });
+  if (res.success) await supersedeOpenOffers(bookingId);
+  return { success: res.success, error: res.error, mailSent: res.mailSent };
 }
 
 /** Lehnt eine Anfrage ab (optional mit freundlicher Absage-Mail). */
@@ -100,6 +48,7 @@ export async function declineInquiry(
     .update({ lifecycle: "abgelehnt", declined_at: new Date().toISOString() })
     .eq("id", bookingId);
   if (error) return { error: "Konnte nicht gespeichert werden." };
+  await supersedeOpenOffers(bookingId);
 
   let mailSent = false;
   if (sendMail && b.email) {
@@ -148,6 +97,12 @@ export interface AdminPackageBookingInput {
   pickup: string;
   access: { level: string; help: string | null } | null;
   note: string;
+  /** Woher kommt die Buchung (WhatsApp, Telefon, Empfehlung …) – für die Statistik. */
+  channel: string;
+  /** Bestandsbuchung: Mietvertrag liegt schon vor (Papier/PDF) – kein digitaler Vertrag. */
+  contractOnFile?: boolean;
+  /** Sofort bestätigen, aber noch keine Mail – Portal-Zugang später per Knopf senden. */
+  confirmSilently?: boolean;
   /** Abweichungen laut schriftlichem Angebot (optional). */
   offer?: { number: string; freeExtraIds: string[]; travelIncluded: boolean; adjustmentLabel: string; adjustmentAmount: string } | null;
 }
@@ -182,7 +137,7 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
     message: str(raw.note, 3000) || null,
     access: normalizeAccess(raw.access, products),
     pickup: PICKUP_OPTIONS.some((o) => o.id === raw.pickup) ? (raw.pickup as PickupId) : null,
-    source: { source: "Admin", medium: "direkt angelegt" },
+    source: { source: "Admin", medium: "direkt angelegt", channel: DIRECT_CHANNELS.some((c) => c.id === raw.channel) ? raw.channel : "sonstiges" },
     layoutDraft: null,
     offer: (() => {
       const o = raw.offer;
@@ -198,6 +153,7 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
     })(),
   };
 
+  if (!DIRECT_CHANNELS.some((c) => c.id === raw.channel)) return { error: "Bitte angeben, woher die Buchung kommt." };
   if (!input.name) return { error: "Bitte den Namen angeben." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input.email)) return { error: "Bitte eine gültige E-Mail-Adresse angeben." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) return { error: "Bitte das Datum angeben." };
@@ -207,12 +163,63 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
 
   try {
     const r = await createBookingFromInquiry(input, { viaAdmin: true });
+    let lifecycle: string = r.lifecycle;
+    if (raw.contractOnFile || raw.confirmSilently) {
+      const patch: Record<string, unknown> = {};
+      if (raw.contractOnFile) patch.contract_on_file = true;
+      if (raw.confirmSilently) {
+        patch.lifecycle = "bestaetigt";
+        patch.confirmed_at = new Date().toISOString();
+        patch.portal_invite_pending = true;
+        lifecycle = "bestaetigt";
+      }
+      await createAdminClient().from("bookings").update(patch).eq("id", r.bookingId);
+      await logActivity(
+        r.bookingId,
+        "bestandsbuchung",
+        [raw.confirmSilently && "Ohne Mail bestätigt – Portal-Zugang noch nicht verschickt", raw.contractOnFile && "Mietvertrag liegt bereits vor"].filter(Boolean).join(" · ")
+      );
+    }
     revalidatePath("/admin/anfragen");
     revalidatePath("/admin/dashboard");
-    return { bookingId: r.bookingId, lifecycle: r.lifecycle, busy: r.busy.map((d) => PRODUCT_LABELS[d]) };
+    return { bookingId: r.bookingId, lifecycle, busy: r.busy.map((d) => PRODUCT_LABELS[d]) };
   } catch (err: any) {
     if (err?.message === "no_packages") return { error: "Das gewählte Paket passt nicht zum Kundentyp." };
     console.error("[admin-buchung]", err);
     return { error: "Buchung konnte nicht angelegt werden." };
   }
+}
+
+/** Bestandsbuchung: Vermerk „Mietvertrag liegt bereits vor“ setzen oder entfernen. */
+export async function setContractOnFile(bookingId: string, onFile: boolean): Promise<InquiryActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const { error } = await createAdminClient().from("bookings").update({ contract_on_file: onFile }).eq("id", bookingId);
+  if (error) return { error: "Konnte nicht gespeichert werden." };
+  await logActivity(bookingId, "vertrag_vermerk", onFile ? "Vermerk gesetzt: Mietvertrag liegt bereits vor" : "Vermerk entfernt: Mietvertrag wird digital im Portal unterschrieben");
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  return { success: true };
+}
+
+/** Portal-Zugang an den Kunden schicken (Bestandsbuchung) – danach laufen die automatischen Mails normal. */
+export async function sendPortalInvite(bookingId: string): Promise<InquiryActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const supabase = createAdminClient();
+  const { data: b } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
+  if (!b) return { error: "Buchung nicht gefunden." };
+  if (!b.email) return { error: "Für diese Buchung ist keine E-Mail-Adresse hinterlegt." };
+  if (b.lifecycle !== "bestaetigt") return { error: "Bitte die Buchung zuerst bestätigen." };
+
+  const mail = portalInviteMail(toMailBooking(b), { contractOnFile: Boolean(b.contract_on_file) });
+  const r = await sendEmail({ to: b.email, ...mail });
+  if (!r.sent) return { error: "Die Mail konnte nicht verschickt werden. Bitte später erneut versuchen." };
+
+  await supabase.from("bookings").update({ portal_invite_pending: false }).eq("id", bookingId);
+  await logActivity(
+    bookingId,
+    "portal_zugang_gesendet",
+    `📧 Mail an ${b.customer_name || b.couple_names} (${b.email}): „${mail.subject}“ – Grund: Portal-Zugang für Bestandsbuchung von dir verschickt.`
+  );
+  if (r.id) await logActivity(bookingId, "mail_portal_zugang", r.id);
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  return { success: true, mailSent: true };
 }

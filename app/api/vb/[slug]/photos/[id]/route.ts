@@ -5,7 +5,8 @@ import { cleanGuestKey } from "@/lib/visionbooth-board";
 export const dynamic = "force-dynamic";
 
 /** Gast löscht ein eigenes Foto (nur vom selben Gerät, mit dem es geteilt wurde). */
-export async function DELETE(req: NextRequest, { params }: { params: { slug: string; id: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ slug: string; id: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   const key = cleanGuestKey(req.headers.get("x-vb-guest"));
   if (!event || !key || !/^[0-9a-f-]{36}$/.test(params.id)) return NextResponse.json({ error: "nicht gefunden" }, { status: 404 });

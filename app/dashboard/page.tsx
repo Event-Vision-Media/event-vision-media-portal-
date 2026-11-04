@@ -19,9 +19,11 @@ import { checkDeviceAvailability } from "@/lib/inquiry-server";
 import { DeviceCrossSell, type CrossSellOffer } from "@/components/DeviceCrossSell";
 import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
+import { DeliveryUpsellList } from "@/components/DeliveryUpsellCard";
+import { DELIVERY_UPSELL_MIN_DAYS, deliveryUpsells, isDeliverySwitch } from "@/lib/delivery-upsell";
 import { UpsellSection } from "@/components/UpsellSection";
 import { getLatestContract } from "@/lib/contract-server";
-import { contractRequired } from "@/lib/contract";
+import { contractRequired, paymentsTracked } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentCard } from "@/components/PaymentCard";
 import { invoiceTitle, listInvoices } from "@/lib/invoices";
@@ -145,7 +147,10 @@ export default async function DashboardPage() {
   const staff = staffFor(booking.inquiry_items);
   // Günstigstes Upgrade-Angebot (z. B. Audiogästebuch Basis → Komfort)
   const offer = daysUntil(booking.event_date) >= 2
-    ? upgradeOffers((booking.inquiry_items?.packages ?? []).map((p) => p.id)).sort((a, b) => a.diff - b.diff)[0]
+    ? upgradeOffers((booking.inquiry_items?.packages ?? []).map((p) => p.id))
+        // Wechsel auf ein Paket mit Lieferung läuft über die Karte „Lieber ganz bequem?“
+        .filter((o) => !isDeliverySwitch(o.from.id, o.to.id))
+        .sort((a, b) => a.diff - b.diff)[0]
     : undefined;
   const upgrade = offer
     ? { fromId: offer.from.id, fromName: offer.from.name, toId: offer.to.id, toName: offer.to.name, diff: offer.diff, perks: offer.perks }
@@ -191,8 +196,13 @@ export default async function DashboardPage() {
   }
 
   const contract = await getLatestContract(booking.id);
+  // Selbstabholung gebucht? Lieferung nachträglich anbieten – bis zum Vertrag direkt, danach per WhatsApp
+  const deliveryOffers =
+    ["reserviert", "bestaetigt"].includes(booking.lifecycle) && daysUntil(booking.event_date) >= 0 ? deliveryUpsells(booking.inquiry_items) : [];
+  const deliveryMode: "open" | "contact" =
+    contract || booking.contract_on_file || daysUntil(booking.event_date) < DELIVERY_UPSELL_MIN_DAYS ? "contact" : "open";
   const showContract = contractRequired(booking) || Boolean(contract);
-  const [payment, invoices] = contractRequired(booking) ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
+  const [payment, invoices] = paymentsTracked(booking) ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const contractMissing = contractRequired(booking) && !contract && daysUntil(booking.event_date) >= 0;
 
   // Fortschritt passend zur Buchung
@@ -365,10 +375,16 @@ export default async function DashboardPage() {
             sie={booking.customer_type === "business"}
             confirmed={booking.lifecycle === "bestaetigt"}
             bookingCode={booking.booking_code}
-            hasContract={Boolean(contract)}
+            hasContract={Boolean(contract) || Boolean(booking.contract_on_file)}
             invoices={invoices.map((i) => ({ id: i.id, kind: i.kind, title: invoiceTitle(i), amount: i.amount, date: i.created_at }))}
           />
         )}
+
+        <DeliveryUpsellList
+          items={deliveryOffers.map((d) => ({ key: d.key, deviceName: d.deviceName, targetName: d.targetName, price: d.price, perks: d.perks }))}
+          sie={booking.customer_type === "business"}
+          mode={deliveryMode}
+        />
 
         {upgrade && <UpgradeCard offer={upgrade} sie={booking.customer_type === "business"} />}
 

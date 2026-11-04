@@ -6,7 +6,8 @@ import { pushToEvent } from "@/lib/visionbooth-push";
 export const dynamic = "force-dynamic";
 
 /** Mitteilungen einschalten: Push-Abo des Gastgeber-Handys speichern (+ Begrüßung als Test). */
-export async function POST(req: NextRequest, { params }: { params: { token: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const event = await loadVbEventByToken(params.token);
   if (!event) return NextResponse.json({ error: "nicht gefunden" }, { status: 404 });
   const sub = await req.json().catch(() => null);
@@ -21,7 +22,8 @@ export async function POST(req: NextRequest, { params }: { params: { token: stri
 }
 
 /** Mitteilungen ausschalten. */
-export async function DELETE(req: NextRequest, { params }: { params: { token: string } }) {
+export async function DELETE(req: NextRequest, props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const event = await loadVbEventByToken(params.token);
   if (!event) return NextResponse.json({ error: "nicht gefunden" }, { status: 404 });
   const { endpoint } = await req.json().catch(() => ({ endpoint: "" }));

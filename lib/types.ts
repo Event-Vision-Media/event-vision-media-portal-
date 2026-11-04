@@ -61,6 +61,10 @@ export interface Booking {
   access_code: string;
   lifecycle: BookingLifecycle;
   source: "admin" | "website";
+  /** Mietvertrag liegt außerhalb des Portals vor (Bestandsbuchung, Migration 0028). */
+  contract_on_file?: boolean;
+  /** Still bestätigt – Portal-Zugang noch nicht verschickt, bis dahin keine automatischen Mails. */
+  portal_invite_pending?: boolean;
   customer_type: "business" | "privat" | null;
   customer_name: string | null;
   company: string | null;
@@ -86,7 +90,7 @@ export interface Booking {
     /** Entfernung & Fahrtkosten zur Location. */
     travel?: { km: number | null; price: number | null; status: "ok" | "unknown" | "over"; manual?: boolean } | null;
     /** Herkunft der Anfrage (Statistik): vorherige Seite, externe Herkunft, utm-Parameter. */
-    source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string; term?: string; gclid?: string } | null;
+    source?: { page?: string; ref?: string; source?: string; medium?: string; campaign?: string; term?: string; gclid?: string; channel?: string } | null;
     /** Betreuung durch Personal: Startzeit (vom Kunden), bestätigte Stunden, gewünschte Zusatzstunden. */
     staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null;
     /** Abweichungen laut schriftlichem Angebot (z. B. aus der Zeit vor dem Portal). */
@@ -367,4 +371,6 @@ export interface OfferTerms {
   travelIncluded?: boolean;
   /** Preisanpassung laut Angebot (negativ = Nachlass). */
   adjustment?: { label: string; amount: number } | null;
+  /** Zusätzliche Positionen aus einem Angebot über das Portal (Migration 0031). */
+  lines?: { label: string; amount: number }[];
 }

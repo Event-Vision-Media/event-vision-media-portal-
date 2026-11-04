@@ -8,6 +8,7 @@ import { getAdSpend, isPaidGoogle } from "@/lib/ads";
 import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
 import { FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
+import { DIRECT_CHANNELS, directChannelLabel, isDirectBooking } from "@/lib/direct-channels";
 
 export const dynamic = "force-dynamic";
 
@@ -56,7 +57,8 @@ const cityOf = (loc: string | null) => loc?.match(/\b\d{5}\s+([^,]+)/)?.[1]?.tri
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)} %` : "–");
 
 /** Auswertung der Website-Anfragen: Abschlussquote, Umsatz, Upsells, Herkunft. */
-export default async function AdminStatsPage({ searchParams }: { searchParams: { zeitraum?: string } }) {
+export default async function AdminStatsPage(props: { searchParams: Promise<{ zeitraum?: string }> }) {
+  const searchParams = await props.searchParams;
   const range: RangeKey = (searchParams.zeitraum as RangeKey) in RANGES ? (searchParams.zeitraum as RangeKey) : "90";
   const since = new Date(Date.now() - RANGES[range].days * 86_400_000).toISOString();
   const { data } = await createAdminClient()
@@ -66,7 +68,22 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
     .gte("created_at", since)
     .order("created_at", { ascending: false })
     .limit(2000);
-  const all = (data ?? []) as Pick<Booking, "id" | "created_at" | "event_date" | "lifecycle" | "customer_type" | "occasion" | "location" | "total_price" | "inquiry_items">[];
+  const rows = (data ?? []) as Pick<Booking, "id" | "created_at" | "event_date" | "lifecycle" | "customer_type" | "occasion" | "location" | "total_price" | "inquiry_items">[];
+  // Im Admin selbst angelegte Buchungen (WhatsApp, Telefon …) zählen nicht als Website-Anfragen
+  const all = rows.filter((b) => !isDirectBooking(b.inquiry_items?.source));
+  const direct = rows.filter((b) => isDirectBooking(b.inquiry_items?.source));
+  const directByChannel = new Map<string, { n: number; ok: number; eur: number }>();
+  for (const b of direct) {
+    const k = directChannelLabel(b.inquiry_items?.source?.channel);
+    const c = directByChannel.get(k) ?? { n: 0, ok: 0, eur: 0 };
+    c.n++;
+    if (b.lifecycle === "bestaetigt") {
+      c.ok++;
+      c.eur += Number(b.total_price ?? 0);
+    }
+    directByChannel.set(k, c);
+  }
+  const channelOrder = [...DIRECT_CHANNELS.map((c) => c.label as string), "ohne Angabe"];
 
   const confirmed = all.filter((b) => b.lifecycle === "bestaetigt");
   const open = all.filter((b) => b.lifecycle === "anfrage" || b.lifecycle === "reserviert");
@@ -183,6 +200,30 @@ export default async function AdminStatsPage({ searchParams }: { searchParams: {
           <Kpi label="Ø Auftragswert" value={confirmed.length ? formatCurrencyEUR(avg) : "–"} />
           <Kpi label="Ø Vorlauf" value={avgLead != null ? `${avgLead} Tage` : "–"} hint="Anfrage bis Event" />
         </div>
+
+        {direct.length > 0 && (
+          <Card className="mt-6">
+            <h2 className="font-serif text-lg font-semibold text-anthracite-800">Direkt angelegt (WhatsApp, Telefon, Empfehlung …)</h2>
+            <p className="mt-1 text-xs text-anthracite-400">Buchungen, die du selbst im Admin angelegt hast – oben bei den Website-Zahlen nicht mitgezählt.</p>
+            <table className="mt-4 w-full text-sm">
+              <thead className="text-left text-xs text-anthracite-400">
+                <tr><th className="pb-2 font-medium">Woher</th><th className="pb-2 text-right font-medium">Angelegt</th><th className="pb-2 text-right font-medium">Bestätigt</th><th className="pb-2 text-right font-medium">Umsatz</th></tr>
+              </thead>
+              <tbody className="divide-y divide-anthracite-50">
+                {Array.from(directByChannel.entries())
+                  .sort((a, b) => channelOrder.indexOf(a[0]) - channelOrder.indexOf(b[0]))
+                  .map(([k, c]) => (
+                    <tr key={k}>
+                      <td className="py-1.5 text-anthracite-700">{k}</td>
+                      <td className="py-1.5 text-right">{c.n}</td>
+                      <td className="py-1.5 text-right">{c.ok}</td>
+                      <td className="py-1.5 text-right">{formatCurrencyEUR(c.eur)}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </Card>
+        )}
 
         <Card className="mt-6">
           <div className="flex flex-wrap items-baseline justify-between gap-2">

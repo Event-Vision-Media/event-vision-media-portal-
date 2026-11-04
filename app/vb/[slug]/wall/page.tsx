@@ -11,7 +11,8 @@ export const metadata: Metadata = {
 };
 
 /** Foto-Wand für Beamer/TV: neue Fotos erscheinen automatisch, daneben der QR-Code zum Mitmachen. */
-export default async function VisionBoothWallPage({ params }: { params: { slug: string } }) {
+export default async function VisionBoothWallPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || !event.wall_enabled || event.status === "entwurf") {
     return (

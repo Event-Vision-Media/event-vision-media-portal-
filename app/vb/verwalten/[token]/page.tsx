@@ -24,7 +24,8 @@ export const dynamic = "force-dynamic";
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
 
 /** Web-App: eigener App-Steckbrief je Event, iPhone-Symbol und Vollbild ohne Browserleiste. */
-export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ token: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const event = await loadVbEventByToken(params.token);
   const name = event ? (event.frame_text || event.title).slice(0, 40) : "Meine VisionBooth";
   return {
@@ -39,7 +40,8 @@ export async function generateMetadata({ params }: { params: { token: string } }
 const fmtDate = (d: Date | string) => new Date(d).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin", day: "numeric", month: "long", year: "numeric" });
 
 /** Kundenbereich: VisionBooth gestalten, teilen und Fotos verwalten – Zugang über den geheimen Link. */
-export default async function VisionBoothCustomerPage({ params }: { params: { token: string } }) {
+export default async function VisionBoothCustomerPage(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const event = await loadVbEventByToken(params.token);
   if (!event) {
     return (

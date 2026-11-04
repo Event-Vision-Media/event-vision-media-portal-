@@ -26,7 +26,8 @@ export const dynamic = "force-dynamic";
 
 const berlinDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" }) : "");
 
-export default async function AdminVisionBoothEventPage({ params }: { params: { id: string } }) {
+export default async function AdminVisionBoothEventPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!/^[0-9a-f-]{36}$/.test(params.id)) notFound();
   const supabase = createAdminClient();
   const { data } = await supabase.from("vb_events").select("*").eq("id", params.id).maybeSingle();

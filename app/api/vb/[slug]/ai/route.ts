@@ -11,7 +11,8 @@ export const dynamic = "force-dynamic";
  * Prüft Event-Kontingent und Limit pro Gast, stellt den Auftrag in die fal-Warteschlange
  * und gibt die Auftrags-ID zurück; der Gast fragt danach den Status ab.
  */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   const closed = vbClosedReason(event);

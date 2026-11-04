@@ -30,7 +30,8 @@ import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
 import { StaffHoursForm } from "@/components/admin/StaffHoursForm";
 import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
-import { staffFor } from "@/lib/catalog";
+import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
+import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
@@ -60,11 +61,10 @@ const STATUS_LABELS: Record<BookingStatus, string> = {
   personalisierung_komplett: "Komplett",
 };
 
-export default async function AdminBookingDetailPage({
-  params,
-}: {
-  params: { id: string };
+export default async function AdminBookingDetailPage(props: {
+  params: Promise<{ id: string }>;
 }) {
+  const params = await props.params;
   const supabase = createAdminClient();
 
   const [
@@ -312,6 +312,25 @@ export default async function AdminBookingDetailPage({
                 Liefer- &amp; Abholzeiten bearbeiten →
               </Link>
             </div>
+            {booking.inquiry_items?.packages && (() => {
+              const products = new Set(booking.inquiry_items.packages.map((p) => p.product));
+              const included = includedExtraIds(booking.inquiry_items);
+              const business = booking.customer_type === "business";
+              const options = EXTRAS.filter(
+                (e) => e.id !== "betreuung-stunde" && !included.has(e.id) && e.for.some((k) => products.has(k)) && (!e.businessOnly || business) && (!e.privateOnly || !business)
+              ).map((e) => ({ id: e.id, name: e.name, price: e.price, from: Boolean(e.from) }));
+              return options.length ? (
+                <div className="mt-4 border-t border-anthracite-100 pt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Extras ändern</p>
+                  <ExtrasEditForm
+                    bookingId={booking.id}
+                    options={options}
+                    selected={(booking.inquiry_items.extras ?? []).map((e) => e.id).filter((id) => options.some((o) => o.id === id))}
+                    locked={Boolean(contract)}
+                  />
+                </div>
+              ) : null;
+            })()}
             {booking.inquiry_items?.packages && (
               <div className="mt-4 border-t border-anthracite-100 pt-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Anfahrt &amp; Abholung korrigieren</p>
@@ -343,9 +362,11 @@ export default async function AdminBookingDetailPage({
           </Card>
         )}
 
-        {booking.lifecycle === "bestaetigt" && <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} />}
+        {booking.lifecycle === "bestaetigt" && (
+          <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} invitePending={Boolean(booking.portal_invite_pending)} email={booking.email} />
+        )}
 
-        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} />
+        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />
 
         {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
 

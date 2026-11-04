@@ -37,7 +37,7 @@ function fold(line: string): string {
 }
 
 const ymd = (iso: string) => iso.replace(/-/g, "");
-const LABEL = { aufbau: ["🚚 Aufbau", "🚚 Übergabe"], event: ["🎉 Event", "🎉 Event"], abbau: ["📦 Abbau", "📦 Rückgabe"] } as const;
+const LABEL = { aufbau: ["🚚 Aufbau", "🚚 Übergabe"], event: ["🎉 Event", "🎉 Event"], abbau: ["📦 Abbau", "📦 Rückgabe"], termin: ["📌", "📌"] } as const;
 
 function vevent(e: CalendarEntry, portal: string, stamp: string): string {
   const time = e.kind !== "event" && /^\d{2}:\d{2}$/.test(e.sort) && e.sort !== "99:98" ? e.sort : null;
@@ -53,15 +53,16 @@ function vevent(e: CalendarEntry, portal: string, stamp: string): string {
     if (t && Number(t.slice(0, 2)) >= 24) end = { date: addDays(e.date, 1), t: `${String(Number(t.slice(0, 2)) - 24).padStart(2, "0")}${t.slice(2)}` };
     else if (t && t > time) end = { date: e.date, t };
   }
-  const open = e.kind !== "event" && !time ? " · Zeit offen" : "";
-  const summary = `${LABEL[e.kind][e.selfService ? 1 : 0]}: ${e.title}${open}${e.lifecycle !== "bestaetigt" ? " (vorgemerkt)" : ""}`;
+  const open = (e.kind === "aufbau" || e.kind === "abbau") && !time ? " · Zeit offen" : "";
+  const summary = `${LABEL[e.kind][e.selfService ? 1 : 0]}${e.kind === "termin" ? "" : ":"} ${e.title}${open}${e.lifecycle !== "bestaetigt" ? " (vorgemerkt)" : ""}`;
   const desc = [
-    e.devices,
+    e.devices || null,
+    e.note || null,
     e.timeLabel ? `Zeit: ${e.timeLabel}` : null,
     e.phone ? `Telefon: ${e.phone}` : null,
     ...e.warnings.map((w) => (w.startsWith("🌙") ? w : `⚠️ ${w}`)),
     `${e.bookingCode}`,
-    portal ? `${portal}/admin/bookings/${e.bookingId}` : null,
+    portal ? `${portal}${e.href}` : null,
   ].filter(Boolean).join("\n");
   const lines = [
     "BEGIN:VEVENT",
@@ -74,7 +75,7 @@ function vevent(e: CalendarEntry, portal: string, stamp: string): string {
     `SUMMARY:${esc(summary)}`,
     ...(e.address && e.kind !== "event" ? [`LOCATION:${esc(e.address)}`] : []),
     `DESCRIPTION:${esc(desc)}`,
-    ...(portal ? [`URL:${portal}/admin/bookings/${e.bookingId}`] : []),
+    ...(portal ? [`URL:${portal}${e.href}`] : []),
     `STATUS:${e.lifecycle === "bestaetigt" ? "CONFIRMED" : "TENTATIVE"}`,
     // Erinnerung: bei Uhrzeit 2 Std. vorher, sonst am Vorabend 18 Uhr
     ...(e.kind !== "event"

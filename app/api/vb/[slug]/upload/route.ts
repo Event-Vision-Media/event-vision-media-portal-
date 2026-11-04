@@ -19,7 +19,8 @@ const GAST_PER_DAY = 100;
  * „photo“ und optional „thumb“ (kleines Vorschaubild, im Browser erzeugt).
  * Header x-vb-guest = zufällige Geräte-Kennung aus dem Browser (nur fürs Limit).
  */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   const closed = vbClosedReason(event);

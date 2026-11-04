@@ -7,7 +7,8 @@ import { leadConsentText, parseLeadConfig } from "@/components/visionbooth/leads
 export const dynamic = "force-dynamic";
 
 /** Eintrag ins freiwillige Kontaktformular – Einwilligungstext wird so gespeichert, wie der Gast ihn sah. */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event) return NextResponse.json({ error: "Event nicht gefunden" }, { status: 404 });
   const closed = vbClosedReason(event);

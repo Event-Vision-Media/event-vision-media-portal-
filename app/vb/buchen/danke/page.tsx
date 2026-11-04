@@ -9,7 +9,8 @@ export const metadata: Metadata = { title: "Danke für deine Buchung – VisionB
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
 
 /** Nach der Zahlung: Bestellung prüfen, Event einrichten (falls der Webhook noch nicht war) und direkt in den Kundenbereich. */
-export default async function VisionBoothThanksPage({ searchParams }: { searchParams: { session_id?: string } }) {
+export default async function VisionBoothThanksPage(props: { searchParams: Promise<{ session_id?: string }> }) {
+  const searchParams = await props.searchParams;
   const sid = searchParams.session_id ?? "";
   const res = /^cs_[A-Za-z0-9_]+$/.test(sid) ? await fulfillOrder(sid).catch(() => ({ order: null, error: "Wir konnten die Zahlung gerade nicht prüfen." })) : { order: null, error: "Ungültiger Link." };
   const ok = "manageUrl" in res && res.manageUrl;

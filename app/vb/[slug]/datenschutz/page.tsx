@@ -12,7 +12,8 @@ export const metadata: Metadata = {
 // Kurze, verständliche Datenschutz-Hinweise für Gäste einer VisionBooth.
 // ENTWURF (11/2026) – vor dem ersten echten Einsatz anwaltlich prüfen lassen
 // (insb. KI-Verarbeitung durch fal.ai in den USA / Drittlandübermittlung).
-export default async function VisionBoothPrivacyPage({ params }: { params: { slug: string } }) {
+export default async function VisionBoothPrivacyPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   const g = event ? await toGuestEvent(event) : null;
   const until = event ? vbDeleteAfter(event).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin" }) : null;

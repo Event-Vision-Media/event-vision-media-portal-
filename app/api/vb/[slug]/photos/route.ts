@@ -15,7 +15,8 @@ const URL_TTL = 60 * 60 * 6;
  * ?before=<ISO-Zeit> die nächste Seite älterer Fotos (Galerie),
  * ?sort=top die beliebtesten Fotos (meiste Herzen, ?offset= zum Nachladen).
  */
-export async function GET(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || event.status === "entwurf" || (!event.wall_enabled && !event.gallery_enabled)) {
     return NextResponse.json({ error: "nicht verfügbar" }, { status: 404 });

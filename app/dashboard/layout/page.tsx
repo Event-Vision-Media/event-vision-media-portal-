@@ -11,7 +11,8 @@ import type { Layout } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function LayoutSelectionPage({ searchParams }: { searchParams: { design?: string } }) {
+export default async function LayoutSelectionPage(props: { searchParams: Promise<{ design?: string }> }) {
+  const searchParams = await props.searchParams;
   const booking = await requireBooking();
 
   const supabase = createAdminClient();

@@ -17,7 +17,8 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function VisionBoothGuestPage({ params }: { params: { slug: string } }) {
+export default async function VisionBoothGuestPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   const closed = event ? vbClosedReason(event) : "Diese Fotobox gibt es nicht. Bitte prüfe den QR-Code.";
 

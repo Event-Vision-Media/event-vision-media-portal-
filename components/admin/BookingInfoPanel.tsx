@@ -58,7 +58,9 @@ export function BookingInfoPanel({ info, showTitle = true }: { info: BookingInfo
             {info.contractNeeded && (
               <Badge tone={c?.countersigned ? "success" : c ? "gold" : "neutral"}>{c?.countersigned ? "Vertrag ✓" : c ? "Vertrag unterschr." : "Vertrag offen"}</Badge>
             )}
-            {b.lifecycle === "bestaetigt" && info.contractNeeded && (
+            {b.contract_on_file && <Badge tone="success">Vertrag liegt vor</Badge>}
+            {b.lifecycle === "bestaetigt" && b.portal_invite_pending && <Badge tone="gold">Zugang noch nicht verschickt</Badge>}
+            {b.lifecycle === "bestaetigt" && !b.portal_invite_pending && (info.contractNeeded || b.contract_on_file) && (
               <Badge tone={info.lastLogin ? "success" : "neutral"}>{info.lastLogin ? "Im Portal ✓" : "Noch nicht im Portal"}</Badge>
             )}
             {openAmount != null && (

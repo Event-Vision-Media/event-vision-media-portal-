@@ -89,6 +89,7 @@ export async function buildWeeklyPlan(weekStart = planWeekStart()): Promise<Week
   function openPoints(b: Booking): string[] {
     const out: string[] = [];
     if (b.lifecycle !== "bestaetigt") out.push("Buchung noch nicht bestätigt");
+    if (b.portal_invite_pending) out.push("Portal-Zugang noch nicht verschickt");
     if (b.lifecycle === "bestaetigt" && contractRequired(b) && !signed.has(b.id)) out.push("Mietvertrag nicht unterschrieben");
     const photo = productsOf(b).some((d) => PHOTO.includes(d));
     if (photo && !b.selected_layout_id) out.push("Layout nicht gewählt");
@@ -110,6 +111,8 @@ export async function buildWeeklyPlan(weekStart = planWeekStart()): Promise<Week
     const notes: string[] = [];
     let warn = e.warnings.length > 0;
     notes.push(...e.warnings);
+    // Eigener Termin: Notiz als Hinweis (z. B. „Gebläse und Heringe bereitlegen“)
+    if (e.kind === "termin" && e.note) notes.push(...e.note.split(/\r?\n/).map((n) => n.trim()).filter(Boolean));
     // Status & Bargeld beim ersten Termin der Buchung in dieser Woche (meist Aufbau/Übergabe)
     if (b && !shownSetup.has(b.id) && e.kind !== "abbau") {
       shownSetup.add(b.id);
@@ -173,7 +176,7 @@ export async function buildWeeklyPlan(weekStart = planWeekStart()): Promise<Week
   todos.sort((a, b) => a.date.localeCompare(b.date));
 
   const nextWeek = nextEntries
-    .filter((e) => e.kind === "event" && !e.id.match(/-e[1-9]\d*$/))
+    .filter((e) => e.kind === "termin" || (e.kind === "event" && !e.id.match(/-e[1-9]\d*$/)))
     .map((e) => ({ date: e.date, title: e.title, devices: e.devices, place: e.place }));
 
   const eventCount = new Set(entries.filter((e) => e.kind === "event").map((e) => e.bookingId)).size;

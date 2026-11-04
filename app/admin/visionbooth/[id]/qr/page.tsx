@@ -6,7 +6,8 @@ import { QrPoster } from "@/components/visionbooth/QrPoster";
 export const dynamic = "force-dynamic";
 
 /** Druckvorlage A5 hoch: Tischaufsteller mit QR-Code (im Browser drucken oder als PDF sichern). */
-export default async function VisionBoothQrPrintPage({ params }: { params: { id: string } }) {
+export default async function VisionBoothQrPrintPage(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   if (!/^[0-9a-f-]{36}$/.test(params.id)) notFound();
   const { data } = await createAdminClient().from("vb_events").select("*").eq("id", params.id).maybeSingle();
   if (!data) notFound();

@@ -6,7 +6,8 @@ import { cleanGuestKey } from "@/lib/visionbooth-board";
 export const dynamic = "force-dynamic";
 
 /** Herz für ein Foto setzen oder entfernen – ein Herz pro Gerät und Foto. */
-export async function POST(req: NextRequest, { params }: { params: { slug: string } }) {
+export async function POST(req: NextRequest, props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   if (!event || !event.gallery_enabled || event.status === "entwurf" || event.photos_deleted_at) {
     return NextResponse.json({ error: "nicht verfügbar" }, { status: 404 });

@@ -10,7 +10,8 @@ export const metadata: Metadata = { title: "VisionBooth buchen", robots: { index
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
 
 /** Online-Buchung: Anlass → Paket → Details → Bezahlen (Stripe). */
-export default function VisionBoothBookingPage({ searchParams }: { searchParams: { paket?: string; abbruch?: string } }) {
+export default async function VisionBoothBookingPage(props: { searchParams: Promise<{ paket?: string; abbruch?: string }> }) {
+  const searchParams = await props.searchParams;
   const plan = VB_PLANS.find((p) => p.id === searchParams.paket && !p.id.startsWith("addon"))?.id ?? null;
   return (
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>

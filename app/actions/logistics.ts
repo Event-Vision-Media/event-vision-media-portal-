@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
-import { PICKUP_OPTIONS, STAFF_INCLUDED_HOURS, STAFF_MAX_EXTRA_HOURS, staffFor, travelFor, withLogistics, withStaffHours, applyOffer } from "@/lib/catalog";
+import { EXTRAS, PICKUP_OPTIONS, STAFF_INCLUDED_HOURS, STAFF_MAX_EXTRA_HOURS, formatEuro, hasDelivery, priceSelection, staffFor, travelFor, withLogistics, withStaffHours, applyOffer, type DeviceKey, type PickupId } from "@/lib/catalog";
+import { travelForAddress } from "@/lib/distance";
 
 export interface LogisticsActionResult {
   success?: boolean;
@@ -114,4 +115,57 @@ export async function updatePriceAdjustment(bookingId: string, formData: FormDat
   revalidatePath("/admin/anfragen");
   revalidatePath("/dashboard");
   return { success: true };
+}
+
+/**
+ * Admin ändert die Extras einer Website-Buchung (z. B. nachträglich „Lieferung & Abholung“
+ * zum Audiogästebuch). Preis, Anfahrt und Abholung werden wie bei der Anfrage neu berechnet;
+ * Betreuungsstunden und Angebots-Positionen bleiben erhalten. Nach der Vertragsunterschrift
+ * nicht mehr möglich (Vertrag ist fix).
+ */
+export async function updateExtras(bookingId: string, extraIds: string[]): Promise<LogisticsActionResult & { total?: number }> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const supabase = createAdminClient();
+  const [{ data: b }, { count }] = await Promise.all([
+    supabase.from("bookings").select("*").eq("id", bookingId).single(),
+    supabase.from("booking_contracts").select("id", { count: "exact", head: true }).eq("booking_id", bookingId),
+  ]);
+  const items = b?.inquiry_items;
+  if (!items?.packages?.length) return { error: "Nur für Buchungen mit Paketen." };
+  if (count) return { error: "Der Vertrag ist schon unterschrieben – Änderungen bitte separat abrechnen." };
+  if (!["anfrage", "reserviert", "bestaetigt"].includes(b.lifecycle)) return { error: "Diese Buchung kann nicht mehr geändert werden." };
+
+  const ids = Array.from(new Set(extraIds.map(String))).filter((id) => EXTRAS.some((e) => e.id === id)).slice(0, 20);
+  const packages = items.packages as { id: string; product: DeviceKey }[];
+  const delivered = hasDelivery(packages, ids);
+  // Kommt eine Lieferung neu dazu: Entfernung berechnen und kostenlose Abholung am Folgetag vorbelegen
+  const travel = delivered ? items.travel ?? (await travelForAddress(b.location ?? "")) : null;
+  const pickup = delivered ? ((items.pickup as PickupId | null) ?? "folgetag") : null;
+
+  let priced = priceSelection(packages.map((p) => p.id), ids, items.days ?? b.event_days ?? 1, b.customer_type === "business", items.access ?? null, { pickup, travel });
+  if (items.staff?.hours && staffFor({ ...priced, staff: items.staff })) priced = withStaffHours({ ...priced, staff: items.staff }, items.staff.hours);
+  const result = applyOffer(priced, items.offer);
+
+  const before = new Set<string>((items.extras ?? []).map((e: { id: string }) => e.id));
+  const after = new Set(result.extras.map((e) => e.id));
+  const name = (id: string) => EXTRAS.find((e) => e.id === id)?.name ?? id;
+  const added = ids.filter((id) => !before.has(id) && after.has(id)).map(name);
+  const removed = Array.from(before).filter((id) => EXTRAS.some((e) => e.id === id) && !after.has(id)).map(name);
+  if (!added.length && !removed.length) return { success: true, total: result.total };
+
+  const { error } = await supabase
+    .from("bookings")
+    .update({ inquiry_items: { ...items, ...result, pickup, travel }, total_price: result.total })
+    .eq("id", bookingId);
+  if (error) return { error: "Konnte nicht gespeichert werden." };
+  await logActivity(
+    bookingId,
+    "extras_geaendert",
+    [added.length ? `Extras hinzugefügt: ${added.join(", ")}` : "", removed.length ? `entfernt: ${removed.join(", ")}` : "", `neuer Gesamtpreis ${formatEuro(result.total)}`].filter(Boolean).join(" · ")
+  );
+  revalidatePath(`/admin/bookings/${bookingId}`);
+  revalidatePath("/admin/anfragen");
+  revalidatePath("/admin/kalender");
+  revalidatePath("/dashboard");
+  return { success: true, total: result.total };
 }

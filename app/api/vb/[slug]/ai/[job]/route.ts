@@ -6,7 +6,8 @@ import { AI_STALE_MS, pollFal } from "@/lib/visionbooth-ai";
 export const dynamic = "force-dynamic";
 
 /** Status einer KI-Verwandlung (nur für den Gast, der sie gestartet hat). */
-export async function GET(req: NextRequest, { params }: { params: { slug: string; job: string } }) {
+export async function GET(req: NextRequest, props: { params: Promise<{ slug: string; job: string }> }) {
+  const params = await props.params;
   const event = await loadVbEvent(params.slug.toLowerCase());
   const guestKey = (req.headers.get("x-vb-guest") ?? "").replace(/[^a-z0-9-]/gi, "").slice(0, 40);
   if (!event || !guestKey || !/^[0-9a-f-]{36}$/.test(params.job)) return NextResponse.json({ error: "nicht gefunden" }, { status: 404 });

@@ -125,7 +125,7 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
 
   // Vertragstext serverseitig neu erzeugen (nicht aus dem Browser übernehmen)
   const doc = await buildContractFor(booking, renter);
-  const h = headers();
+  const h = await headers();
   const ip = (h.get("x-forwarded-for") ?? "").split(",")[0].trim() || h.get("x-real-ip") || null;
 
   const supabase = createAdminClient();

@@ -6,8 +6,9 @@ import { accessSummary, type Booking } from "@/lib/types";
 
 // Kalender für den Admin: aus jeder Buchung werden Termine für Aufbau/Übergabe,
 // Veranstaltung und Abbau/Rückgabe abgeleitet – mit Uhrzeit, Ort und Gerät.
+// Dazu kommen eigene Termine (admin_appointments) für alles außerhalb der Buchungen.
 
-export type CalendarKind = "aufbau" | "event" | "abbau";
+export type CalendarKind = "aufbau" | "event" | "abbau" | "termin";
 
 export interface CalendarEntry {
   id: string;
@@ -27,6 +28,21 @@ export interface CalendarEntry {
   address: string | null;
   phone: string | null;
   bookingCode: string;
+  /** Link im Admin (Buchung bzw. eigene Termine). */
+  href: string;
+  /** Notiz eines eigenen Termins. */
+  note?: string | null;
+}
+
+export interface Appointment {
+  id: string;
+  title: string;
+  date: string;
+  time: string | null;
+  return_date: string | null;
+  return_time: string | null;
+  note: string | null;
+  block_id: string | null;
 }
 
 export function addDays(iso: string, days: number): string {
@@ -133,7 +149,7 @@ export async function loadCalendar(from: string, to: string): Promise<CalendarEn
       ? [c.location_name, c.location_street, c.location_zip_city].filter(Boolean).join(", ")
       : b.location ?? null;
     const phone = b.delivery_contact_phone || b.phone || null;
-    const base = { bookingId: b.id, title, devices: dev.label, place, lifecycle: b.lifecycle, selfService: self, address, phone, bookingCode: b.booking_code };
+    const base = { bookingId: b.id, title, devices: dev.label, place, lifecycle: b.lifecycle, selfService: self, address, phone, bookingCode: b.booking_code, href: `/admin/bookings/${b.id}` };
 
     // Aufbau / Übergabe
     const setupDate = b.delivery_date ?? dateFromText(b.delivery_time_window || c?.handover_window, b.event_date) ?? b.event_date;
@@ -164,6 +180,22 @@ export async function loadCalendar(from: string, to: string): Promise<CalendarEn
       sort: pickupTime ?? (pickupOpt?.id === "spaetnacht" ? "23:59" : pickupOpt?.id === "nacht" ? "22:00" : sortFromText(pickupText)),
       timeLabel: pickupText, warnings: pw });
   }
+
+  // Eigene Termine: Termin selbst + optional Rückgabe/Ende
+  const { data: own } = await supabase
+    .from("admin_appointments")
+    .select("*")
+    .or(`and(date.gte.${from},date.lte.${to}),and(return_date.gte.${from},return_date.lte.${to})`);
+  for (const a of (own ?? []) as Appointment[]) {
+    const base = { bookingId: a.id, devices: "", place: null, lifecycle: "bestaetigt", warnings: [], selfService: false, address: null, phone: null, bookingCode: "Eigener Termin", href: "/admin/kalender/termine", note: a.note };
+    const time = hhmm(a.time);
+    out.push({ ...base, id: `t-${a.id}`, date: a.date, kind: "termin", sort: time ?? "", timeLabel: time ? `${time} Uhr` : null, title: a.title });
+    if (a.return_date) {
+      const rt = hhmm(a.return_time);
+      out.push({ ...base, id: `t-${a.id}-z`, date: a.return_date, kind: "termin", sort: rt ?? "", timeLabel: rt ? `${rt} Uhr` : null, title: `↩︎ Rückgabe: ${a.title}` });
+    }
+  }
+
   return out
     .filter((e) => e.date >= from && e.date <= to)
     .sort((a, b) => (a.date === b.date ? (a.sort || "99:99").localeCompare(b.sort || "99:99") : a.date.localeCompare(b.date)));

@@ -11,7 +11,8 @@ import { extraNamesCoveredByPackages } from "@/lib/catalog";
 
 export const dynamic = "force-dynamic";
 
-export default async function EventHighlightsPage({ searchParams }: { searchParams: { extra?: string } }) {
+export default async function EventHighlightsPage(props: { searchParams: Promise<{ extra?: string }> }) {
+  const searchParams = await props.searchParams;
   const booking = await requireBooking();
 
   const supabase = createAdminClient();

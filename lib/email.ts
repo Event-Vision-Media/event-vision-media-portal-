@@ -185,14 +185,14 @@ export function reservationMail(b: MailBooking) {
         subject: `Ihr Termin ist vorgemerkt – ${BRAND}`,
         title: "Vielen Dank – Ihr Termin ist vorgemerkt",
         intro: `vielen Dank für Ihre Anfrage! Ihr Wunschtermin ist <strong>für Sie vorgemerkt</strong> und wird in dieser Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie von uns die Auftragsbestätigung – zusammen mit Ihrem persönlichen Zugang zum Kundenportal. Dort unterschreiben Sie bequem den Mietvertrag und wählen Ihr Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie von uns die Auftragsbestätigung – zusammen mit Ihrem persönlichen Zugang zum Kundenportal. Haben Sie uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei Ihnen. Dort unterschreiben Sie bequem den Mietvertrag und wählen Ihr Layout.",
         call: "Fragen oder Wünsche? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
       }
     : {
         subject: `Dein Termin ist vorgemerkt – ${BRAND}`,
         title: "Danke – dein Termin ist vorgemerkt! ✨",
         intro: `vielen Dank für deine Anfrage! Dein Wunschtermin ist <strong>für dich vorgemerkt</strong> und wird in der Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du von uns die Auftragsbestätigung – zusammen mit deinem persönlichen Zugang zum Kundenportal. Dort unterschreibst du ganz bequem den Mietvertrag und wählst dein Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du von uns die Auftragsbestätigung – zusammen mit deinem persönlichen Zugang zum Kundenportal. Hast du uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei dir. Dort unterschreibst du ganz bequem den Mietvertrag und wählst dein Layout.",
         call: "Fragen oder Wünsche? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
       };
   const note = "Richtpreis, unverbindlich – verbindlich wird die Buchung mit unserer Auftragsbestätigung und dem Mietvertrag.";
@@ -236,6 +236,55 @@ ${details(b)}${codeBox(b)}
 <p style="margin-top:18px;color:#6f7882;font-size:13px;line-height:1.6">${TAX}</p>`
     ),
     text: `${greeting(b)},\n\n${t.intro}\n\nBuchungsnummer: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\nZugangscode Kundenportal: ${loginCode(b)}${url ? `\n${url}` : ""}\n\n${stripTags(t.next)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
+  };
+}
+
+/**
+ * Portal-Einladung für Bestandsbuchungen: Termin stand schon fest (z. B. per Telefon/WhatsApp),
+ * jetzt bekommt der Kunde Zugang zum neuen Kundenportal. Keine „Auftragsbestätigung“,
+ * Vertrag nur erwähnen, wenn er noch nicht vorliegt.
+ */
+export function portalInviteMail(b: MailBooking, opts: { contractOnFile: boolean }) {
+  const sie = isSie(b);
+  const names = (b.inquiry_items?.packages ?? []).map((p) => p.name).join(" ");
+  const photo = /spiegel|mirror|fotobox/i.test(names);
+  const audio = /audio/i.test(names);
+  const todo = [
+    photo && (sie ? "Ihr Foto-Layout auswählen und personalisieren" : "dein Foto-Layout auswählen und personalisieren"),
+    audio && (sie ? "Ihre persönliche Begrüßungsansage fürs Audiogästebuch hochladen" : "deine persönliche Begrüßungsansage fürs Audiogästebuch hochladen"),
+    sie ? "Lieferung, Abholung und Ansprechpartner einsehen" : "Lieferung, Abholung und Ansprechpartner einsehen",
+    sie ? "den Stand Ihrer Zahlungen und Rechnungen sehen" : "den Stand deiner Zahlungen und Rechnungen sehen",
+  ].filter(Boolean) as string[];
+  const contract = opts.contractOnFile
+    ? ""
+    : sie
+      ? "Bitte unterschreiben Sie dort außerdem Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt."
+      : "Bitte unterschreib dort außerdem deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt.";
+  const t = sie
+    ? {
+        title: "Ihr Kundenportal ist bereit",
+        intro: `Ihr Termin am <strong>${esc(formatDateGerman(b.event_date))}</strong> steht – und ab sofort finden Sie alles dazu an einem Ort: in Ihrem persönlichen Kundenportal.`,
+        lead: "Dort können Sie:",
+      }
+    : {
+        title: "Dein Kundenportal ist bereit 🎉",
+        intro: `Dein Termin am <strong>${esc(formatDateGerman(b.event_date))}</strong> steht – und ab sofort findest du alles dazu an einem Ort: in deinem persönlichen Kundenportal.`,
+        lead: "Dort kannst du:",
+      };
+  const list = `<ul style="line-height:1.7;padding-left:20px;margin:8px 0">${todo.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>`;
+  return {
+    subject: `${sie ? "Ihr" : "Dein"} Kundenportal für den ${formatDateGerman(b.event_date)} – ${BRAND}`,
+    html: layout(
+      t.title,
+      `<p style="line-height:1.6">${esc(greeting(b))},</p>
+<p style="line-height:1.6">${t.intro}</p>
+${details(b)}${codeBox(b)}
+<p style="line-height:1.6;margin-bottom:0">${t.lead}</p>
+${list}
+${contract ? `<p style="line-height:1.6">${contract}</p>` : ""}
+<p style="line-height:1.6">${sie ? "Bei Fragen erreichen Sie uns jederzeit" : "Bei Fragen erreichst du uns jederzeit"} telefonisch oder per WhatsApp unter 0176 22748363.</p>`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\nBuchungsnummer: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n\nZugangscode Kundenportal: ${loginCode(b)}${portalUrl() ? `\n${portalUrl()}` : ""}\n\n${t.lead}\n${todo.map((x) => `- ${x}`).join("\n")}\n${contract ? `\n${contract}\n` : ""}\nBei Fragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}`,
   };
 }
 
@@ -615,7 +664,7 @@ export function weeklyPlanMail(plan: WeeklyPlan) {
   const url = portalUrl();
   const short = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
   const dayName = (iso: string) => new Date(iso + "T12:00:00Z").toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", timeZone: "Europe/Berlin" });
-  const KIND = { aufbau: ["🚚", "Aufbau"], event: ["🎉", "Event"], abbau: ["📦", "Abbau"] } as const;
+  const KIND = { aufbau: ["🚚", "Aufbau"], event: ["🎉", "Event"], abbau: ["📦", "Abbau"], termin: ["📌", "Eigener Termin"] } as const;
   const label = (i: WeeklyPlanItem) =>
     i.selfService ? (i.kind === "aufbau" ? "Abholung bei dir" : i.kind === "abbau" ? "Rückgabe bei dir" : "Event") : KIND[i.kind][1];
 
@@ -624,10 +673,10 @@ export function weeklyPlanMail(plan: WeeklyPlan) {
     .map((d) => `<h3 style="margin:22px 0 8px;font-family:Georgia,serif;font-size:17px;color:#1f2227;border-bottom:1px solid #ebdab3;padding-bottom:4px">${esc(dayName(d.date))}</h3>${d.items
       .map((i) => `<div style="margin:0 0 10px;padding:10px 12px;border-radius:10px;background:${i.warn ? "#fff7ed" : "#faf8f4"};border:1px solid ${i.warn ? "#fed7aa" : "#efe9dd"};font-size:14px;line-height:1.5">
 <div><strong>${KIND[i.kind][0]} ${esc(label(i))}${i.time ? ` · ${esc(i.time)}` : ""}</strong></div>
-<div>${esc(i.title)} <span style="color:#9ea5ad">(${esc(i.code)})</span></div>
-<div style="color:#4f5761">📸 ${esc(i.devices)}${i.place ? ` · 📍 ${esc(i.place)}` : ""}</div>
+<div>${esc(i.title)}${i.kind === "termin" ? "" : ` <span style="color:#9ea5ad">(${esc(i.code)})</span>`}</div>
+${i.devices ? `<div style="color:#4f5761">📸 ${esc(i.devices)}${i.place ? ` · 📍 ${esc(i.place)}` : ""}</div>` : ""}
 ${i.address ? `<div style="color:#4f5761">🧭 ${esc(i.address)}${i.phone ? ` · ☎️ ${esc(i.phone)}` : ""}</div>` : ""}
-${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#047857"}">${i.notes.map((n) => esc(n)).join(" · ")}</div>` : ""}
+${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.kind === "termin" ? "#4f5761" : "#047857"}">${i.notes.map((n) => esc(n)).join(" · ")}</div>` : ""}
 </div>`).join("")}`)
     .join("");
 
@@ -639,7 +688,7 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#04
     ? `<h2 style="margin:26px 0 8px;font-size:16px">⚠️ Noch offen (nächste 4 Wochen)</h2><ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.todos.map((t) => `<li><strong>${esc(short(t.date))}</strong> ${esc(t.title)} <span style="color:#9ea5ad">(${esc(t.code)})</span>: ${esc(t.text)}</li>`).join("")}</ul>`
     : `<p style="margin-top:22px;color:#047857">✓ Keine offenen Punkte in den nächsten 4 Wochen.</p>`;
   const next = `<h2 style="margin:26px 0 8px;font-size:16px">👀 Vorschau Woche danach</h2>${plan.nextWeek.length
-    ? `<ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.nextWeek.map((n) => `<li><strong>${esc(short(n.date))}</strong> ${esc(n.title)} · ${esc(n.devices)}${n.place ? ` · ${esc(n.place)}` : ""}</li>`).join("")}</ul>`
+    ? `<ul style="margin:0;padding-left:18px;line-height:1.7;font-size:14px">${plan.nextWeek.map((n) => `<li><strong>${esc(short(n.date))}</strong> ${esc(n.title)}${n.devices ? ` · ${esc(n.devices)}` : ""}${n.place ? ` · ${esc(n.place)}` : ""}</li>`).join("")}</ul>`
     : `<p style="color:#6f7882;font-size:14px">Noch keine Einsätze.</p>`}`;
   const link = url
     ? `<p style="margin:24px 0 0"><a href="${esc(url)}/admin/kalender" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kalender</a></p>`
@@ -650,14 +699,14 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : "#04
 
   const textDays = plan.days
     .filter((d) => d.items.length)
-    .map((d) => `${dayName(d.date)}\n${d.items.map((i) => `- ${label(i)}${i.time ? ` (${i.time})` : ""}: ${i.title} [${i.code}] – ${i.devices}${i.place ? `, ${i.place}` : ""}${i.address ? `\n  ${i.address}${i.phone ? `, ${i.phone}` : ""}` : ""}${i.notes.length ? `\n  ${i.notes.join(" · ")}` : ""}`).join("\n")}`)
+    .map((d) => `${dayName(d.date)}\n${d.items.map((i) => `- ${label(i)}${i.time ? ` (${i.time})` : ""}: ${i.title}${i.kind === "termin" ? "" : ` [${i.code}] – ${i.devices}`}${i.place ? `, ${i.place}` : ""}${i.address ? `\n  ${i.address}${i.phone ? `, ${i.phone}` : ""}` : ""}${i.notes.length ? `\n  ${i.notes.join(" · ")}` : ""}`).join("\n")}`)
     .join("\n\n");
   const text = [
     `Wochenplan ${range}`,
     textDays || "Diese Woche stehen keine Einsätze an.",
     plan.deviceAlerts.length ? `Geräte-Check:\n${plan.deviceAlerts.map((a) => `- ${short(a.date)}: ${a.text}`).join("\n")}` : "",
     plan.todos.length ? `Noch offen:\n${plan.todos.map((t) => `- ${short(t.date)} ${t.title} (${t.code}): ${t.text}`).join("\n")}` : "Keine offenen Punkte.",
-    `Vorschau Woche danach:\n${plan.nextWeek.map((n) => `- ${short(n.date)} ${n.title} – ${n.devices}`).join("\n") || "Noch keine Einsätze."}`,
+    `Vorschau Woche danach:\n${plan.nextWeek.map((n) => `- ${short(n.date)} ${n.title}${n.devices ? ` – ${n.devices}` : ""}`).join("\n") || "Noch keine Einsätze."}`,
     url ? `Kalender: ${url}/admin/kalender` : "",
   ].filter(Boolean).join("\n\n");
 
@@ -766,5 +815,111 @@ ${vbButton(o.galleryUrl, "Fotos jetzt herunterladen")}
 <p style="color:#6f7882;font-size:13px;line-height:1.6">Ihr braucht mehr Zeit? Meldet euch kurz bei uns: 0176 22748363.</p>`
     ),
     text: `${hello},\n\ndie ${o.photos} Fotos von „${o.title}“ werden am ${formatDateGerman(o.deleteDate)} automatisch gelöscht. Jetzt als ZIP sichern: ${o.galleryUrl} (oben „Alle (ZIP)“).\n\nMehr Zeit nötig? 0176 22748363\n\n${BRAND}`,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Angebote (Weg B): Rückfrage beantwortet / Anpassung → Kunde nimmt per Link an
+// ---------------------------------------------------------------------------
+
+export interface MailOffer {
+  message: string;
+  validUntil: string;
+  url: string;
+  version: number;
+  /** Termin ist für den Kunden reserviert (lifecycle reserviert). */
+  reserved: boolean;
+}
+
+/** Angebot an den Kunden – auch als Erinnerung (3 Tage vor Ablauf bzw. nach 3 Tagen ohne Antwort). */
+export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boolean } = {}) {
+  const sie = isSie(b);
+  const until = formatDateGerman(o.validUntil);
+  const updated = o.version > 1;
+  const t = sie
+    ? {
+        subject: opts.reminder ? `Erinnerung: Ihr Angebot ${b.booking_code} – gültig bis ${until}` : `${updated ? "Ihr angepasstes" : "Ihr persönliches"} Angebot ${b.booking_code} – ${BRAND}`,
+        title: opts.reminder ? "Ihr Angebot wartet noch auf Sie" : updated ? "Ihr angepasstes Angebot" : "Ihr persönliches Angebot",
+        intro: opts.reminder
+          ? `kurze Erinnerung: Ihr Angebot ist noch <strong>bis ${esc(until)}</strong> gültig.`
+          : updated
+            ? "vielen Dank für Ihre Rückmeldung! Wir haben das Angebot für Sie angepasst."
+            : "vielen Dank für Ihre Anfrage! Bevor wir verbindlich bestätigen, haben wir Ihnen ein persönliches Angebot zusammengestellt.",
+        reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist Ihr Termin für Sie reserviert" : ""}.`,
+        how: "Mit einem Klick nehmen Sie an – danach erhalten Sie sofort die Auftragsbestätigung mit Ihrem Zugang zum Kundenportal. Passt noch etwas nicht? Dann können Sie dort auch eine Änderung wünschen.",
+        button: "Angebot ansehen & antworten",
+        call: "Fragen? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
+      }
+    : {
+        subject: opts.reminder ? `Erinnerung: Dein Angebot ${b.booking_code} – gültig bis ${until}` : `${updated ? "Dein angepasstes" : "Dein persönliches"} Angebot ${b.booking_code} – ${BRAND}`,
+        title: opts.reminder ? "Dein Angebot wartet noch auf dich" : updated ? "Dein angepasstes Angebot ✨" : "Dein persönliches Angebot ✨",
+        intro: opts.reminder
+          ? `kurze Erinnerung: Dein Angebot ist noch <strong>bis ${esc(until)}</strong> gültig.`
+          : updated
+            ? "danke für deine Rückmeldung! Wir haben das Angebot für dich angepasst."
+            : "vielen Dank für deine Anfrage! Bevor wir verbindlich bestätigen, haben wir dir ein persönliches Angebot zusammengestellt.",
+        reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist dein Termin für dich reserviert" : ""}.`,
+        how: "Mit einem Klick nimmst du an – danach bekommst du sofort die Auftragsbestätigung mit deinem Zugang zum Kundenportal. Passt noch etwas nicht? Dann kannst du dort auch eine Änderung wünschen.",
+        button: "Angebot ansehen & antworten",
+        call: "Fragen? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
+      };
+  const answer = o.message.trim()
+    ? `<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#fbf8f1;border:1px solid #ebdab3;line-height:1.6;white-space:pre-wrap">${esc(o.message.trim())}</div>`
+    : "";
+  return {
+    subject: t.subject,
+    html: layout(
+      t.title,
+      `<p style="line-height:1.6">${esc(greeting(b))},</p>
+<p style="line-height:1.6">${t.intro}</p>
+${answer}
+${details(b)}
+<p style="margin-top:18px;line-height:1.6">${t.reserved}</p>
+<p style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${t.button}</a></p>
+<p style="line-height:1.6;color:#4f5761">${t.how}</p>
+<p style="margin-top:12px;line-height:1.6">${t.call}</p>
+<p style="margin-top:12px;color:#6f7882;font-size:13px;line-height:1.6">${TAX}</p>`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim()}\n\nAnfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & antworten: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
+  };
+}
+
+/** Angebot ist abgelaufen – Termin wieder frei, freundlich die Tür offen halten. */
+export function offerExpiredMail(b: MailBooking) {
+  const sie = isSie(b);
+  const body = sie
+    ? "Ihr Angebot ist leider abgelaufen, deshalb haben wir den Termin wieder freigegeben. Sie möchten doch noch buchen? Antworten Sie einfach auf diese E-Mail – ist der Termin noch frei, schicken wir Ihnen gern ein neues Angebot."
+    : "dein Angebot ist leider abgelaufen, deshalb haben wir den Termin wieder freigegeben. Du möchtest doch noch buchen? Antworte einfach auf diese E-Mail – ist der Termin noch frei, schicken wir dir gern ein neues Angebot.";
+  return {
+    subject: `${sie ? "Ihr" : "Dein"} Angebot ${b.booking_code} ist abgelaufen – ${BRAND}`,
+    html: layout("Angebot abgelaufen", `<p style="line-height:1.6">${esc(greeting(b))},</p>\n<p style="line-height:1.6">${body}</p>\n${details(b)}`),
+    text: `${greeting(b)},\n\n${body}\n\nAnfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n\n${BRAND} · 0176 22748363`,
+  };
+}
+
+export type OfferAdminEvent = "bestaetigt" | "angenommen_belegt" | "aenderung" | "abgelehnt" | "abgelaufen";
+
+/** Info an dich, sobald der Kunde auf ein Angebot reagiert (oder es abläuft). */
+export function offerAdminMail(b: MailBooking & { email: string | null; phone: string | null }, event: OfferAdminEvent, note: string | null) {
+  const head: Record<OfferAdminEvent, string> = {
+    bestaetigt: "✅ Angebot angenommen – automatisch bestätigt",
+    angenommen_belegt: "⚠️ Angebot angenommen – Gerät inzwischen belegt, bitte selbst bestätigen",
+    aenderung: "✏️ Änderungswunsch zum Angebot",
+    abgelehnt: "❌ Angebot abgelehnt – Termin ist wieder frei",
+    abgelaufen: "⌛ Angebot abgelaufen – Termin ist wieder frei",
+  };
+  const url = portalUrl();
+  return {
+    subject: `${head[event]} · ${b.booking_code} · ${formatDateGerman(b.event_date)}`,
+    html: layout(
+      "Angebot",
+      `<p><strong>${esc(head[event])}</strong></p>
+<p style="line-height:1.6">${esc(b.customer_name || b.couple_names)}<br>${esc(b.email)}${b.phone ? ` · ${esc(b.phone)}` : ""}</p>
+${note ? `<p style="margin-top:14px;padding:12px;background:#f4f5f6;border-radius:10px;white-space:pre-wrap">${esc(note)}</p>` : ""}
+${details(b)}
+${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/anfragen" style="color:#a87731;font-weight:600">Im Admin öffnen →</a></p>` : ""}`
+    ),
+    text: `${head[event]}\n${b.customer_name || b.couple_names} · ${b.email ?? ""} ${b.phone ?? ""}\n${formatDateGerman(b.event_date)}\n${note ? `\n${note}\n` : ""}\n${itemsRows(b).text}`,
+    replyTo: b.email ?? undefined,
   };
 }
