@@ -10,6 +10,17 @@ import { formatDateGerman, formatDateTimeGerman } from "@/lib/format";
 import { daysUntil, followupLine, formatEuro, MIN_LEAD_DAYS } from "@/lib/catalog";
 import { contractStatusByBooking } from "@/lib/contract-server";
 import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
+import { latestOffers, type Offer } from "@/lib/offers";
+
+function OfferBadge({ o }: { o: Offer }) {
+  if (o.status === "offen")
+    return <Badge tone="gold">✉️ Angebot{o.version > 1 ? ` v${o.version}` : ""} gesendet · bis {formatDateGerman(o.valid_until)}{o.viewed_at ? " · angesehen" : ""}</Badge>;
+  if (o.status === "aenderung") return <Badge tone="danger">✏️ Änderungswunsch zum Angebot</Badge>;
+  if (o.status === "angenommen") return <Badge tone="success">✅ Angebot angenommen</Badge>;
+  if (o.status === "abgelehnt") return <Badge tone="neutral">Angebot abgelehnt</Badge>;
+  if (o.status === "abgelaufen") return <Badge tone="neutral">⌛ Angebot abgelaufen</Badge>;
+  return null;
+}
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +50,10 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
 
   const countFor = (k: ViewKey) => (counts ?? []).filter((c) => (VIEWS[k].lifecycles as readonly string[]).includes(c.lifecycle)).length;
   const inquiries = rows ?? [];
-  const contracts = await contractStatusByBooking(inquiries.map((b: any) => b.id));
+  const [contracts, offers] = await Promise.all([
+    contractStatusByBooking(inquiries.map((b: any) => b.id)),
+    latestOffers(inquiries.map((b: any) => b.id)),
+  ]);
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -49,7 +63,8 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
         <p className="mt-1 mb-6 text-sm text-anthracite-500">
           Anfragen aus dem Formular auf fotobox-essen.com. Freie Termine sind automatisch vorgemerkt – bitte innerhalb von
           24 Stunden prüfen. Mit „Bestätigen“ geht die Auftragsbestätigung mit Portal-Zugang raus; der Kunde unterschreibt
-          dann den Mietvertrag, damit ist die Buchung abgeschlossen.
+          dann den Mietvertrag, damit ist die Buchung abgeschlossen. Gibt es noch etwas zu klären, schick stattdessen ein
+          „Angebot“ – nimmt der Kunde es an, wird automatisch bestätigt.
         </p>
 
         <div className="mb-6 flex flex-wrap gap-2 text-sm">
@@ -74,6 +89,9 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
           {inquiries.map((b: any) => {
             const items = b.inquiry_items ?? {};
             const isOpen = b.lifecycle === "reserviert" || b.lifecycle === "anfrage";
+            const offer = offers.get(b.id);
+            const lines: { label: string; amount: number }[] = items.offer?.lines ?? [];
+            const baseTotal = Number(b.total_price ?? 0) - lines.reduce((s, l) => s + Number(l.amount), 0);
             return (
               <Card key={b.id} className="space-y-4">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -86,6 +104,8 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
                         : <Badge tone="danger">Termin belegt</Badge>)}
                       {b.lifecycle === "bestaetigt" && <Badge tone="success">Bestätigt</Badge>}
                       {(b.lifecycle === "abgelehnt" || b.lifecycle === "storniert") && <Badge tone="neutral">{b.lifecycle}</Badge>}
+                      {offer && offer.status !== "ersetzt" && <OfferBadge o={offer} />}
+                      {isOpen && b.inquiry_message && !offer && <Badge tone="danger">💬 Kunde hat eine Frage</Badge>}
                       <Badge tone="neutral">{b.customer_type === "business" ? "Business" : "Privat"}</Badge>
                       {b.lifecycle === "bestaetigt" && b.portal_invite_pending && <Badge tone="gold">Zugang noch nicht verschickt</Badge>}
                       {b.lifecycle === "bestaetigt" && b.contract_on_file && !contracts.has(b.id) && <Badge tone="success">Vertrag liegt vor</Badge>}
@@ -103,7 +123,7 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
                     <div className="font-serif text-2xl font-semibold text-anthracite-800">
                       {b.total_price != null ? `${items.isFromPrice ? "ab " : ""}${formatEuro(Number(b.total_price))}` : "–"}
                     </div>
-                    <div className="text-xs text-anthracite-400">Richtpreis</div>
+                    <div className="text-xs text-anthracite-400">{offer ? "laut Angebot" : "Richtpreis"}</div>
                   </div>
                 </div>
 
@@ -143,9 +163,28 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
                 {b.inquiry_message && (
                   <p className="whitespace-pre-wrap rounded-xl border border-anthracite-100 p-3 text-sm text-anthracite-600">{b.inquiry_message}</p>
                 )}
+                {offer && offer.status !== "ersetzt" && (
+                  <div className="rounded-xl border border-gold-200 bg-gold-50/50 p-3 text-sm text-anthracite-600">
+                    <p className="text-xs font-semibold text-gold-700">
+                      Angebot{offer.version > 1 ? ` (Version ${offer.version})` : ""} vom {formatDateTimeGerman(offer.created_at)}
+                    </p>
+                    <p className="mt-1 whitespace-pre-wrap">{offer.message}</p>
+                    {offer.customer_note && (
+                      <p className="mt-2 whitespace-pre-wrap rounded-lg bg-white p-2 text-anthracite-700">
+                        <strong>{offer.status === "aenderung" ? "✏️ Änderungswunsch:" : "Kunde:"}</strong> {offer.customer_note}
+                      </p>
+                    )}
+                  </div>
+                )}
 
                 <div className="flex flex-wrap items-center justify-between gap-3 border-t border-anthracite-100 pt-4">
-                  {isOpen ? <InquiryActions bookingId={b.id} hasEmail={Boolean(b.email)} /> : <span />}
+                  {isOpen ? (
+                    <InquiryActions
+                      bookingId={b.id}
+                      hasEmail={Boolean(b.email)}
+                      offer={items.packages?.length ? { baseTotal, isFromPrice: Boolean(items.isFromPrice), lines, question: offer?.status === "aenderung" && offer.customer_note ? `Änderungswunsch: ${offer.customer_note}` : b.inquiry_message ?? null, sent: Boolean(offer) } : null}
+                    />
+                  ) : <span />}
                   <Link href={`/admin/bookings/${b.id}`} className="text-sm text-anthracite-400 hover:text-anthracite-700">
                     Buchungsdetails →
                   </Link>

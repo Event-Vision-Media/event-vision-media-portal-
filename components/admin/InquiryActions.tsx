@@ -4,8 +4,12 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { confirmInquiry, declineInquiry } from "@/app/actions/admin-inquiries";
 import { Button } from "@/components/ui/Button";
+import { OfferForm } from "@/components/admin/OfferForm";
 
-export function InquiryActions({ bookingId, hasEmail }: { bookingId: string; hasEmail: boolean }) {
+type OfferProps = { baseTotal: number; isFromPrice: boolean; lines: { label: string; amount: number }[]; question: string | null; sent: boolean };
+
+export function InquiryActions({ bookingId, hasEmail, offer }: { bookingId: string; hasEmail: boolean; offer?: OfferProps | null }) {
+  const [offerOpen, setOfferOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [needsForce, setNeedsForce] = useState(false);
@@ -47,10 +51,19 @@ export function InquiryActions({ bookingId, hasEmail }: { bookingId: string; has
             Trotzdem bestätigen
           </Button>
         )}
-        <Button type="button" variant="ghost" disabled={isPending} onClick={() => setDeclineOpen((o) => !o)}>
+        {offer && hasEmail && (
+          <Button type="button" variant="secondary" disabled={isPending} onClick={() => { setOfferOpen((o) => !o); setDeclineOpen(false); }}>
+            {offer.sent ? "✉️ Neues Angebot senden" : "✉️ Angebot senden"}
+          </Button>
+        )}
+        <Button type="button" variant="ghost" disabled={isPending} onClick={() => { setDeclineOpen((o) => !o); setOfferOpen(false); }}>
           Ablehnen
         </Button>
       </div>
+
+      {offerOpen && offer && (
+        <OfferForm bookingId={bookingId} baseTotal={offer.baseTotal} isFromPrice={offer.isFromPrice} lines={offer.lines} question={offer.question} onDone={() => setOfferOpen(false)} />
+      )}
 
       {declineOpen && (
         <div className="space-y-2 rounded-xl border border-anthracite-100 bg-anthracite-50/60 p-3">

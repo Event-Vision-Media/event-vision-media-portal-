@@ -371,4 +371,6 @@ export interface OfferTerms {
   travelIncluded?: boolean;
   /** Preisanpassung laut Angebot (negativ = Nachlass). */
   adjustment?: { label: string; amount: number } | null;
+  /** Zusätzliche Positionen aus einem Angebot über das Portal (Migration 0031). */
+  lines?: { label: string; amount: number }[];
 }

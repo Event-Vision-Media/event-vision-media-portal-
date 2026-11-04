@@ -4,32 +4,17 @@ import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
 import { logActivity } from "@/lib/activity-log";
-import { checkDeviceAvailability, createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
+import { createBookingFromInquiry, generateAccessCode, type InquiryInput } from "@/lib/inquiry-server";
 import { isUniqueViolation } from "@/lib/supabase/errors";
-import { confirmationMail, declineMail, portalInviteMail, sendEmail, type MailBooking } from "@/lib/email";
+import { declineMail, portalInviteMail, sendEmail } from "@/lib/email";
+import { confirmBooking, toMailBooking } from "@/lib/booking-confirm";
+import { supersedeOpenOffers } from "@/lib/offers";
 import { PACKAGES, PICKUP_OPTIONS, PRODUCT_LABELS, normalizeAccess, type DeviceKey, type PickupId } from "@/lib/catalog";
 
 export interface InquiryActionResult {
   success?: boolean;
   error?: string;
   mailSent?: boolean;
-}
-
-function toMailBooking(b: any): MailBooking {
-  return {
-    booking_code: b.booking_code,
-    customer_type: b.customer_type ?? null,
-    access_code: b.access_code ?? null,
-    custom_login_code: b.custom_login_code,
-    customer_name: b.customer_name,
-    couple_names: b.couple_names,
-    event_date: b.event_date,
-    event_days: b.event_days ?? 1,
-    location: b.location,
-    occasion: b.occasion,
-    total_price: b.total_price,
-    inquiry_items: b.inquiry_items,
-  };
 }
 
 /**
@@ -39,48 +24,9 @@ function toMailBooking(b: any): MailBooking {
  */
 export async function confirmInquiry(bookingId: string, force = false): Promise<InquiryActionResult> {
   if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
-  const supabase = createAdminClient();
-
-  const { data: b } = await supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle();
-  if (!b) return { error: "Buchung nicht gefunden." };
-  if (!["anfrage", "reserviert"].includes(b.lifecycle)) return { error: "Diese Anfrage wurde bereits bearbeitet." };
-
-  if (!force) {
-    const devices = ((b.inquiry_items?.packages ?? []) as { product: DeviceKey }[]).map((p) => p.product);
-    const { available } = await checkDeviceAvailability(devices, b.event_date, b.event_days ?? 1, b.id);
-    if (!available) {
-      return { error: "Ein Gerät ist an diesem Termin bereits belegt. Trotzdem bestätigen?" };
-    }
-  }
-
-  const { error } = await supabase
-    .from("bookings")
-    .update({ lifecycle: "bestaetigt", confirmed_at: new Date().toISOString(), portal_invite_pending: false })
-    .eq("id", bookingId);
-  if (error) return { error: "Konnte nicht gespeichert werden." };
-
-  // Bestätigung = Gegenzeichnung eines bereits unterschriebenen Mietvertrags
-  await supabase
-    .from("booking_contracts")
-    .update({ countersigned_at: new Date().toISOString() })
-    .eq("booking_id", bookingId)
-    .is("countersigned_at", null);
-
-  let mailSent = false;
-  let mailId: string | undefined;
-  if (b.email) {
-    // Liegt der Vertrag schon vor (Bestandsbuchung), keine Aufforderung zum Unterschreiben
-    const m = b.contract_on_file ? portalInviteMail(toMailBooking(b), { contractOnFile: true }) : confirmationMail(toMailBooking(b));
-    const r = await sendEmail({ to: b.email, ...m });
-    mailSent = r.sent;
-    mailId = r.id;
-  }
-  await logActivity(bookingId, "anfrage_bestaetigt", `Buchung bestätigt${mailSent ? ` – 📧 ${b.contract_on_file ? "Portal-Zugang (Vertrag liegt vor)" : "Auftragsbestätigung mit Portal-Zugang"} an ${b.email}` : " (keine E-Mail verschickt)"}`);
-  if (mailId) await logActivity(bookingId, "mail_bestaetigung", mailId);
-
-  revalidatePath("/admin/anfragen");
-  revalidatePath("/admin/dashboard");
-  return { success: true, mailSent };
+  const res = await confirmBooking(bookingId, { force, via: "admin" });
+  if (res.success) await supersedeOpenOffers(bookingId);
+  return { success: res.success, error: res.error, mailSent: res.mailSent };
 }
 
 /** Lehnt eine Anfrage ab (optional mit freundlicher Absage-Mail). */
@@ -101,6 +47,7 @@ export async function declineInquiry(
     .update({ lifecycle: "abgelehnt", declined_at: new Date().toISOString() })
     .eq("id", bookingId);
   if (error) return { error: "Konnte nicht gespeichert werden." };
+  await supersedeOpenOffers(bookingId);
 
   let mailSent = false;
   if (sendMail && b.email) {
