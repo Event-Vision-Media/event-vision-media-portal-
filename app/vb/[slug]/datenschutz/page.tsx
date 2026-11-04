@@ -73,7 +73,10 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
             KI-Modell von Google einsetzt. Dabei werden Daten in die USA übermittelt, wo ein geringeres Datenschutzniveau als in der EU bestehen kann. Rechtsgrundlage ist
             deine Einwilligung durch das Antippen des Stils (Art. 6 Abs. 1 lit. a, Art. 49 Abs. 1 lit. a DSGVO).
           </p>
-          <p className="mt-2">Das fertige KI-Bild speichern wir nur, wenn der Galerie-Schalter an ist – sonst bekommst nur du es auf dein Handy.</p>
+          <p className="mt-2">
+            Wir haben fal.ai angewiesen, dein Foto und das Ergebnis nicht im Verlauf zu speichern und die Bilddateien nach spätestens einer Stunde zu löschen.
+            Das fertige KI-Bild speichern wir nur, wenn der Galerie-Schalter an ist – sonst bekommst nur du es auf dein Handy.
+          </p>
         </Section>
 
         <Section title="Technik">

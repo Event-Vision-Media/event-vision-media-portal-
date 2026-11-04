@@ -114,6 +114,9 @@ export function stylePrompt(key: string): string | null {
   return s ? s.prompt + CLEAN : null;
 }
 
+/** So lange bleiben Eingabe und KI-Ergebnis auf dem fal-CDN (danach endgültig gelöscht). */
+const FAL_EXPIRE_SECONDS = 3600;
+
 function falKey(): string {
   const k = process.env.FAL_KEY;
   if (!k) throw new Error("FAL_KEY fehlt");
@@ -127,7 +130,14 @@ export async function submitFal(styleKey: string, imageDataUri: string) {
   if (!style || !prompt) throw new Error(`Unbekannter Stil: ${styleKey}`);
   const res = await fetch(`https://queue.fal.run/${style.model}`, {
     method: "POST",
-    headers: { Authorization: `Key ${falKey()}`, "Content-Type": "application/json" },
+    headers: {
+      Authorization: `Key ${falKey()}`,
+      "Content-Type": "application/json",
+      // Datenschutz: Gästefoto und Ergebnis nicht im fal-Verlauf speichern (Standard wären 90 Tage)
+      // und die Dateien auf dem fal-CDN nach einer Stunde löschen – wir holen das Bild sofort ab.
+      "X-Fal-Store-IO": "0",
+      "X-Fal-Object-Lifecycle-Preference": JSON.stringify({ expiration_duration_seconds: FAL_EXPIRE_SECONDS }),
+    },
     body: JSON.stringify({
       prompt,
       image_urls: [imageDataUri],
