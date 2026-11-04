@@ -29,7 +29,8 @@ import { LayoutDraftCard } from "@/components/admin/LayoutDraftCard";
 import { LogisticsForm } from "@/components/admin/LogisticsForm";
 import { StaffHoursForm } from "@/components/admin/StaffHoursForm";
 import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
-import { staffFor } from "@/lib/catalog";
+import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
+import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
@@ -310,6 +311,25 @@ export default async function AdminBookingDetailPage(props: {
                 Liefer- &amp; Abholzeiten bearbeiten →
               </Link>
             </div>
+            {booking.inquiry_items?.packages && (() => {
+              const products = new Set(booking.inquiry_items.packages.map((p) => p.product));
+              const included = includedExtraIds(booking.inquiry_items);
+              const business = booking.customer_type === "business";
+              const options = EXTRAS.filter(
+                (e) => e.id !== "betreuung-stunde" && !included.has(e.id) && e.for.some((k) => products.has(k)) && (!e.businessOnly || business) && (!e.privateOnly || !business)
+              ).map((e) => ({ id: e.id, name: e.name, price: e.price, from: Boolean(e.from) }));
+              return options.length ? (
+                <div className="mt-4 border-t border-anthracite-100 pt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Extras ändern</p>
+                  <ExtrasEditForm
+                    bookingId={booking.id}
+                    options={options}
+                    selected={(booking.inquiry_items.extras ?? []).map((e) => e.id).filter((id) => options.some((o) => o.id === id))}
+                    locked={Boolean(contract)}
+                  />
+                </div>
+              ) : null;
+            })()}
             {booking.inquiry_items?.packages && (
               <div className="mt-4 border-t border-anthracite-100 pt-3">
                 <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Anfahrt &amp; Abholung korrigieren</p>
