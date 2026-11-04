@@ -9,6 +9,7 @@ import { isUniqueViolation } from "@/lib/supabase/errors";
 import { declineMail, portalInviteMail, sendEmail } from "@/lib/email";
 import { confirmBooking, toMailBooking } from "@/lib/booking-confirm";
 import { supersedeOpenOffers } from "@/lib/offers";
+import { DIRECT_CHANNELS } from "@/lib/direct-channels";
 import { PACKAGES, PICKUP_OPTIONS, PRODUCT_LABELS, normalizeAccess, type DeviceKey, type PickupId } from "@/lib/catalog";
 
 export interface InquiryActionResult {
@@ -96,6 +97,8 @@ export interface AdminPackageBookingInput {
   pickup: string;
   access: { level: string; help: string | null } | null;
   note: string;
+  /** Woher kommt die Buchung (WhatsApp, Telefon, Empfehlung …) – für die Statistik. */
+  channel: string;
   /** Bestandsbuchung: Mietvertrag liegt schon vor (Papier/PDF) – kein digitaler Vertrag. */
   contractOnFile?: boolean;
   /** Sofort bestätigen, aber noch keine Mail – Portal-Zugang später per Knopf senden. */
@@ -134,7 +137,7 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
     message: str(raw.note, 3000) || null,
     access: normalizeAccess(raw.access, products),
     pickup: PICKUP_OPTIONS.some((o) => o.id === raw.pickup) ? (raw.pickup as PickupId) : null,
-    source: { source: "Admin", medium: "direkt angelegt" },
+    source: { source: "Admin", medium: "direkt angelegt", channel: DIRECT_CHANNELS.some((c) => c.id === raw.channel) ? raw.channel : "sonstiges" },
     layoutDraft: null,
     offer: (() => {
       const o = raw.offer;
@@ -150,6 +153,7 @@ export async function createAdminPackageBooking(raw: AdminPackageBookingInput): 
     })(),
   };
 
+  if (!DIRECT_CHANNELS.some((c) => c.id === raw.channel)) return { error: "Bitte angeben, woher die Buchung kommt." };
   if (!input.name) return { error: "Bitte den Namen angeben." };
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(input.email)) return { error: "Bitte eine gültige E-Mail-Adresse angeben." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(eventDate)) return { error: "Bitte das Datum angeben." };

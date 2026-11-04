@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { DIRECT_CHANNELS } from "@/lib/direct-channels";
 import { useRouter } from "next/navigation";
 import catalogData from "@/lib/catalog-data.json";
 import { createAdminPackageBooking } from "@/app/actions/admin-inquiries";
@@ -127,6 +128,7 @@ export function PackageBookingForm() {
         pickup: delivered ? pickup : "",
         access,
         note: String(fd.get("note") ?? ""),
+        channel: String(fd.get("channel") ?? ""),
         offer,
         contractOnFile,
         confirmSilently,
@@ -154,6 +156,13 @@ export function PackageBookingForm() {
         <label><span className={label}>{biz ? "Ansprechpartner *" : "Name *"}</span><input name="name" className="input-field" required /></label>
         <label><span className={label}>E-Mail *</span><input name="email" type="email" className="input-field" required /></label>
         <label><span className={label}>Telefon</span><input name="phone" className="input-field" /></label>
+        <label>
+          <span className={label}>Woher kommt die Buchung? *</span>
+          <select name="channel" className="input-field" required defaultValue="">
+            <option value="" disabled>Bitte wählen …</option>
+            {DIRECT_CHANNELS.map((c) => <option key={c.id} value={c.id}>{c.label}</option>)}
+          </select>
+        </label>
         <label>
           <span className={label}>Anlass</span>
           <select name="occasion" className="input-field">{ANLAESSE[typ].map((a) => <option key={a}>{a}</option>)}</select>
