@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import Link from "next/link";
 import QRCode from "qrcode";
 import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
@@ -54,9 +55,7 @@ export default async function VisionBoothHome() {
       <div className="vb-aurora" aria-hidden />
 
       <nav className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
-        <span className="vb-display text-xl font-semibold">
-          Vision<span className="vb-gold-text">Booth</span>
-        </span>
+        <VbLogo height={40} />
         <div className="flex items-center gap-2">
           <a href="/vb/demo" className="hidden rounded-full px-4 py-2 text-sm font-semibold text-white/80 hover:text-white sm:inline-block">
             Live-Demo
@@ -266,6 +265,7 @@ export default async function VisionBoothHome() {
       </section>
 
       <footer className="relative border-t border-white/10 px-5 py-8 text-center text-[13px] text-white/45">
+        <VbLogo variant="logo" height={88} className="mx-auto mb-4 opacity-90" />
         <p>VisionBooth ist ein Angebot von Event Vision Media · {LANDLORD.phone} · {LANDLORD.email}</p>
         <p className="mt-2 space-x-4">
           <a href="https://fotobox-essen.com/impressum.html" className="hover:text-white">Impressum</a>

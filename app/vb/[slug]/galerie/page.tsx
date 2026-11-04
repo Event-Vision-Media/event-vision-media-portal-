@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, toGuestEvent, vbClosedReason } from "@/lib/visionbooth";
 import { Gallery } from "@/components/visionbooth/Gallery";
@@ -19,7 +20,7 @@ export default async function VisionBoothGalleryPage(props: { params: Promise<{ 
   if (!event || !event.gallery_enabled || event.status === "entwurf") {
     return (
       <main className="flex min-h-[100dvh] flex-col items-center justify-center bg-[#0d0d0f] px-6 text-center text-white">
-        <p className="font-serif text-3xl text-gold-300">VisionBooth</p>
+        <VbLogo variant="logo" height={110} />
         <p className="mt-4 max-w-xs text-sm text-white/70">Diese Galerie ist nicht verfügbar.</p>
       </main>
     );

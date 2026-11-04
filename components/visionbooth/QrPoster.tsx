@@ -1,4 +1,5 @@
 import QRCode from "qrcode";
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { vbGuestUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 import { PrintButton } from "@/components/admin/visionbooth/PrintButton";
@@ -85,7 +86,10 @@ export async function QrPoster({ event }: { event: VbEvent }) {
             <li><span className="block text-[16pt]" style={{ color: accent, fontFamily: FONT_VAR.display }}>3</span>Speichern &amp; teilen – ganz ohne App</li>
           </ol>
           <p className="mt-[5mm] text-[8pt] opacity-70" style={{ color: sub }}>{guestUrl.replace(/^https?:\/\//, "")}</p>
-          <p className="mt-[1mm] text-[7pt] uppercase tracking-[0.25em] opacity-60" style={{ color: sub }}>VisionBooth by Event Vision Media</p>
+          <p className="mt-[1mm] flex items-center justify-center gap-[1.5mm] text-[7pt] uppercase tracking-[0.25em] opacity-70" style={{ color: sub }}>
+            <VbLogo variant="symbol" height="4.5mm" />
+            VisionBooth by Event Vision Media
+          </p>
         </div>
       </section>
       </PosterScale>

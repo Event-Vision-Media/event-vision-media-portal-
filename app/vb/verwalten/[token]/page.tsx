@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
@@ -86,7 +87,10 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
       <header className="vb relative overflow-hidden" style={{ ["--a" as string]: event.accent_color, minHeight: 0 }}>
         <div className="vb-aurora" style={{ position: "absolute" }} aria-hidden />
         <div className="relative mx-auto max-w-4xl px-5 pb-12 pt-8" style={{ paddingTop: "max(2rem, calc(env(safe-area-inset-top) + 1rem))" }}>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">VisionBooth · Dein Bereich</p>
+          <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">
+            <VbLogo height={26} />
+            <span>· Dein Bereich</span>
+          </p>
           <h1 className="vb-display vb-gold-text mt-3 text-4xl font-semibold leading-tight">{event.frame_text || event.title}</h1>
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/75">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status === "Live" ? "bg-emerald-500/20 text-emerald-200" : "bg-white/10 text-white/80"}`}>{status}</span>

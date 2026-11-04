@@ -1,5 +1,6 @@
 "use client";
 
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   CELL_H,
@@ -598,7 +599,9 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             {event.logoUrl ? (
               <img src={event.logoUrl} alt="" className="vb-in mb-7 max-h-20 max-w-[60%] object-contain" />
             ) : (
-              <span className="vb-in vb-glass mb-7 rounded-full px-4 py-1.5 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/75">VisionBooth</span>
+              <span className="vb-in vb-glass mb-7 rounded-full px-4 py-2">
+                <VbLogo height={16} style={{ opacity: 0.9 }} />
+              </span>
             )}
             <h1 className="vb-in vb-display vb-gold-text text-[2.6rem] font-semibold leading-[1.08]" style={{ animationDelay: "80ms" }}>
               {event.frameText}

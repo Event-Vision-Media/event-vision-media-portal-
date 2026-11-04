@@ -1,5 +1,6 @@
 "use client";
 
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { useEffect, useRef, useState } from "react";
 import { onAccent } from "./frame";
 import { pct, useRevealState } from "./RevealGame";
@@ -272,7 +273,7 @@ export function LiveWall({
         ) : (
           <div />
         )}
-        <p className="text-[0.75vw] tracking-[0.35em] text-white/30">VISIONBOOTH</p>
+        <VbLogo height="1.7vw" style={{ opacity: 0.45 }} />
       </aside>
 
       {bigReveal && reveal?.result && event.reveal && (() => {

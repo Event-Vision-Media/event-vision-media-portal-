@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VbLogo } from "@/components/visionbooth/VbLogo";
 import Link from "next/link";
 import { BookingFlow } from "@/components/visionbooth/site/BookingFlow";
 import { VB_PLANS, type VbPlanId } from "@/components/visionbooth/packages";
@@ -17,8 +18,8 @@ export default async function VisionBoothBookingPage(props: { searchParams: Prom
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
       <div className="vb-aurora" aria-hidden />
       <nav className="relative mx-auto flex max-w-xl items-center justify-between px-5 py-5">
-        <Link href="/vb" className="vb-display text-xl font-semibold">
-          Vision<span className="vb-gold-text">Booth</span>
+        <Link href="/vb" aria-label="VisionBooth – Startseite">
+          <VbLogo height={36} />
         </Link>
         <Link href="/vb" className="text-sm text-white/55 hover:text-white">
           ✕ Abbrechen
