@@ -4,7 +4,7 @@ import { VB_CONSENT_START, VB_LEGAL_VERSION } from "@/lib/vb-legal";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckout, stripeReady, type VbOrder } from "@/lib/visionbooth-shop";
-import { defaultGames, getOccasion, getPlan, VB_PLANS, type VbGames } from "@/components/visionbooth/packages";
+import { defaultGames, getOccasion, getPlan, relevantGames, VB_PLANS, type VbGames } from "@/components/visionbooth/packages";
 import { templatesFor } from "@/components/visionbooth/templates";
 
 export interface VbShopResult {
@@ -37,7 +37,9 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
   let games: VbGames = defaultGames(plan.id, occ.id);
   try {
     const g = JSON.parse(String(formData.get("games") ?? "{}"));
-    games = { missions: g.missions === true, reveal: g.reveal === true, leads: g.leads === true && plan.firma };
+    // nur Spiele, die zum Anlass passen
+    const fit = relevantGames(occ.id, plan.id);
+    games = { missions: g.missions === true && fit.missions, reveal: g.reveal === true && fit.reveal, leads: g.leads === true && plan.firma && fit.leads };
   } catch {
     /* Vorauswahl behalten */
   }

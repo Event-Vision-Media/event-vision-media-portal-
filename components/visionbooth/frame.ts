@@ -453,7 +453,7 @@ function drawArt(ctx: CanvasRenderingContext2D, t: VbTemplate, layer: ArtLayer, 
   });
   const ov = artImg(layer.overlay);
   if (ov) ctx.drawImage(ov, 0, 0, W, H);
-  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin" }, layer.hideSub ? { ...o, subtext: undefined } : o, layer.text, { creditY: layer.creditY });
+  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin", ink: layer.ink ?? t.ink }, layer.hideSub ? { ...o, subtext: undefined } : o, layer.text, { creditY: layer.creditY });
 }
 
 export function drawFrame(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, sw: number, sh: number, o: FrameOptions) {

@@ -9,7 +9,8 @@ import {
   onArtReady,
   type VbFonts,
 } from "@/components/visionbooth/frame";
-import { VB_TEMPLATES } from "@/components/visionbooth/templates";
+import { templatesFor, VB_TEMPLATES, type VbTemplate } from "@/components/visionbooth/templates";
+import { getOccasion, VB_OCCASIONS, type VbOccasionId } from "@/components/visionbooth/packages";
 
 /** Beispielfoto für die Vorschau (gezeichnet, keine echten Personen). */
 function samplePhoto(): HTMLCanvasElement {
@@ -48,6 +49,8 @@ interface Props {
   subtext: string;
   accent: string;
   logoUrl: string | null;
+  /** Anlass des Events – passende Designs stehen dann oben. */
+  occasion?: string | null;
 }
 
 /** Vorlagen-Galerie mit kleinen Vorschaubildern und große Live-Vorschau des Einzelfotos. */
@@ -58,6 +61,7 @@ export function VbDesignPicker({
   subtext,
   accent,
   logoUrl,
+  occasion,
 }: Props) {
   const bigRef = useRef<HTMLCanvasElement>(null);
   const thumbsRef = useRef<Record<string, HTMLCanvasElement | null>>({});
@@ -119,20 +123,17 @@ export function VbDesignPicker({
   return (
     <div ref={wrapRef} className="grid gap-5 sm:grid-cols-[1fr_200px]">
       <div className="space-y-5">
-        {(
-          [
-            [
-              "Gestaltete Designs",
-              "Fertig gestaltet – ihr ändert Text und Textfarbe.",
-              VB_TEMPLATES.filter((t) => t.art),
-            ],
-            [
-              "Schlicht & anpassbar",
-              "Farbe, Text und Logo frei einstellbar.",
-              VB_TEMPLATES.filter((t) => !t.art),
-            ],
-          ] as const
-        ).map(([title, hint, list]) => (
+        {(() => {
+          const fit = occasion && VB_OCCASIONS.some((o) => o.id === occasion) ? templatesFor(occasion as VbOccasionId, getOccasion(occasion).template) : [];
+          const fitIds = new Set(fit.map((t) => t.id));
+          const rest = VB_TEMPLATES.filter((t) => !fitIds.has(t.id));
+          const groups: [string, string, VbTemplate[]][] = [
+            ["Passend zu eurem Anlass", "Unsere Empfehlungen für euer Event.", fit],
+            [fit.length ? "Weitere gestaltete Designs" : "Gestaltete Designs", "Fertig gestaltet – ihr ändert Text und Textfarbe.", rest.filter((t) => t.art)],
+            ["Schlicht & anpassbar", "Farbe, Text und Logo frei einstellbar.", rest.filter((t) => !t.art)],
+          ];
+          return groups.filter(([, , list]) => list.length);
+        })().map(([title, hint, list]) => (
           <div key={title}>
             <p className="text-sm font-semibold text-anthracite-800">{title}</p>
             <p className="mb-2 text-xs text-anthracite-400">{hint}</p>

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -135,9 +136,28 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
             <div className="mx-auto w-40 rounded-2xl border border-anthracite-100 bg-white p-3" dangerouslySetInnerHTML={{ __html: qrSvg }} />
           </div>
           {event.wall_enabled && (
-            <p className="mt-4 text-xs text-anthracite-500">
-              Tipp: Die Foto-Wand am Laptop öffnen, mit Beamer oder TV verbinden und mit F11 bzw. ⌃⌘F auf Vollbild schalten – neue Fotos erscheinen automatisch.
-            </p>
+            <details className="group mt-5 rounded-2xl border border-anthracite-100 bg-sand-50/60 p-4 text-sm text-anthracite-600" open>
+              <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-anthracite-800">
+                📺 Foto-Wand auf dem Fernseher zeigen – so geht&apos;s
+                <span className="ml-auto text-xs font-normal text-anthracite-400 group-open:hidden">anzeigen</span>
+              </summary>
+              <p className="mt-2 leading-relaxed">{WALL_INFO.intro}</p>
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Link zur Foto-Wand</p>
+                <CopyField value={`${guestUrl}/wall`} />
+              </div>
+              <ol className="mt-3 space-y-2">
+                {WALL_INFO.ways.map((w, i) => (
+                  <li key={w.title} className="flex gap-2">
+                    <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-anthracite-900 text-[11px] font-bold text-white">{i + 1}</span>
+                    <span>
+                      <strong className="text-anthracite-800">{w.title}:</strong> {w.text}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-xs text-anthracite-500">Neue Fotos erscheinen automatisch – niemand muss etwas bedienen. Tipp: Vorher einmal kurz testen, ob der Fernseher den Link öffnet.</p>
+            </details>
           )}
         </section>
 
@@ -160,6 +180,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
                   galleryEnabled: event.gallery_enabled,
                   guestUploads: event.guest_uploads !== false,
                   wallEnabled: event.wall_enabled,
+                  occasion: event.occasion,
                 }}
               />
             )}
@@ -170,7 +191,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
         {(() => {
           const missions = (n: number) => (
             <section key="m" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand." />
+              <Step n={n} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen in der Bestenliste und auf der Foto-Wand." how={GAME_HOW.missions} />
               <div className="mt-5">
                 {deleted ? (
                   <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
@@ -182,7 +203,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           );
           const reveal = (n: number) => (
             <section key="r" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." />
+              <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." how={GAME_HOW.reveal} />
               <div className="mt-5">
                 <VbRevealEditor action={updateVbReveal.bind(null, params.token)} initial={parseReveal(event.reveal)} counts={tips} />
               </div>
@@ -190,7 +211,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           );
           const leads = (n: number) => (
             <section key="l" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." />
+              <Step n={n} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." how={GAME_HOW.leads} />
               <div className="mt-5">
                 <VbLeadsEditor action={updateVbLeads.bind(null, params.token)} initial={parseLeadConfig(event.leads)} count={leadCount} csvUrl={`/api/vb/verwalten/${params.token}/kontakte`} />
               </div>
@@ -257,13 +278,23 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   );
 }
 
-function Step({ n, title, hint }: { n: number; title: string; hint: string }) {
+function Step({ n, title, hint, how }: { n: number; title: string; hint: string; how?: { title: string; steps: string[] } }) {
   return (
     <div className="flex items-start gap-3">
       <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-anthracite-900 text-sm font-bold text-white">{n || "★"}</span>
-      <div>
+      <div className="min-w-0 flex-1">
         <h2 className="font-serif text-xl font-semibold text-anthracite-800">{title}</h2>
         <p className="mt-0.5 text-sm text-anthracite-500">{hint}</p>
+        {how && (
+          <details className="mt-2 text-sm">
+            <summary className="cursor-pointer text-xs font-semibold text-gold-700 underline underline-offset-2">So funktioniert&apos;s</summary>
+            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-anthracite-600">
+              {how.steps.map((st) => (
+                <li key={st}>{st}</li>
+              ))}
+            </ol>
+          </details>
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
 import { IconTile, OccasionIcon, type LineIconName } from "./OccasionIcon";
+import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, onArtReady, type VbFonts } from "@/components/visionbooth/frame";
-import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { defaultGames, getOccasion, getPlan, relevantGames, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 import { getTemplate, templatesFor } from "@/components/visionbooth/templates";
 import { VB_CONSENT_START } from "@/components/visionbooth/consent";
 
@@ -59,6 +60,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
     top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
   const p = plan ? getPlan(plan) : null;
+  const fitGames = relevantGames(occasion, plan);
   const firma = Boolean(p?.firma) || occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
   const today = new Date().toISOString().slice(0, 10);
   const detailsOk = frameText.trim().length > 0 && date >= today && name.trim().length > 1 && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email);
@@ -162,32 +164,53 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           <h1 className="vb-display text-3xl font-semibold">Spiele &amp; Extras</h1>
           <p className="mt-1 text-white/60">Was zu {getOccasion(occasion).label} passt, ist schon ausgewählt – alles später im Kundenbereich änderbar.</p>
           <div className="mt-6 space-y-3">
-            <GameToggle
-              on={games.missions}
-              onChange={(v) => setGames({ ...games, missions: v })}
-              icon="target"
-              title="Foto-Missionen & Bestenliste"
-              text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand."
-            />
-            {!["kindergeburtstag", "firma", "weihnachtsfeier", "messe"].includes(occasion) && (
-            <GameToggle
-              on={games.reveal}
-              onChange={(v) => setGames({ ...games, reveal: v })}
-              icon="babyparty"
-              title="Gender-Reveal-Tippspiel"
-              text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
-            />
+            {fitGames.missions && (
+              <GameToggle
+                on={games.missions}
+                onChange={(v) => setGames({ ...games, missions: v })}
+                icon="target"
+                title="Foto-Missionen & Bestenliste"
+                text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen in der Bestenliste."
+                how={GAME_HOW.missions}
+              />
             )}
-            {p.firma && (
+            {fitGames.reveal && (
+              <GameToggle
+                on={games.reveal}
+                onChange={(v) => setGames({ ...games, reveal: v })}
+                icon="babyparty"
+                title="Gender-Reveal-Tippspiel"
+                text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
+                how={GAME_HOW.reveal}
+              />
+            )}
+            {fitGames.leads && p.firma && (
               <GameToggle
                 on={games.leads}
                 onChange={(v) => setGames({ ...games, leads: v })}
                 icon="gift"
                 title="Gewinnspiel / Kontaktformular"
                 text="Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV."
+                how={GAME_HOW.leads}
               />
             )}
           </div>
+          <details className="vb-glass group mt-4 rounded-2xl p-4 text-[13px] text-white/70">
+            <summary className="flex cursor-pointer list-none items-center gap-3 text-[14px] font-semibold text-white">
+              <OccasionIcon id="tv" className="h-5 w-5 flex-none text-[color:var(--a)]" />
+              {WALL_INFO.title}
+              <span className="ml-auto text-xs font-normal text-white/50 group-open:hidden">Mehr erfahren</span>
+            </summary>
+            <p className="mt-3 leading-relaxed">{WALL_INFO.intro}</p>
+            <ul className="mt-3 space-y-2">
+              {WALL_INFO.ways.map((w) => (
+                <li key={w.title}>
+                  <strong className="text-white">{w.title}:</strong> {w.text}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-white/50">{WALL_INFO.note}</p>
+          </details>
           <button type="button" onClick={() => go(3)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold">
             Weiter
           </button>
@@ -265,7 +288,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <Row label="Anlass" value={`${getOccasion(occasion).label} · Design ${getTemplate(design ?? getOccasion(occasion).template).name}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
-              value={[games?.missions && "Missionen", games?.reveal && "Tippspiel", games?.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              value={[games?.missions && fitGames.missions && "Missionen", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
               onEdit={() => go(2)}
             />
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
@@ -425,21 +448,32 @@ function FramePreview({ occasion, template, text, date }: { occasion: VbOccasion
   );
 }
 
-function GameToggle({ on, onChange, icon, title, text }: { on: boolean; onChange: (v: boolean) => void; icon: LineIconName; title: string; text: string }) {
+function GameToggle({ on, onChange, icon, title, text, how }: { on: boolean; onChange: (v: boolean) => void; icon: LineIconName; title: string; text: string; how?: { title: string; steps: string[] } }) {
+  const [open, setOpen] = useState(false);
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!on)}
-      aria-pressed={on}
-      className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition active:scale-[0.99] ${on ? "ring-2" : "vb-glass"}`}
-      style={on ? { background: "color-mix(in srgb, var(--a) 14%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
-    >
-      <IconTile id={icon} on={on} />
-      <span className="flex-1">
-        <span className="block text-[15px] font-bold">{title}</span>
-        <span className="mt-0.5 block text-[13px] leading-snug text-white/60">{text}</span>
-      </span>
-      <span className="vb-switch" data-on={on} />
-    </button>
+    <div className={`rounded-2xl transition ${on ? "ring-2" : "vb-glass"}`} style={on ? { background: "color-mix(in srgb, var(--a) 14%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
+      <button type="button" onClick={() => onChange(!on)} aria-pressed={on} className="flex w-full items-center gap-4 p-4 pb-2 text-left active:scale-[0.99]">
+        <IconTile id={icon} on={on} />
+        <span className="flex-1">
+          <span className="block text-[15px] font-bold">{title}</span>
+          <span className="mt-0.5 block text-[13px] leading-snug text-white/60">{text}</span>
+        </span>
+        <span className="vb-switch" data-on={on} />
+      </button>
+      {how && (
+        <div className="px-4 pb-3 pl-[76px]">
+          <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="text-[12px] font-semibold text-white/55 underline underline-offset-2 hover:text-white">
+            {open ? "Weniger anzeigen" : "So funktioniert's"}
+          </button>
+          {open && (
+            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[12.5px] leading-snug text-white/70">
+              {how.steps.map((st) => (
+                <li key={st}>{st}</li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
   );
 }

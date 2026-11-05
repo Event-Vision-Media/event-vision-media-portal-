@@ -16,6 +16,7 @@ interface Values {
   galleryEnabled: boolean;
   guestUploads: boolean;
   wallEnabled: boolean;
+  occasion?: string | null;
 }
 
 function Submit() {
@@ -90,6 +91,7 @@ export function VbCustomerDesignForm({ action, initial }: { action: (prev: VbCus
           subtext={subtext}
           accent={/^#[0-9a-f]{6}$/i.test(accent) ? accent : "#c4933f"}
           logoUrl={logoPreview}
+          occasion={initial.occasion}
         />
       </div>
 

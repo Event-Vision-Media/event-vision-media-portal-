@@ -24,6 +24,8 @@ export interface ArtLayer {
   creditY?: number;
   /** Unterzeile (Datum) weglassen, wenn sie auf einer Verzierung landen würde */
   hideSub?: boolean;
+  /** Feste Titelfarbe für diese Ebene (z. B. dunkel auf goldenem Banner) statt Akzentfarbe */
+  ink?: string;
 }
 
 export interface VbTemplate {
@@ -319,6 +321,22 @@ export const VB_TEMPLATES: VbTemplate[] = [
 function kid(id: string, name: string, accent: string, bg: string, ink: string, sub: string, titleFont: FontRole, titleWeight: number, stickers: [string, string, string, string], pattern: "dots" | "stars", titleUpper = false): VbTemplate {
   return { id, name, occasions: "Kindergeburtstag", accent, bg, ink, sub, titleFont, titleWeight, titleUpper, titleSize: titleFont === "script" ? 84 : 66, subFont: "ui", subUpper: true, photo: "rounded", decor: "sticker", stickers, pattern, group: "kinder" };
 }
+
+
+/** Fotostreifen der gestalteten Einzelfoto-Designs (aus deren Look erstellt, 1080×2400). */
+const ART_STRIPS: Record<string, ArtLayer> = {
+  "botanisch": { ...artLayer("botanisch", "strip", [{ x: 80, y: 73, w: 921, h: 605 }, { x: 80, y: 711, w: 921, h: 606 }, { x: 80, y: 1351, w: 921, h: 605 }], { x: 300, y: 1948, w: 480, h: 200 }), creditY: 2380 },
+  "bunt-ballons": { ...artLayer("bunt-ballons", "strip", [{ x: 93, y: 89, w: 894, h: 579 }, { x: 92, y: 724, w: 895, h: 581 }, { x: 92, y: 1362, w: 896, h: 581 }], { x: 150, y: 2010, w: 780, h: 230 }) },
+  "champagner": { ...artLayer("champagner", "strip", [{ x: 156, y: 149, w: 758, h: 528 }, { x: 80, y: 711, w: 920, h: 605 }, { x: 81, y: 1353, w: 919, h: 603 }], { x: 260, y: 1878, w: 560, h: 120 }), creditY: 2380, hideSub: true },
+  "dino-dschungel": { ...artLayer("dino-dschungel", "strip", [{ x: 86, y: 86, w: 906, h: 583 }, { x: 86, y: 724, w: 906, h: 583 }, { x: 86, y: 1366, w: 906, h: 583 }], { x: 240, y: 2033, w: 620, h: 120 }), creditY: 2380, hideSub: true },
+  "eukalyptus": { ...artLayer("eukalyptus", "strip", [{ x: 85, y: 82, w: 910, h: 589 }, { x: 85, y: 721, w: 911, h: 589 }, { x: 84, y: 1359, w: 912, h: 588 }], { x: 280, y: 2050, w: 480, h: 150 }), creditY: 2236 },
+  "feuerwehr-comic": { ...artLayer("feuerwehr-comic", "strip", [{ x: 81, y: 184, w: 927, h: 521 }, { x: 51, y: 803, w: 957, h: 527 }, { x: 81, y: 1395, w: 918, h: 563 }], { x: 200, y: 2117, w: 680, h: 180 }), creditY: 2390 },
+  "kreide": { ...artLayer("kreide", "strip", [{ x: 79, y: 89, w: 901, h: 573 }, { x: 100, y: 728, w: 879, h: 571 }, { x: 79, y: 1368, w: 901, h: 571 }], { x: 260, y: 2063, w: 560, h: 120 }), creditY: 2380, hideSub: true },
+  "neon-geburtstag": { ...artLayer("neon-geburtstag", "strip", [{ x: 98, y: 198, w: 884, h: 443 }, { x: 98, y: 745, w: 887, h: 535 }, { x: 100, y: 1388, w: 881, h: 530 }], { x: 230, y: 1990, w: 620, h: 200 }) },
+  "prinzessin-schloss": { ...artLayer("prinzessin-schloss", "strip", [{ x: 96, y: 90, w: 888, h: 580 }, { x: 96, y: 729, w: 888, h: 580 }, { x: 113, y: 1367, w: 871, h: 581 }], { x: 230, y: 2012, w: 620, h: 130 }), creditY: 2393, hideSub: true },
+  "schwarz-gold": { ...artLayer("schwarz-gold", "strip", [{ x: 86, y: 80, w: 908, h: 588 }, { x: 86, y: 718, w: 908, h: 590 }, { x: 87, y: 1359, w: 906, h: 589 }], { x: 280, y: 2038, w: 520, h: 120 }), creditY: 2380, ink: "#3a2a10", hideSub: true },
+};
+for (const t of VB_TEMPLATES) if (t.art && !t.art.strip && ART_STRIPS[t.id]) t.art.strip = ART_STRIPS[t.id];
 
 export const DEFAULT_TEMPLATE = "elegant-gold";
 
