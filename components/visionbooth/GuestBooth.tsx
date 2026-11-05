@@ -58,6 +58,8 @@ interface GuestEvent {
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
   wheel?: string[] | null;
+  /** Probefoto des Gastgebers: nichts wird gespeichert */
+  probe?: boolean;
 }
 
 type Format = "einzel" | "streifen";
@@ -607,6 +609,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       <div className="vb-aurora" aria-hidden />
       <input ref={fileRef} type="file" accept="image/*" capture="user" className="hidden" onChange={(e) => fromFile(e.target.files?.[0])} />
       {confetti > 0 && <Confetti key={confetti} />}
+      {event.probe && (
+        <div className="relative z-20 mx-auto mt-3 w-[calc(100%-2rem)] max-w-sm rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 text-center text-[12.5px] leading-snug text-white/85 backdrop-blur">
+          <strong className="text-white">Probefoto-Modus</strong> – so sehen es eure Gäste. Probefotos werden nicht gespeichert; KI und Spiele mit Punkten gibt&apos;s erst am Event.
+        </div>
+      )}
 
       {step === "start" && (
         <section className="relative mx-auto flex w-full max-w-sm flex-1 flex-col px-6 pb-6 pt-10 text-center">

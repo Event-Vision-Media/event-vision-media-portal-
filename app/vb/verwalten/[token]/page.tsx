@@ -5,7 +5,7 @@ import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
+import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, vbProbeKey, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal, updateVbWheel } from "@/app/actions/vb-customer";
 import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
@@ -71,6 +71,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, kind: p.kind, style: p.style, hidden: p.hidden, createdAt: p.created_at, url: url.get(p.thumb_path || p.file_path) ?? "", full: url.get(p.file_path) ?? "" }));
 
   const guestUrl = vbGuestUrl(event.slug);
+  const probeKey = vbProbeKey(params.token);
   const qrSvg = await QRCode.toString(guestUrl, { type: "svg", margin: 1 });
   const closed = vbClosedReason(event);
   const t = getTemplate(event.template ?? event.frame_style);
@@ -85,6 +86,17 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
     !deleted && (fit.leads || parseLeadConfig(event.leads).enabled),
     !deleted && (fit.reveal || parseReveal(event.reveal).enabled),
   ].filter(Boolean).length;
+  // Vorfreude: Countdown bis zum Event (Berliner Datum)
+  const todayBerlin = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+  const daysToEvent = event.event_date ? Math.round((Date.parse(event.event_date) - Date.parse(todayBerlin)) / 86400000) : null;
+  const countdown =
+    deleted || daysToEvent === null || daysToEvent < 0
+      ? null
+      : daysToEvent === 0
+        ? "🎉 Heute ist euer Event – viel Spaß!"
+        : daysToEvent === 1
+          ? "🎉 Morgen ist es so weit!"
+          : `🎉 Noch ${daysToEvent} Tage bis zu eurem Event`;
   const status = deleted ? "Abgeschlossen" : closed ? (closed.includes("öffnet") ? "Startet bald" : closed.includes("noch nicht") ? "In Vorbereitung" : "Beendet") : "Live";
 
   return (
@@ -100,6 +112,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm text-white/75">
             <span className={`rounded-full px-3 py-1 text-xs font-semibold ${status === "Live" ? "bg-emerald-500/20 text-emerald-200" : "bg-white/10 text-white/80"}`}>{status}</span>
             {event.event_date && <span>Event am {fmtDate(event.event_date)}</span>}
+            {countdown && <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">{countdown}</span>}
             {event.opens_at && event.closes_at && <span>· Gäste-Link aktiv {fmtDate(event.opens_at)} – {fmtDate(event.closes_at)}</span>}
           </div>
           {!deleted && <VbAppBar token={params.token} />}
@@ -154,6 +167,22 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
               />
             )}
           </div>
+          {!deleted && (
+            <a
+              href={`/vb/${event.slug}?probe=${probeKey}`}
+              target="_blank"
+              className="mt-6 flex items-center gap-4 rounded-2xl border border-gold-200 bg-gradient-to-br from-white to-gold-50 p-4 transition hover:border-gold-400"
+            >
+              <span className="flex h-11 w-11 flex-none items-center justify-center rounded-xl bg-anthracite-900 text-xl" aria-hidden>
+                📸
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block font-semibold text-anthracite-800">Probefoto machen</span>
+                <span className="block text-sm text-anthracite-500">Erlebt eure VisionBooth genau so wie eure Gäste – am besten auf dem Handy. Wird nicht gespeichert.</span>
+              </span>
+              <span className="text-xl text-anthracite-400">›</span>
+            </a>
+          )}
         </section>
 
         {/* Spiele: passend zum Anlass oben, der Rest eingeklappt */}
@@ -249,7 +278,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
                     Foto-Wand öffnen
                   </a>
                 )}
-                <a href={`/vb/${event.slug}`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
+                <a href={`/vb/${event.slug}?probe=${probeKey}`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
                   Selbst ausprobieren
                 </a>
               </div>

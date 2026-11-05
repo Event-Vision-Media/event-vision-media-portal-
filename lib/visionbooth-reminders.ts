@@ -1,7 +1,8 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail, vbAfterMail, vbBeforeMail, vbDeletionMail } from "@/lib/email";
-import { vbDeleteAfter, vbGuestUrl, vbManageUrl, type VbEvent } from "@/lib/visionbooth";
+import { sendEmail, vbAfterMail, vbBeforeMail, vbDeletionMail, type VbHighlights } from "@/lib/email";
+import { vbBoard } from "@/lib/visionbooth-board";
+import { vbDeleteAfter, vbGuestUrl, vbManageUrl, VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 
 // Erinnerungs-Mails an den Gastgeber (täglicher Cron): je Event höchstens einmal pro Art.
 //   vorher    – 1–7 Tage vor dem Event (nicht, wenn erst in den letzten 2 Tagen gebucht)
@@ -51,7 +52,7 @@ export async function runVbReminders(dryRun = false): Promise<{ event: string; k
       kind === "vorher"
         ? vbBeforeMail({ name: e.contact_name, title, date: e.event_date!, days: untilEvent, manageUrl: vbManageUrl(e.manage_token), posterUrl: `${vbManageUrl(e.manage_token)}/aufsteller` })
         : kind === "danach"
-          ? vbAfterMail({ name: e.contact_name, title, photos, galleryUrl: `${guest}/galerie`, manageUrl: vbManageUrl(e.manage_token), deleteDate })
+          ? vbAfterMail({ name: e.contact_name, title, photos, galleryUrl: `${guest}/galerie`, manageUrl: vbManageUrl(e.manage_token), deleteDate, highlights: await vbHighlights(e) })
           : vbDeletionMail({ name: e.contact_name, title, photos, days: untilDelete, deleteDate, galleryUrl: `${guest}/galerie` });
 
     if (dryRun) {
@@ -66,4 +67,27 @@ export async function runVbReminders(dryRun = false): Promise<{ event: string; k
     out.push({ event: e.slug, kind, to: e.contact_email!, sent: r.sent });
   }
   return out;
+}
+
+/** Highlights fürs „Danke“-Mail: KI-Bilder, Missions-Sieger, Foto des Abends (Link 14 Tage gültig). */
+async function vbHighlights(e: VbEvent): Promise<VbHighlights | undefined> {
+  try {
+    const supabase = createAdminClient();
+    const [{ count: ai }, board, { data: liked }] = await Promise.all([
+      supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", e.id).eq("hidden", false).eq("kind", "ki"),
+      vbBoard(e, null, 1),
+      supabase.from("vb_photos").select("file_path, thumb_path, likes").eq("event_id", e.id).eq("hidden", false).gt("likes", 0).order("likes", { ascending: false }).order("created_at").limit(1),
+    ]);
+    let topPhoto: VbHighlights["topPhoto"] = null;
+    const best = liked?.[0];
+    if (best) {
+      const { data } = await supabase.storage.from(VB_BUCKET).createSignedUrl(best.thumb_path || best.file_path, 60 * 60 * 24 * 14);
+      if (data?.signedUrl) topPhoto = { url: data.signedUrl, likes: best.likes };
+    }
+    const w = board.top[0];
+    return { aiPhotos: ai ?? 0, guests: board.players, winner: w && w.points > 0 ? { name: w.name, points: w.points } : null, topPhoto };
+  } catch (err) {
+    console.error("VisionBooth-Highlights:", err);
+    return undefined;
+  }
 }

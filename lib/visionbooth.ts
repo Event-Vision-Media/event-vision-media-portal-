@@ -1,4 +1,5 @@
 import "server-only";
+import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
@@ -228,4 +229,9 @@ export async function deleteVbPhoto(eventId: string, photoId: string, guestKey?:
   await supabase.storage.from(VB_BUCKET).remove([p.file_path, ...(p.thumb_path ? [p.thumb_path] : [])]);
   const { error } = await supabase.from("vb_photos").delete().eq("id", p.id);
   return !error;
+}
+
+/** Schlüssel für den Probefoto-Link – abgeleitet vom Verwaltungs-Token, gibt aber keinen Zugriff auf den Kundenbereich. */
+export function vbProbeKey(manageToken: string): string {
+  return createHash("sha256").update(`probe:${manageToken}`).digest("hex").slice(0, 20);
 }

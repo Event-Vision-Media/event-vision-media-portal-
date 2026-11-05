@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
-import { loadVbEvent, toGuestEvent, vbClosedReason } from "@/lib/visionbooth";
+import { loadVbEvent, toGuestEvent, vbClosedReason, vbProbeKey } from "@/lib/visionbooth";
 import { GuestBooth } from "@/components/visionbooth/GuestBooth";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +18,13 @@ export const viewport: Viewport = {
   viewportFit: "cover",
 };
 
-export default async function VisionBoothGuestPage(props: { params: Promise<{ slug: string }> }) {
+export default async function VisionBoothGuestPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<{ probe?: string }> }) {
   const params = await props.params;
+  const sp = await props.searchParams;
   const event = await loadVbEvent(params.slug.toLowerCase());
-  const closed = event ? vbClosedReason(event) : "Diese Fotobox gibt es nicht. Bitte prüfe den QR-Code.";
+  // Probefoto für den Gastgeber (Link aus dem Kundenbereich): schon vor dem Event, ohne Speichern und ohne KI
+  const probe = Boolean(event && sp.probe && sp.probe === vbProbeKey(event.manage_token) && event.status !== "entwurf" && !event.photos_deleted_at);
+  const closed = event ? (probe ? null : vbClosedReason(event)) : "Diese Fotobox gibt es nicht. Bitte prüfe den QR-Code.";
 
   if (!event || closed) {
     return (
@@ -32,5 +35,6 @@ export default async function VisionBoothGuestPage(props: { params: Promise<{ sl
     );
   }
 
-  return <GuestBooth event={await toGuestEvent(event)} />;
+  const guest = await toGuestEvent(event);
+  return <GuestBooth event={probe ? { ...guest, aiStyles: [], galleryEnabled: false, leads: null, challenges: [], reveal: null, probe: true } : guest} />;
 }

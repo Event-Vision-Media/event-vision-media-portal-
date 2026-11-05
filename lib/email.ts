@@ -821,19 +821,44 @@ ${vbButton(o.manageUrl, "Meine VisionBooth öffnen")}
 }
 
 /** Tag danach: Danke + Galerie-Link zum Teilen mit den Gästen. */
-export function vbAfterMail(o: { name: string | null; title: string; photos: number; galleryUrl: string; manageUrl: string; deleteDate: string }) {
+export interface VbHighlights {
+  aiPhotos: number;
+  guests: number;
+  winner: { name: string; points: number } | null;
+  topPhoto: { url: string; likes: number } | null;
+}
+
+function vbHighlightsHtml(o: { photos: number; h: VbHighlights }) {
+  const tiles = [
+    [String(o.photos), "Fotos"],
+    ...(o.h.aiPhotos ? [[String(o.h.aiPhotos), "KI-Verwandlungen"]] : []),
+    ...(o.h.guests ? [[String(o.h.guests), "Gäste bei den Missionen"]] : []),
+  ];
+  const cells = tiles
+    .map(([n, l]) => `<td style="padding:10px 6px;text-align:center;background:#faf6ef;border-radius:10px"><div style="font-size:24px;font-weight:700;color:#a87731">${esc(n)}</div><div style="font-size:12px;color:#6f7882">${esc(l)}</div></td>`)
+    .join('<td style="width:8px"></td>');
+  const photo = o.h.topPhoto
+    ? `<p style="margin:20px 0 6px;font-weight:600">❤️ Foto des Abends${o.h.topPhoto.likes > 1 ? ` (${o.h.topPhoto.likes} Herzen)` : ""}</p><img src="${esc(o.h.topPhoto.url)}" alt="Foto des Abends" style="display:block;width:100%;max-width:480px;border-radius:12px" />`
+    : "";
+  const winner = o.h.winner ? `<p style="margin:16px 0 0;line-height:1.6">🏆 <strong>Missions-Sieger:</strong> ${esc(o.h.winner.name)} mit ${o.h.winner.points} Punkten – Glückwunsch!</p>` : "";
+  return `<table role="presentation" style="width:100%;border-collapse:separate;margin:18px 0 4px"><tr>${cells}</tr></table>${winner}${photo}`;
+}
+
+export function vbAfterMail(o: { name: string | null; title: string; photos: number; galleryUrl: string; manageUrl: string; deleteDate: string; highlights?: VbHighlights }) {
   const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const h = o.highlights;
   return {
-    subject: `${o.photos} Fotos von „${o.title}“ warten auf euch 📸`,
+    subject: h ? `Eure Highlights von „${o.title}“ ✨ ${o.photos} Fotos` : `${o.photos} Fotos von „${o.title}“ warten auf euch 📸`,
     html: layout(
       "Danke – was für ein Fest! 💛",
       `<p style="line-height:1.6">${esc(hello)},</p>
-<p style="line-height:1.6">eure Gäste haben <strong>${o.photos} Fotos</strong> in eurer VisionBooth geteilt. Alle Erinnerungen findet ihr an einem Ort – teilt den Galerie-Link gern mit euren Gästen, dort können sie auch eigene Handy-Fotos dazulegen:</p>
+<p style="line-height:1.6">was für ein Fest! Hier sind eure Highlights auf einen Blick:</p>${h ? vbHighlightsHtml({ photos: o.photos, h }) : ""}
+<p style="line-height:1.6;margin-top:20px">Alle Erinnerungen findet ihr an einem Ort – teilt den Galerie-Link gern mit euren Gästen, dort können sie auch eigene Handy-Fotos dazulegen:</p>
 ${vbButton(o.galleryUrl, "Zur Galerie")}
 <p style="line-height:1.6">Tipp: In der Galerie könnt ihr mit „Alle (ZIP)“ alle Fotos auf einmal herunterladen. Die Fotos werden am <strong>${esc(formatDateGerman(o.deleteDate))}</strong> automatisch gelöscht.</p>
 <p style="color:#6f7882;font-size:13px;line-height:1.6">Hat euch die VisionBooth gefallen? Über eine kurze Bewertung freuen wir uns riesig. Fragen: 0176 22748363.</p>`
     ),
-    text: `${hello},\n\neure Gäste haben ${o.photos} Fotos geteilt. Galerie (gern an die Gäste weitergeben): ${o.galleryUrl}\n\nAlle Fotos als ZIP: in der Galerie „Alle (ZIP)“. Automatische Löschung am ${formatDateGerman(o.deleteDate)}.\n\n${BRAND}`,
+    text: `${hello},\n\neure Gäste haben ${o.photos} Fotos geteilt${h?.aiPhotos ? `, davon ${h.aiPhotos} KI-Verwandlungen` : ""}.${h?.winner ? ` Missions-Sieger: ${h.winner.name} (${h.winner.points} Punkte).` : ""} Galerie (gern an die Gäste weitergeben): ${o.galleryUrl}\n\nAlle Fotos als ZIP: in der Galerie „Alle (ZIP)“. Automatische Löschung am ${formatDateGerman(o.deleteDate)}.\n\n${BRAND}`,
   };
 }
 
