@@ -209,3 +209,6 @@ create table if not exists public.vb_push_subs (
 create index if not exists vb_push_subs_event_idx on public.vb_push_subs (event_id);
 alter table public.vb_push_subs enable row level security;
 alter table public.vb_events add column if not exists push_state jsonb not null default '{}'::jsonb;
+
+-- Online-Buchung: Nachweis der Zustimmungen (AGB, sofortiger Leistungsbeginn/Widerruf) mit Zeitpunkt und Textfassung
+alter table public.vb_orders add column if not exists consents jsonb;

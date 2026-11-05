@@ -135,6 +135,7 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     template: order.template,
     games: order.games && Object.keys(order.games).length ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads) } : undefined,
     sendMail: true,
+    order: { plan: getPlan(order.plan).label, price: order.amount_cents / 100, orderNo: order.id.slice(0, 8).toUpperCase() },
   });
   if ("error" in res) {
     await supabase.from("vb_orders").update({ status: "fehler" }).eq("id", order.id);

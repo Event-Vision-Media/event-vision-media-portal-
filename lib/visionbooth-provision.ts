@@ -1,7 +1,7 @@
 import "server-only";
 import { randomInt } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { sendEmail, vbManageMail } from "@/lib/email";
+import { sendEmail, vbManageMail, type VbOrderConfirmation } from "@/lib/email";
 import { vbManageUrl } from "@/lib/visionbooth";
 import { CHALLENGE_SETS } from "@/components/visionbooth/challenges";
 import { defaultGames, getOccasion, getPlan, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
@@ -41,6 +41,8 @@ export interface ProvisionInput {
   bookingId?: string | null;
   /** Kunden-Link gleich per Mail schicken */
   sendMail?: boolean;
+  /** Online-Buchung: Vertragsbestätigung + Widerrufsbelehrung in die Mail */
+  order?: VbOrderConfirmation;
   /** Gewählte Spiele (Online-Buchung); fehlt = Vorauswahl je Paket/Anlass */
   games?: VbGames;
   /** Firma (für den Einwilligungstext des Gewinnspiels) */
@@ -119,7 +121,7 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
   const manageUrl = vbManageUrl(created.manage_token);
   let mailSent = false;
   if (input.sendMail && email) {
-    const mail = vbManageMail({ name: row.contact_name, title: row.frame_text, date, url: manageUrl });
+    const mail = vbManageMail({ name: row.contact_name, title: row.frame_text, date, url: manageUrl, order: input.order });
     mailSent = (await sendEmail({ to: email, ...mail })).sent;
   }
   return { id: created.id, slug: created.slug, manageUrl, mailSent };

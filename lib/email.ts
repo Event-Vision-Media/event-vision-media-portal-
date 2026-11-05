@@ -3,6 +3,7 @@ import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { LANDLORD, NO_DEPOSIT_UP_TO, depositFor } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
+import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
 
 /**
  * E-Mail-Versand über die Resend-API (https://resend.com) – ohne zusätzliche
@@ -718,9 +719,43 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.ki
 }
 
 /** VisionBooth: Verwaltungs-Link für den Kunden (Design, QR-Code, Galerie). */
-export function vbManageMail(o: { name: string | null; title: string; date: string | null; url: string }) {
+/** Online-Buchung: Vertragsbestätigung mit Widerrufsbelehrung (dauerhafter Datenträger, § 312f BGB). */
+export interface VbOrderConfirmation {
+  plan: string;
+  price: number;
+  orderNo: string;
+}
+
+function vbContractBlock(c: VbOrderConfirmation): { html: string; text: string } {
+  const eur = c.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  const para = (t: string) => `<p style="margin:6px 0;line-height:1.5">${esc(t)}</p>`;
+  const sections = VB_WIDERRUF.map((s) => `<p style="margin:14px 0 4px;font-weight:600">${esc(s.title)}</p>${s.blocks.map((b) => (typeof b === "string" ? para(b) : "")).join("")}`).join("");
+  const form = VB_WIDERRUF_FORM.map((l, i) => (i === 0 ? `<p style="margin:14px 0 4px;font-weight:600">${esc(l)}</p>` : para(l))).join("");
+  const html = `<div style="margin-top:26px;padding-top:16px;border-top:1px solid #e4e6e8;font-size:12.5px;color:#4f5761">
+<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1f2227">Deine Buchung (Vertragsbestätigung)</p>
+${para(`Paket „${c.plan}“ · ${eur} (Endpreis, gemäß § 19 UStG ohne Umsatzsteuer) · Bestellnummer ${c.orderNo}`)}
+${para("Wie von dir verlangt, haben wir deine VisionBooth sofort nach der Zahlung eingerichtet – also vor Ablauf der Widerrufsfrist. Bei einem Widerruf zahlst du anteiligen Wertersatz; mit vollständiger Vertragserfüllung erlischt das Widerrufsrecht.")}
+${para(`Es gelten unsere AGB (Stand ${VB_LEGAL_VERSION}): visionbooth.de/vb/agb`)}
+${sections}${form}
+</div>`;
+  const text = `
+
+——
+Deine Buchung (Vertragsbestätigung)
+Paket „${c.plan}“ · ${eur} (Endpreis, gemäß § 19 UStG ohne Umsatzsteuer) · Bestellnummer ${c.orderNo}
+Wie von dir verlangt, haben wir deine VisionBooth sofort nach der Zahlung eingerichtet – also vor Ablauf der Widerrufsfrist. Bei einem Widerruf zahlst du anteiligen Wertersatz; mit vollständiger Vertragserfüllung erlischt das Widerrufsrecht.
+AGB (Stand ${VB_LEGAL_VERSION}): visionbooth.de/vb/agb
+
+${legalText(VB_WIDERRUF)}
+
+${VB_WIDERRUF_FORM.join("\n")}`;
+  return { html, text };
+}
+
+export function vbManageMail(o: { name: string | null; title: string; date: string | null; url: string; order?: VbOrderConfirmation }) {
   const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
   const when = o.date ? ` am <strong>${esc(formatDateGerman(o.date))}</strong>` : "";
+  const contract = o.order ? vbContractBlock(o.order) : { html: "", text: "" };
   return {
     subject: `Deine VisionBooth für „${o.title}“ – ${BRAND}`,
     html: layout(
@@ -733,9 +768,9 @@ export function vbManageMail(o: { name: string | null; title: string; date: stri
 <li>Fotos ansehen, unpassende ausblenden und alles als ZIP herunterladen</li>
 </ul>
 <div style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Meine VisionBooth gestalten</a></div>
-<p style="color:#6f7882;font-size:13px;line-height:1.6">Bitte gib diesen Link nicht weiter – wer ihn hat, kann deine VisionBooth bearbeiten. Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>`
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Bitte gib diesen Link nicht weiter – wer ihn hat, kann deine VisionBooth bearbeiten. Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>${contract.html}`
     ),
-    text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. Hier gestaltest du sie (Vorlage, Text, Logo), druckst den QR-Aufsteller und siehst alle Fotos:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}`,
+    text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. Hier gestaltest du sie (Vorlage, Text, Logo), druckst den QR-Aufsteller und siehst alle Fotos:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}${contract.text}`,
   };
 }
 

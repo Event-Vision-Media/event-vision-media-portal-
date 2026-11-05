@@ -271,6 +271,7 @@ export default async function VisionBoothHome() {
           <a href="https://fotobox-essen.com/impressum.html" className="hover:text-white">Impressum</a>
           <a href="https://fotobox-essen.com/datenschutz.html" className="hover:text-white">Datenschutz</a>
           <a href="/vb/agb" className="hover:text-white">AGB</a>
+          <a href="/vb/widerruf" className="hover:text-white">Widerruf</a>
         </p>
       </footer>
     </main>

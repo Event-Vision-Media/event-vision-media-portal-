@@ -6,6 +6,7 @@ import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
 import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 import { getTemplate, VB_TEMPLATES } from "@/components/visionbooth/templates";
+import { VB_CONSENT_START } from "@/components/visionbooth/consent";
 
 const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", kindergeburtstag: "🎈", babyparty: "🍼", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
 const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", kindergeburtstag: "party", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
@@ -33,7 +34,7 @@ function PayButton({ price }: { price: number }) {
   const { pending } = useFormStatus();
   return (
     <button disabled={pending} className="vb-btn w-full rounded-full py-[18px] text-[17px] font-bold disabled:opacity-60">
-      {pending ? "Bezahlseite wird geöffnet …" : `Jetzt sicher bezahlen · ${euro(price)}`}
+      {pending ? "Bezahlseite wird geöffnet …" : `Zahlungspflichtig buchen · ${euro(price)}`}
     </button>
   );
 }
@@ -299,8 +300,13 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <input type="checkbox" name="agb" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
             <span>
               Ich akzeptiere die <a href="/vb/agb" target="_blank" className="underline underline-offset-2">AGB</a> und habe die{" "}
+              <a href="/vb/widerruf" target="_blank" className="underline underline-offset-2">Widerrufsbelehrung</a> und die{" "}
               <a href="https://fotobox-essen.com/datenschutz.html" target="_blank" className="underline underline-offset-2">Datenschutzhinweise</a> gelesen.
             </span>
+          </label>
+          <label className="mt-3 flex items-start gap-3 text-[13px] leading-snug text-white/70">
+            <input type="checkbox" name="start_now" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
+            <span>{VB_CONSENT_START}</span>
           </label>
           {state.error && <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.error}</p>}
           <div className="mt-5">

@@ -1,5 +1,6 @@
 "use server";
 
+import { VB_CONSENT_START, VB_LEGAL_VERSION } from "@/lib/vb-legal";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckout, stripeReady, type VbOrder } from "@/lib/visionbooth-shop";
@@ -27,6 +28,10 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || date < new Date().toISOString().slice(0, 10)) return { error: "Bitte das Datum eures Events angeben." };
   if (!frameText) return { error: "Bitte einen Text für den Foto-Rahmen angeben." };
   if (formData.get("agb") !== "on") return { error: "Bitte die AGB und die Datenschutzhinweise bestätigen." };
+  if (formData.get("start_now") !== "on") return { error: "Bitte bestätige den sofortigen Start – sonst können wir deine VisionBooth erst nach Ablauf der Widerrufsfrist freischalten." };
+  // Nachweis der Zustimmungen (Zeitpunkt + Fassung der Texte)
+  const now = new Date().toISOString();
+  const consents = { version: VB_LEGAL_VERSION, agb: now, start_now: now, start_now_text: VB_CONSENT_START };
 
   const occ = getOccasion(str(formData, "occasion", 20));
   let games: VbGames = defaultGames(plan.id, occ.id);
@@ -51,6 +56,7 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
       company: str(formData, "company", 120) || null,
       amount_cents: Math.round(plan.price * 100),
       games,
+      consents,
       // Motto nur aus der Kinder-Auswahl übernehmen, sonst Anlass-Vorlage
       template: occ.id === "kindergeburtstag" ? VB_TEMPLATES.find((t) => t.group === "kinder" && t.id === str(formData, "template", 40))?.id ?? null : null,
     })
