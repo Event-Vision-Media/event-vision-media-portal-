@@ -348,7 +348,10 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           </label>
           <label className="mt-3 flex items-start gap-3 text-[13px] leading-snug text-white/70">
             <input type="checkbox" name="start_now" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
-            <span>{VB_CONSENT_START}</span>
+            <span>
+              <strong className="text-white">{VB_CONSENT_START.split(":")[0]}:</strong>
+              {VB_CONSENT_START.slice(VB_CONSENT_START.indexOf(":") + 1)}
+            </span>
           </label>
           {state.error && <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.error}</p>}
           <div className="mt-5">

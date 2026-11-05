@@ -1,4 +1,4 @@
 // Zustimmungstext für den sofortigen Leistungsbeginn (Widerrufsrecht, § 356 Abs. 4 BGB) –
 // im Buchungsablauf angezeigt und mit Zeitpunkt und Version an der Bestellung gespeichert.
 export const VB_CONSENT_START =
-  "Ich verlange ausdrücklich, dass ihr meine VisionBooth sofort nach der Zahlung einrichtet und freischaltet – also vor Ablauf der Widerrufsfrist. Mir ist bekannt, dass ich bei einem Widerruf anteiligen Wertersatz zahle und mein Widerrufsrecht mit vollständiger Vertragserfüllung erlischt.";
+  "Bitte sofort freischalten: Ich möchte, dass ihr meine VisionBooth direkt nach der Zahlung einrichtet – also schon vor Ablauf der 14-tägigen Widerrufsfrist. Mir ist klar, dass mein Widerrufsrecht erlischt, sobald alles vollständig erbracht ist, und dass ich bei einem früheren Widerruf anteilig zahle.";
