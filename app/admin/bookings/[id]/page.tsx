@@ -32,6 +32,7 @@ import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
 import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
 import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
+import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
@@ -257,6 +258,12 @@ export default async function AdminBookingDetailPage(props: {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 border-t border-anthracite-100 pt-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
+                E-Mail-Adresse des Kunden
+              </p>
+              <BookingEmailCell bookingId={booking.id} email={booking.email ?? null} />
+            </div>
             <div>
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
                 Login-Passwort
