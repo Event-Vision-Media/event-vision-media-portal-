@@ -10,6 +10,7 @@ export const GAME_HOW: Record<GameKey, { title: string; steps: string[] }> = {
       "Nach dem Scannen des QR-Codes sehen eure Gäste kleine Foto-Aufgaben – z. B. „Selfie mit dem Brautpaar“ oder „Gruppenfoto mit 5 Leuten“.",
       "Für jedes passende Foto gibt es Punkte. Welche Aufgaben es gibt, könnt ihr nach der Buchung selbst anpassen.",
       "Die Bestenliste sehen alle in der App – und, wenn ihr möchtet, groß auf der Foto-Wand.",
+      "Die Punkte gibt es auf Ehrenwort – die App prüft die Fotos nicht. Unpassende Fotos könnt ihr im Kundenbereich ausblenden, dann zählen die Punkte nicht.",
     ],
   },
   reveal: {

@@ -136,6 +136,7 @@ export function MissionList({
           );
         })}
       </ul>
+      <p className="mt-4 text-center text-[12px] text-white/45">Fair Play: Punkte gibt&apos;s fürs Mitmachen – der Gastgeber sieht alle Fotos 😉</p>
       {done.size === missions.length && missions.length > 0 && (
         <p className="vb-pop mt-4 rounded-2xl bg-white/5 px-4 py-3 text-center text-sm font-semibold">🎉 Alle Missionen geschafft – Respekt!</p>
       )}

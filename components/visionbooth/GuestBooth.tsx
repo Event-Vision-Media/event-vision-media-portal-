@@ -111,6 +111,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   /** Aufgabe vom Foto-Glücksrad (ohne Punkte) – gilt bis zum nächsten Foto */
   const [wheelTask, setWheelTask] = useState<string | null>(null);
   const [wheelOpen, setWheelOpen] = useState(false);
+  /** Eigene Platzierung in der Bestenliste (für die Startseite) */
+  const [myRank, setMyRank] = useState<{ rank: number | null; players: number } | null>(null);
   const [pending, setPending] = useState<Challenge | null>(null);
   const [sheet, setSheet] = useState<"missionen" | "name" | "bestenliste" | "kontakt" | null>(null);
   const [leadDone, setLeadDone] = useState(true);
@@ -185,6 +187,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     fetch(`/api/vb/${event.slug}/board?limit=1`, { headers: { "x-vb-guest": guestKey() }, cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((b: BoardData | null) => {
+        if (b) setMyRank({ rank: b.me?.rank ?? null, players: b.players });
         if (!b?.me) return;
         setDone(new Set(b.me.done));
         if (b.me.name) setMyName(b.me.name);
@@ -315,6 +318,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
         setMission(null);
         setDone((d) => new Set(d).add(m.id));
         setWin({ emoji: m.emoji, text: m.text, points: m.points, total: data.mission.total, rank: data.mission.rank, players: data.mission.players });
+        setMyRank({ rank: data.mission.rank, players: data.mission.players });
         setConfetti((n) => n + 1);
         buzz([30, 60, 30, 60, 90]);
       }
@@ -668,6 +672,12 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                   {done.size ? `${done.size} von ${missions.length} erledigt – weiter geht's!` : `${missions.length} Aufgaben · Punkte sammeln · Bestenliste`}
                 </span>
                 <span className="relative text-xl text-white/50">›</span>
+              </button>
+            )}
+            {missions.length > 0 && myRank && myRank.players > 0 && (
+              <button onClick={() => setSheet("bestenliste")} className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/85">
+                🏆 {myRank.rank ? `Du bist auf Platz ${myRank.rank} von ${myRank.players}` : `${myRank.players} ${myRank.players === 1 ? "Gast sammelt" : "Gäste sammeln"} Punkte`}
+                <span className="text-white/50">· Bestenliste ansehen</span>
               </button>
             )}
             {event.galleryEnabled && (
