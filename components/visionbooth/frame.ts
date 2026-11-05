@@ -378,7 +378,8 @@ function textBand(ctx: CanvasRenderingContext2D, t: VbTemplate, o: FrameOptions,
     ctx.fillStyle = opts.light ? "rgba(255,255,255,0.85)" : sub;
     const subSize = t.subFont === "hand" ? 40 : 26;
     fitFont(ctx, st, w - 40, subSize, 16, (s) => `${t.subFont === "ui" ? 600 : 500} ${s}px ${fam(o, t.subFont)}`);
-    y = titleY + subSize + 22;
+    // Schreibschrift hat lange Unterlängen – etwas mehr Abstand zum Datum
+    y = titleY + subSize + 22 + (t.titleFont === "script" ? 10 : 0);
     ctx.fillText(st, cx, y);
     ctx.restore();
   }
@@ -452,7 +453,7 @@ function drawArt(ctx: CanvasRenderingContext2D, t: VbTemplate, layer: ArtLayer, 
   });
   const ov = artImg(layer.overlay);
   if (ov) ctx.drawImage(ov, 0, 0, W, H);
-  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin" }, o, layer.text, { creditY: layer.creditY });
+  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin" }, layer.hideSub ? { ...o, subtext: undefined } : o, layer.text, { creditY: layer.creditY });
 }
 
 export function drawFrame(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, sw: number, sh: number, o: FrameOptions) {

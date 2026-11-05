@@ -59,7 +59,7 @@ export interface VbOccasion {
 
 export const VB_OCCASIONS: VbOccasion[] = [
   { id: "hochzeit", label: "Hochzeit", template: "elegant-gold", challenges: "hochzeit", aiStyles: ["glamour", "vintage", "animation", "superheld"] },
-  { id: "kindergeburtstag", label: "Kindergeburtstag", template: "dino", challenges: "kinder", aiStyles: [], noAi: true },
+  { id: "kindergeburtstag", label: "Kindergeburtstag", template: "dino-dschungel", challenges: "kinder", aiStyles: [], noAi: true },
   { id: "babyparty", label: "Babyparty / Gender Reveal", template: "minimal-weiss", challenges: "babyparty", aiStyles: ["glamour", "animation", "vintage", "superheld"], reveal: true },
   { id: "geburtstag", label: "Geburtstag", template: "gold-ballons", challenges: "geburtstag", aiStyles: ["superheld", "comic", "animation", "glamour"] },
   { id: "party", label: "Party / Abiball", template: "neon-party", challenges: "party", aiStyles: ["neon", "comic", "superheld", "animation"] },

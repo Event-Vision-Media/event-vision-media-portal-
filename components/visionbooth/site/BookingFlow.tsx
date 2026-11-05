@@ -6,7 +6,7 @@ import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, onArtReady, type VbFonts } from "@/components/visionbooth/frame";
 import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
-import { getTemplate, VB_TEMPLATES } from "@/components/visionbooth/templates";
+import { getTemplate, templatesFor } from "@/components/visionbooth/templates";
 import { VB_CONSENT_START } from "@/components/visionbooth/consent";
 
 const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", kindergeburtstag: "party", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
@@ -21,8 +21,6 @@ const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   messe: "Muster GmbH",
   sonstiges: "Unser Event",
 };
-// gestaltete Motive zuerst, dann die schlichten Mottos
-const KID_MOTTOS = VB_TEMPLATES.filter((t) => t.group === "kinder").sort((a, b) => Number(Boolean(b.art)) - Number(Boolean(a.art)));
 const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
 // Je Anlass nur die passenden Pakete (wie auf der Website Privat/Business) – „Sonstiges“ zeigt alle
 const BUSINESS_OCC: VbOccasionId[] = ["firma", "weihnachtsfeier", "messe"];
@@ -51,7 +49,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [games, setGames] = useState<VbGames | null>(null);
-  const [motto, setMotto] = useState("dino");
+  const [design, setDesign] = useState<string | null>(null);
   const [allPlans, setAllPlans] = useState(false);
   const [state, action] = useActionState<VbShopResult, FormData>(startVbCheckout, {});
   const top = useRef<HTMLDivElement>(null);
@@ -90,6 +88,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 type="button"
                 onClick={() => {
                   setOccasion(o.id);
+                  setDesign(getOccasion(o.id).template);
                   setAllPlans(false);
                   // Paket von der Website behalten, wenn es zum Anlass passt – sonst die Empfehlung
                   if (!initialPlan || !plan || !plansFor(o.id).includes(plan)) setPlan(OCC_PLAN[o.id]);
@@ -199,31 +198,8 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
         <section key="s2" className="vb-in">
           <h1 className="vb-display text-3xl font-semibold">Eure Details</h1>
           <p className="mt-1 text-white/60">So sieht euer Foto-Rahmen aus – alles später noch änderbar.</p>
-          {occasion === "kindergeburtstag" && (
-            <div className="mt-5">
-              <p className="mb-2 text-[13px] font-semibold text-white/70">Welches Motto?</p>
-              <div className="vb-scroll -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
-                {KID_MOTTOS.map((t) => (
-                  <button
-                    key={t.id}
-                    type="button"
-                    onClick={() => setMotto(t.id)}
-                    className={`flex flex-none flex-col items-center gap-1 rounded-2xl px-3 py-2.5 transition active:scale-95 ${motto === t.id ? "ring-2" : "vb-glass"}`}
-                    style={motto === t.id ? { background: `color-mix(in srgb, ${t.accent} 30%, #141417)`, ["--tw-ring-color" as string]: t.accent } : undefined}
-                  >
-                    {t.art ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={t.art.single.bg} alt="" className="h-9 w-[29px] rounded-md object-cover" />
-                    ) : (
-                      <span className="text-3xl">{t.stickers?.[0]}</span>
-                    )}
-                    <span className="whitespace-nowrap text-[12px] font-semibold">{t.name}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
-          <FramePreview occasion={occasion} template={occasion === "kindergeburtstag" ? motto : undefined} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
+          <DesignChooser occasion={occasion} value={design ?? getOccasion(occasion).template} onChange={setDesign} />
+          <FramePreview occasion={occasion} template={design ?? undefined} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
           {occasion === "kindergeburtstag" && <p className="mt-3 flex items-start gap-1.5 text-xs text-white/50"><OccasionIcon id="lock" className="mt-px h-3.5 w-3.5 flex-none" />Beim Kindergeburtstag ist die KI-Verwandlung aus – Kinderfotos geben wir nicht an KI-Dienste weiter.</p>}
           <div className="mt-6 space-y-4">
             <Field label="Text im Foto-Rahmen">
@@ -280,13 +256,13 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             ["email", email],
             ["company", company],
             ["games", JSON.stringify(games ?? defaultGames(p.id, occasion))],
-            ["template", occasion === "kindergeburtstag" ? motto : ""],
+            ["template", design ?? ""],
           ].map(([k, v]) => (
             <input key={k} type="hidden" name={k} value={v} />
           ))}
           <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
             <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
-            <Row label="Anlass" value={`${getOccasion(occasion).label}${occasion === "kindergeburtstag" ? ` · Motto ${getTemplate(motto).name}` : ""}`} onEdit={() => go(0)} />
+            <Row label="Anlass" value={`${getOccasion(occasion).label} · Design ${getTemplate(design ?? getOccasion(occasion).template).name}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
               value={[games?.missions && "Missionen", games?.reveal && "Tippspiel", games?.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
@@ -351,6 +327,63 @@ function Row({ label, value, onEdit }: { label: string; value: string; onEdit?: 
   );
 }
 
+/** Design-Auswahl als kleine Vorschaubilder (passend zum Anlass). */
+function DesignChooser({ occasion, value, onChange }: { occasion: VbOccasionId; value: string; onChange: (id: string) => void }) {
+  const list = templatesFor(occasion, getOccasion(occasion).template);
+  const refs = useRef<Record<string, HTMLCanvasElement | null>>({});
+  const wrap = useRef<HTMLDivElement>(null);
+  const [tick, setTick] = useState(0);
+  const img = useRef<HTMLImageElement | null>(null);
+  const fonts = useRef<VbFonts | undefined>(undefined);
+
+  useEffect(() => {
+    const i = new Image();
+    i.onload = () => {
+      img.current = i;
+      setTick((n) => n + 1);
+    };
+    i.src = "/visionbooth/stile/original.webp";
+    loadVbFonts(wrap.current).then((f) => {
+      fonts.current = f;
+      setTick((n) => n + 1);
+    });
+    return onArtReady(() => setTick((n) => n + 1));
+  }, []);
+
+  useEffect(() => {
+    if (!img.current) return;
+    for (const t of list) {
+      const c = refs.current[t.id];
+      if (!c) continue;
+      const ctx = c.getContext("2d")!;
+      ctx.setTransform(c.width / FRAME_W, 0, 0, c.height / FRAME_H, 0, 0);
+      drawFrame(ctx, img.current, img.current.naturalWidth, img.current.naturalHeight, { template: t.id, text: OCC_PLACEHOLDER[occasion], accent: t.accent, fonts: fonts.current });
+    }
+  }, [tick, occasion, list]);
+
+  return (
+    <div ref={wrap} className="mt-5">
+      <p className="mb-2 text-[13px] font-semibold text-white/70">Welches Design?</p>
+      <div className="vb-scroll -mx-5 flex gap-3 overflow-x-auto px-6 pb-1 pt-1">
+        {list.map((t) => (
+          <button key={t.id} type="button" onClick={() => onChange(t.id)} aria-pressed={value === t.id} className="flex w-[84px] flex-none flex-col items-center gap-1.5 transition active:scale-95">
+            <canvas
+              ref={(el) => {
+                refs.current[t.id] = el;
+              }}
+              width={168}
+              height={210}
+              className={`w-full rounded-lg ${value === t.id ? "ring-2 ring-offset-2 ring-offset-[#0d0d0f]" : "opacity-80"}`}
+              style={value === t.id ? { ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+            />
+            <span className={`line-clamp-2 text-center text-[11px] font-semibold leading-tight ${value === t.id ? "text-white" : "text-white/55"}`}>{t.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Live-Vorschau des Rahmens mit dem Beispielfoto (fiktive Personen). */
 function FramePreview({ occasion, template, text, date }: { occasion: VbOccasionId; template?: string; text: string; date: string }) {
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -386,7 +419,7 @@ function FramePreview({ occasion, template, text, date }: { occasion: VbOccasion
       <p className="flex-1 text-[13px] leading-relaxed text-white/60">
         Vorlage <strong className="text-white">{t.name}</strong>
         <br />
-        Farbe, Logo und Vorlage kannst du nach der Buchung frei ändern – {VB_TEMPLATES.length} Designs zur Auswahl.
+        Text, Farbe und Design kannst du auch nach der Buchung noch ändern.
       </p>
     </div>
   );

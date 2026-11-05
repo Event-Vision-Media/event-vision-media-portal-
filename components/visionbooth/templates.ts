@@ -1,3 +1,4 @@
+import type { VbOccasionId } from "./packages";
 // Design-Vorlagen für VisionBooth. Eine Vorlage legt Farben, Schriften, Fotorahmen und
 // Verzierung fest – der Kunde ändert nur Titel, Unterzeile, Akzentfarbe und Logo.
 // Gilt für Einzelfoto, Fotostreifen und Story (siehe frame.ts).
@@ -21,6 +22,8 @@ export interface ArtLayer {
   text: ArtBox;
   /** Grundlinie des kleinen „VisionBooth“-Hinweises, falls er nicht unten in der Textfläche stehen soll (z. B. bei Bannern) */
   creditY?: number;
+  /** Unterzeile (Datum) weglassen, wenn sie auf einer Verzierung landen würde */
+  hideSub?: boolean;
 }
 
 export interface VbTemplate {
@@ -64,7 +67,7 @@ function artSingle(
   id: string,
   name: string,
   occasions: string,
-  look: { accent: string; bg: string; sub: string; font: FontRole; weight?: number; size: number; upper?: boolean; neon?: boolean; kinder?: boolean; fallback: string; creditY?: number },
+  look: { accent: string; bg: string; sub: string; font: FontRole; weight?: number; size: number; upper?: boolean; neon?: boolean; kinder?: boolean; fallback: string; creditY?: number; hideSub?: boolean },
   slot: ArtBox,
   text: ArtBox,
 ): VbTemplate {
@@ -85,7 +88,7 @@ function artSingle(
     photo: look.neon ? "neon" : "thin",
     decor: "none",
     group: look.kinder ? "kinder" : undefined,
-    art: { single: { ...artLayer(id, "single", [slot], text), creditY: look.creditY }, stripFallback: look.fallback },
+    art: { single: { ...artLayer(id, "single", [slot], text), creditY: look.creditY, hideSub: look.hideSub }, stripFallback: look.fallback },
   };
 }
 
@@ -288,20 +291,20 @@ export const VB_TEMPLATES: VbTemplate[] = [
     photo: "neon",
     decor: "none",
     art: {
-      single: artLayer("neon-party", "single", [{ x: 190, y: 194, w: 700, h: 726 }], { x: 120, y: 1010, w: 640, h: 290 }),
+      single: artLayer("neon-party", "single", [{ x: 190, y: 194, w: 700, h: 726 }], { x: 110, y: 1010, w: 600, h: 290 }),
       strip: artLayer("neon-party", "strip", [{ x: 150, y: 220, w: 780, h: 491 }, { x: 150, y: 821, w: 780, h: 490 }, { x: 150, y: 1429, w: 781, h: 490 }], { x: 110, y: 1980, w: 760, h: 330 }),
     },
   },
-  artSingle("schwarz-gold", "Schwarz-Gold Gala", "Geburtstag · Jubiläum · Silvester", { accent: "#e2b75a", bg: "#0a0908", sub: "rgba(255,255,255,0.7)", font: "script", size: 110, fallback: "elegant-gold" }, { x: 82, y: 85, w: 916, h: 921 }, { x: 190, y: 1020, w: 700, h: 230 }),
+  artSingle("schwarz-gold", "Schwarz-Gold Gala", "Geburtstag · Jubiläum · Silvester", { accent: "#e2b75a", bg: "#0a0908", sub: "rgba(255,255,255,0.7)", font: "script", size: 110, fallback: "elegant-gold" }, { x: 82, y: 85, w: 916, h: 921 }, { x: 255, y: 1020, w: 600, h: 230 }),
   artSingle("champagner", "Champagner & Rosé", "Geburtstag · Hochzeit · Jubiläum", { accent: "#9a6a35", bg: "#f6ebe0", sub: "rgba(90,60,35,0.7)", font: "script", size: 110, fallback: "romantik" }, { x: 89, y: 90, w: 889, h: 921 }, { x: 150, y: 1025, w: 780, h: 230 }),
   artSingle("bunt-ballons", "Bunte Ballons", "Geburtstag · Party", { accent: "#d81b72", bg: "#ffffff", sub: "rgba(40,40,60,0.65)", font: "script", size: 110, fallback: "party-konfetti" }, { x: 109, y: 163, w: 858, h: 875 }, { x: 160, y: 1050, w: 760, h: 230 }),
-  artSingle("neon-geburtstag", "Neon Geburtstag", "Geburtstag · Party", { accent: "#ff4fc3", bg: "#120c2a", sub: "rgba(160,240,255,0.85)", font: "script", size: 110, neon: true, fallback: "neon" }, { x: 131, y: 167, w: 819, h: 797 }, { x: 210, y: 985, w: 660, h: 220 }),
-  artSingle("kreide", "Kreidetafel", "Geburtstag · Party · Kindergeburtstag", { accent: "#ffffff", bg: "#1c1c1c", sub: "rgba(255,255,255,0.75)", font: "hand", weight: 600, size: 72, fallback: "elegant-gold", creditY: 1336 }, { x: 108, y: 149, w: 862, h: 866 }, { x: 250, y: 1112, w: 580, h: 130 }),
-  artSingle("botanisch", "Botanisch", "Hochzeit · Verlobung · Taufe", { accent: "#4b5b4f", bg: "#ffffff", sub: "rgba(75,91,79,0.7)", font: "script", size: 100, fallback: "minimal-weiss", creditY: 1336 }, { x: 70, y: 88, w: 940, h: 861 }, { x: 200, y: 955, w: 680, h: 160 }),
-  artSingle("eukalyptus", "Eukalyptus", "Hochzeit · Verlobung · Taufe", { accent: "#5d6b5a", bg: "#fbfaf6", sub: "rgba(93,107,90,0.7)", font: "script", size: 100, fallback: "minimal-weiss" }, { x: 187, y: 98, w: 704, h: 929 }, { x: 220, y: 1095, w: 640, h: 200 }),
+  artSingle("neon-geburtstag", "Neon Geburtstag", "Geburtstag · Party", { accent: "#ff4fc3", bg: "#120c2a", sub: "rgba(160,240,255,0.85)", font: "script", size: 92, neon: true, fallback: "neon" }, { x: 131, y: 167, w: 819, h: 797 }, { x: 210, y: 1022, w: 660, h: 190 }),
+  artSingle("kreide", "Kreidetafel", "Geburtstag · Party · Kindergeburtstag", { accent: "#ffffff", bg: "#1c1c1c", sub: "rgba(255,255,255,0.75)", font: "hand", weight: 600, size: 72, fallback: "elegant-gold", creditY: 1346 }, { x: 108, y: 149, w: 862, h: 866 }, { x: 250, y: 1112, w: 580, h: 130 }),
+  artSingle("botanisch", "Botanisch", "Hochzeit · Verlobung · Taufe", { accent: "#4b5b4f", bg: "#ffffff", sub: "rgba(75,91,79,0.7)", font: "script", size: 100, fallback: "minimal-weiss", creditY: 1336 }, { x: 70, y: 88, w: 940, h: 861 }, { x: 315, y: 1050, w: 450, h: 170 }),
+  artSingle("eukalyptus", "Eukalyptus", "Hochzeit · Verlobung · Taufe", { accent: "#5d6b5a", bg: "#fbfaf6", sub: "rgba(93,107,90,0.7)", font: "script", size: 100, fallback: "minimal-weiss" }, { x: 187, y: 98, w: 704, h: 929 }, { x: 270, y: 1095, w: 520, h: 200 }),
   artSingle("dino-dschungel", "Dino-Dschungel", "Kindergeburtstag", { accent: "#5a3a17", bg: "#2f4a1e", sub: "rgba(90,58,23,0.75)", font: "hand", weight: 700, size: 70, kinder: true, fallback: "dino", creditY: 1336 }, { x: 138, y: 145, w: 781, h: 838 }, { x: 240, y: 1035, w: 600, h: 150 }),
   artSingle("feuerwehr-comic", "Feuerwehr-Comic", "Kindergeburtstag", { accent: "#c8102e", bg: "#1d4fd6", sub: "rgba(120,20,20,0.8)", font: "ui", weight: 800, size: 72, upper: true, kinder: true, fallback: "feuerwehr", creditY: 1336 }, { x: 124, y: 52, w: 820, h: 1015 }, { x: 220, y: 1110, w: 640, h: 160 }),
-  artSingle("prinzessin-schloss", "Prinzessin & Einhorn", "Kindergeburtstag", { accent: "#a3155f", bg: "#f6c6e0", sub: "rgba(120,20,70,0.8)", font: "script", size: 90, kinder: true, fallback: "prinzessin", creditY: 1336 }, { x: 172, y: 100, w: 735, h: 925 }, { x: 230, y: 1140, w: 620, h: 130 }),
+  artSingle("prinzessin-schloss", "Prinzessin & Einhorn", "Kindergeburtstag", { accent: "#a3155f", bg: "#f6c6e0", sub: "rgba(120,20,70,0.8)", font: "script", size: 90, kinder: true, fallback: "prinzessin", creditY: 1336, hideSub: true }, { x: 172, y: 100, w: 735, h: 925 }, { x: 230, y: 1118, w: 620, h: 130 }),
   // ---------- Kindergeburtstag (Mottos) ----------
   kid("prinzessin", "Prinzessin", "#e0559a", "#fff0f6", "accent", "#b0487e", "script", 400, ["👑", "✨", "💖", "🦄"], "dots"),
   kid("einhorn", "Einhorn & Regenbogen", "#a66cff", "#f6f0ff", "accent", "#7b55c7", "hand", 600, ["🦄", "🌈", "⭐", "🍭"], "stars"),
@@ -325,4 +328,23 @@ const LEGACY: Record<string, string> = { gold: "elegant-gold", weiss: "minimal-w
 export function getTemplate(id: string | null | undefined): VbTemplate {
   const key = id && (VB_TEMPLATES.some((t) => t.id === id) ? id : LEGACY[id]);
   return VB_TEMPLATES.find((t) => t.id === key) ?? VB_TEMPLATES[0];
+}
+
+/** Passende Designs je Anlass für die Auswahl bei der Buchung (Standard-Design des Anlasses kommt zuerst). */
+const FOR_OCCASION: Record<VbOccasionId, string[]> = {
+  hochzeit: ["elegant-gold", "botanisch", "eukalyptus", "champagner", "romantik", "boho", "minimal-weiss", "polaroid", "vollbild"],
+  geburtstag: ["gold-ballons", "schwarz-gold", "champagner", "bunt-ballons", "neon-geburtstag", "kreide", "party-konfetti", "elegant-gold", "boho", "polaroid", "minimal-weiss"],
+  kindergeburtstag: ["dino-dschungel", "feuerwehr-comic", "prinzessin-schloss", "dino", "feuerwehr", "prinzessin", "einhorn", "pirat", "weltraum", "fussball", "bunt-ballons", "kreide"],
+  babyparty: ["minimal-weiss", "botanisch", "eukalyptus", "champagner", "bunt-ballons", "romantik", "boho", "polaroid"],
+  party: ["neon-party", "neon-geburtstag", "bunt-ballons", "schwarz-gold", "kreide", "neon", "party-konfetti", "polaroid", "vollbild"],
+  firma: ["corporate", "schwarz-gold", "elegant-gold", "minimal-weiss", "polaroid", "vollbild"],
+  weihnachtsfeier: ["winterzauber", "schwarz-gold", "elegant-gold", "corporate", "kreide", "polaroid"],
+  messe: ["corporate", "minimal-weiss", "elegant-gold", "vollbild"],
+  sonstiges: ["polaroid", "gold-ballons", "schwarz-gold", "champagner", "bunt-ballons", "neon-party", "kreide", "botanisch", "elegant-gold", "minimal-weiss", "boho", "vollbild"],
+};
+
+export function templatesFor(occasion: VbOccasionId, defaultId?: string): VbTemplate[] {
+  const ids = FOR_OCCASION[occasion] ?? [];
+  const ordered = defaultId ? [defaultId, ...ids.filter((i) => i !== defaultId)] : ids;
+  return ordered.map((id) => VB_TEMPLATES.find((t) => t.id === id)).filter((t): t is VbTemplate => Boolean(t));
 }

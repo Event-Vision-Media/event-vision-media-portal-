@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createCheckout, stripeReady, type VbOrder } from "@/lib/visionbooth-shop";
 import { defaultGames, getOccasion, getPlan, VB_PLANS, type VbGames } from "@/components/visionbooth/packages";
-import { VB_TEMPLATES } from "@/components/visionbooth/templates";
+import { templatesFor } from "@/components/visionbooth/templates";
 
 export interface VbShopResult {
   error?: string;
@@ -57,8 +57,8 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
       amount_cents: Math.round(plan.price * 100),
       games,
       consents,
-      // Motto nur aus der Kinder-Auswahl übernehmen, sonst Anlass-Vorlage
-      template: occ.id === "kindergeburtstag" ? VB_TEMPLATES.find((t) => t.group === "kinder" && t.id === str(formData, "template", 40))?.id ?? null : null,
+      // Design nur aus der Auswahl für diesen Anlass übernehmen, sonst Anlass-Vorlage
+      template: templatesFor(occ.id).find((t) => t.id === str(formData, "template", 40))?.id ?? null,
     })
     .select("*")
     .single();
