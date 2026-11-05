@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { IconTile } from "@/components/visionbooth/site/OccasionIcon";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import Link from "next/link";
 import QRCode from "qrcode";
@@ -25,12 +26,12 @@ const STEPS = [
 ];
 
 const FEATURES = [
-  { icon: "✨", title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
-  { icon: "🎯", title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste – so machen auch die Fotofaulen mit, und ihr habt am Ende viel mehr Erinnerungen." },
-  { icon: "📺", title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
-  { icon: "🔮", title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
-  { icon: "🖼️", title: "17 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night – dazu Kinder-Mottos wie Dino, Prinzessin oder Feuerwehr. Plus 3er-Fotostreifen und Story-Format." },
-  { icon: "❤️", title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
+  { icon: "sonstiges" as const, title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
+  { icon: "target" as const, title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste – so machen auch die Fotofaulen mit, und ihr habt am Ende viel mehr Erinnerungen." },
+  { icon: "tv" as const, title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
+  { icon: "babyparty" as const, title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
+  { icon: "image" as const, title: "17 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night – dazu Kinder-Mottos wie Dino, Prinzessin oder Feuerwehr. Plus 3er-Fotostreifen und Story-Format." },
+  { icon: "heart" as const, title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
 ];
 
 const FAQ = [
@@ -69,7 +70,7 @@ export default async function VisionBoothHome() {
       {/* Hero */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-6 md:grid-cols-[1.1fr_1fr] md:pt-12">
         <div className="text-center md:text-left">
-          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">📱 Die Fotobox im Handy deiner Gäste</span>
+          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">Die Fotobox im Handy deiner Gäste</span>
           <h1 className="vb-in vb-display mt-5 text-[2.6rem] font-semibold leading-[1.05] sm:text-6xl" style={{ animationDelay: "80ms" }}>
             Jedes Handy wird zur <span className="vb-gold-text">Fotobox</span> – mit KI-Magie.
           </h1>
@@ -166,14 +167,14 @@ export default async function VisionBoothHome() {
         </div>
         <div className="vb-scroll mt-10 flex gap-3 overflow-x-auto px-5 pb-2 md:mx-auto md:grid md:max-w-6xl md:grid-cols-4 md:overflow-visible">
           {[
-            ["original", "📸 Original"],
-            ["glamour", "🎬 Hollywood"],
-            ["superheld", "🦸 Superheld"],
-            ["animation", "🧸 3D-Animation"],
-            ["comic", "💥 Comic"],
-            ["vintage", "🕺 Vintage"],
-            ["neon", "🌈 Neon"],
-            ["weihnachten", "🎄 Weihnachten"],
+            ["original", "Original"],
+            ["glamour", "Hollywood"],
+            ["superheld", "Superheld"],
+            ["animation", "3D-Animation"],
+            ["comic", "Comic"],
+            ["vintage", "Vintage"],
+            ["neon", "Neon"],
+            ["weihnachten", "Weihnachten"],
           ].map(([k, l]) => (
             <figure key={k} className="relative w-[46vw] max-w-[220px] flex-none overflow-hidden rounded-3xl ring-1 ring-white/10 md:w-auto md:max-w-none">
               <img src={`/visionbooth/stile/${k}.webp`} alt={l} loading="lazy" className="aspect-[4/5] w-full object-cover" />
@@ -190,7 +191,7 @@ export default async function VisionBoothHome() {
         <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FEATURES.map((f, i) => (
             <Reveal key={f.title} delay={(i % 3) * 110} className="vb-glass rounded-3xl p-6">
-              <span className="text-3xl">{f.icon}</span>
+              <IconTile id={f.icon} />
               <p className="mt-3 text-lg font-bold">{f.title}</p>
               <p className="mt-1.5 text-[15px] leading-relaxed text-white/65">{f.text}</p>
             </Reveal>
@@ -210,13 +211,13 @@ export default async function VisionBoothHome() {
                   Mach ein Foto mit Rahmen, verwandle dich mit KI und schau dir die Galerie an – genau so, wie es eure Gäste erleben. Kostenlos, ohne Anmeldung.
                 </p>
                 <a href="/vb/demo" className="vb-btn mt-6 inline-block rounded-full px-7 py-4 text-[16px] font-bold md:hidden">
-                  📸 Demo jetzt starten
+                  Demo jetzt starten
                 </a>
                 <p className="mt-5 hidden text-sm text-white/55 md:block">Einfach den QR-Code mit der Handy-Kamera scannen →</p>
               </div>
               <div className="hidden md:block">
                 <div className="vb-wall-qr w-44 rounded-2xl bg-white p-2.5" dangerouslySetInnerHTML={{ __html: demoQr }} />
-                <p className="mt-2 text-center text-xs text-white/50">Scann mich 📱</p>
+                <p className="mt-2 text-center text-xs text-white/50">Scann mich</p>
               </div>
             </div>
           </div>

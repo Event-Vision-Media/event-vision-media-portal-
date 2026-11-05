@@ -1,5 +1,6 @@
 "use client";
 
+import { IconTile } from "./OccasionIcon";
 import { useState } from "react";
 import Link from "next/link";
 import { getPlan, vbTaxNote, type VbPlanId } from "@/components/visionbooth/packages";
@@ -10,12 +11,12 @@ const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
 
 const GROUPS = {
   privat: {
-    label: "🎉 Privat",
+    label: "Privat",
     intro: "Für Hochzeit, Geburtstag, Kindergeburtstag, Babyparty und jede Party.",
     benefits: [
-      { icon: "📸", title: "Auch die Fotofaulen machen mit", text: "Missionen, Punkte und Spiele motivieren selbst die, die sonst nie das Handy zücken – am Ende habt ihr viel mehr Fotos." },
-      { icon: "🖼️", title: "Alle Fotos an einem Ort", text: "Kein Hinterherlaufen in WhatsApp-Gruppen: Die Fotos aller Gäste landen automatisch in eurer Galerie." },
-      { icon: "💛", title: "Erinnerungen, die bleiben", text: "Fotos im Look eures Festes, KI-Verwandlungen zum Lachen – und alles am nächsten Tag als ZIP." },
+      { icon: "camera" as const, title: "Auch die Fotofaulen machen mit", text: "Missionen, Punkte und Spiele motivieren selbst die, die sonst nie das Handy zücken – am Ende habt ihr viel mehr Fotos." },
+      { icon: "image" as const, title: "Alle Fotos an einem Ort", text: "Kein Hinterherlaufen in WhatsApp-Gruppen: Die Fotos aller Gäste landen automatisch in eurer Galerie." },
+      { icon: "heart" as const, title: "Erinnerungen, die bleiben", text: "Fotos im Look eures Festes, KI-Verwandlungen zum Lachen – und alles am nächsten Tag als ZIP." },
     ],
     plans: [
       { id: "party" as VbPlanId, tag: null, points: ["Eigener Foto-Rahmen & Design", "Fotostreifen & Story", "Foto-Missionen & Bestenliste", "Live-Foto-Wand & Galerie", "Link 7 Tage aktiv"] },
@@ -23,13 +24,13 @@ const GROUPS = {
     ],
   },
   business: {
-    label: "🏢 Business",
+    label: "Business",
     intro: "Für Firmenfeier, Weihnachtsfeier, Messe und Promotion.",
     benefits: [
-      { icon: "🎁", title: "Leads statt Visitenkarten", text: "Gewinnspiel oder Kontaktformular direkt nach dem Foto – freiwillig und mit Einwilligung der Gäste, am Ende als CSV für euer CRM." },
-      { icon: "🏷️", title: "Eure Marke auf jedem Foto", text: "Rahmen mit Logo und Farben – und jedes geteilte Foto und jede Story trägt euren Namen weiter." },
-      { icon: "🤝", title: "Teams, die zusammenfinden", text: "Missionen wie „Foto mit jemandem aus einer anderen Abteilung“ bringen Kollegen ins Gespräch – mit Live-Bestenliste." },
-      { icon: "🧲", title: "Magnet für euren Stand", text: "KI-Verwandlungen und die Live-Foto-Wand ziehen Besucher an – ohne Personal, ohne Aufbau." },
+      { icon: "gift" as const, title: "Leads statt Visitenkarten", text: "Gewinnspiel oder Kontaktformular direkt nach dem Foto – freiwillig und mit Einwilligung der Gäste, am Ende als CSV für euer CRM." },
+      { icon: "tag" as const, title: "Eure Marke auf jedem Foto", text: "Rahmen mit Logo und Farben – und jedes geteilte Foto und jede Story trägt euren Namen weiter." },
+      { icon: "users" as const, title: "Teams, die zusammenfinden", text: "Missionen wie „Foto mit jemandem aus einer anderen Abteilung“ bringen Kollegen ins Gespräch – mit Live-Bestenliste." },
+      { icon: "magnet" as const, title: "Magnet für euren Stand", text: "KI-Verwandlungen und die Live-Foto-Wand ziehen Besucher an – ohne Personal, ohne Aufbau." },
     ],
     plans: [
       { id: "business" as VbPlanId, tag: "Beliebt", points: ["Firmen-Design mit Logo", "300 KI-Verwandlungen", "Team-Missionen", "Gewinnspiel / Kontaktformular", "Kontakte als CSV"] },
@@ -64,7 +65,7 @@ export function PlanTabs() {
         <div className={`mt-8 grid gap-3 ${g.benefits.length === 4 ? "sm:grid-cols-2 lg:grid-cols-4" : "sm:grid-cols-3"}`}>
           {g.benefits.map((b) => (
             <div key={b.title} className="flex gap-3 rounded-3xl bg-white/[0.04] p-4 ring-1 ring-white/10 sm:block sm:p-5">
-              <span className="text-2xl sm:text-3xl">{b.icon}</span>
+              <IconTile id={b.icon} />
               <span className="block">
                 <span className="block text-[15px] font-bold sm:mt-2 sm:text-[16px]">{b.title}</span>
                 <span className="mt-1 block text-[13px] leading-relaxed text-white/65 sm:text-[14px]">{b.text}</span>
@@ -109,7 +110,7 @@ export function PlanTabs() {
         {tab === "privat" ? (
           <>
           <p className="mx-auto mt-6 max-w-xl rounded-2xl bg-white/5 px-4 py-3 text-center text-sm text-white/70">
-            💡 Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das beim Hochzeitspaket nur{" "}
+            Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das beim Hochzeitspaket nur{" "}
             {(getPlan("hochzeit").price / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
           </p>
           <p className="mx-auto mt-4 max-w-xl text-center text-sm text-white/55">

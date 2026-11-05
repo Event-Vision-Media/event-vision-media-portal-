@@ -1,5 +1,6 @@
 "use client";
 
+import { IconTile, OccasionIcon, type LineIconName } from "./OccasionIcon";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
@@ -8,7 +9,6 @@ import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGam
 import { getTemplate, VB_TEMPLATES } from "@/components/visionbooth/templates";
 import { VB_CONSENT_START } from "@/components/visionbooth/consent";
 
-const OCC_EMOJI: Record<VbOccasionId, string> = { hochzeit: "💍", kindergeburtstag: "🎈", babyparty: "🍼", geburtstag: "🎂", party: "🎉", firma: "🏢", weihnachtsfeier: "🎄", messe: "🏟️", sonstiges: "✨" };
 const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", kindergeburtstag: "party", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
 const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   hochzeit: "Anna & Max",
@@ -97,7 +97,8 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 className={`flex flex-col items-start gap-2 rounded-2xl p-4 text-left transition active:scale-[0.97] ${occasion === o.id ? "ring-2" : "vb-glass"}`}
                 style={occasion === o.id ? { background: "color-mix(in srgb, var(--a) 18%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
               >
-                <span className="text-3xl">{OCC_EMOJI[o.id]}</span>
+                <IconTile id={o.id} on={occasion === o.id} />
+
                 <span className="text-[15px] font-semibold">{o.label}</span>
               </button>
             ))}
@@ -164,7 +165,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <GameToggle
               on={games.missions}
               onChange={(v) => setGames({ ...games, missions: v })}
-              emoji="🎯"
+              icon="target"
               title="Foto-Missionen & Bestenliste"
               text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand."
             />
@@ -172,7 +173,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <GameToggle
               on={games.reveal}
               onChange={(v) => setGames({ ...games, reveal: v })}
-              emoji="🍼"
+              icon="babyparty"
               title="Gender-Reveal-Tippspiel"
               text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
             />
@@ -181,7 +182,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               <GameToggle
                 on={games.leads}
                 onChange={(v) => setGames({ ...games, leads: v })}
-                emoji="🎁"
+                icon="gift"
                 title="Gewinnspiel / Kontaktformular"
                 text="Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV."
               />
@@ -217,7 +218,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             </div>
           )}
           <FramePreview occasion={occasion} template={occasion === "kindergeburtstag" ? motto : undefined} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
-          {occasion === "kindergeburtstag" && <p className="mt-3 text-xs text-white/50">🔒 Beim Kindergeburtstag ist die KI-Verwandlung aus – Kinderfotos geben wir nicht an KI-Dienste weiter.</p>}
+          {occasion === "kindergeburtstag" && <p className="mt-3 flex items-start gap-1.5 text-xs text-white/50"><OccasionIcon id="lock" className="mt-px h-3.5 w-3.5 flex-none" />Beim Kindergeburtstag ist die KI-Verwandlung aus – Kinderfotos geben wir nicht an KI-Dienste weiter.</p>}
           <div className="mt-6 space-y-4">
             <Field label="Text im Foto-Rahmen">
               <input value={frameText} onChange={(e) => setFrameText(e.target.value)} maxLength={60} placeholder={`z. B. ${OCC_PLACEHOLDER[occasion]}`} className="vb-input" />
@@ -279,10 +280,10 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           ))}
           <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
             <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
-            <Row label="Anlass" value={`${OCC_EMOJI[occasion]} ${getOccasion(occasion).label}${occasion === "kindergeburtstag" ? ` · Motto ${getTemplate(motto).name}` : ""}`} onEdit={() => go(0)} />
+            <Row label="Anlass" value={`${getOccasion(occasion).label}${occasion === "kindergeburtstag" ? ` · Motto ${getTemplate(motto).name}` : ""}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
-              value={[games?.missions && "🎯 Missionen", games?.reveal && "🍼 Tippspiel", games?.leads && p.firma && "🎁 Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              value={[games?.missions && "Missionen", games?.reveal && "Tippspiel", games?.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
               onEdit={() => go(2)}
             />
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
@@ -313,7 +314,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           <div className="mt-5">
             <PayButton price={p.price} />
           </div>
-          <p className="mt-3 text-center text-xs text-white/45">🔒 Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-white/45"><OccasionIcon id="lock" className="h-3.5 w-3.5 flex-none" />Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
           {testMode && <p className="mt-2 text-center text-xs font-semibold text-amber-300">Testmodus – es wird kein echtes Geld abgebucht.</p>}
         </form>
       )}
@@ -384,7 +385,7 @@ function FramePreview({ occasion, template, text, date }: { occasion: VbOccasion
   );
 }
 
-function GameToggle({ on, onChange, emoji, title, text }: { on: boolean; onChange: (v: boolean) => void; emoji: string; title: string; text: string }) {
+function GameToggle({ on, onChange, icon, title, text }: { on: boolean; onChange: (v: boolean) => void; icon: LineIconName; title: string; text: string }) {
   return (
     <button
       type="button"
@@ -393,7 +394,7 @@ function GameToggle({ on, onChange, emoji, title, text }: { on: boolean; onChang
       className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition active:scale-[0.99] ${on ? "ring-2" : "vb-glass"}`}
       style={on ? { background: "color-mix(in srgb, var(--a) 14%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
     >
-      <span className="text-3xl">{emoji}</span>
+      <IconTile id={icon} on={on} />
       <span className="flex-1">
         <span className="block text-[15px] font-bold">{title}</span>
         <span className="mt-0.5 block text-[13px] leading-snug text-white/60">{text}</span>
