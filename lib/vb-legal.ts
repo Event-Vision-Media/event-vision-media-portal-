@@ -202,7 +202,7 @@ export const VB_DATENSCHUTZ: LegalSection[] = [
   {
     title: "3. Hosting und Server-Protokolle",
     blocks: [
-      "Die Seiten werden bei Vercel Inc. (USA) gehostet; ausgeliefert werden sie über Rechenzentren in der EU und den USA. Beim Aufruf verarbeitet der Server technisch notwendige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browsertyp), um die Seite auszuliefern und vor Missbrauch zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Protokolle werden kurzfristig automatisch gelöscht.",
+      "Die Seiten werden bei Vercel Inc. (USA) gehostet. Die Server laufen in einem Rechenzentrum in der EU (Stockholm); damit die Seiten schnell laden, werden sie über Vercels weltweites Netz ausgeliefert. Beim Aufruf verarbeitet der Server technisch notwendige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browsertyp), um die Seite auszuliefern und vor Missbrauch zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Protokolle werden kurzfristig automatisch gelöscht.",
       "Mit Vercel besteht ein Vertrag zur Auftragsverarbeitung; Übermittlungen in die USA sind über das EU-US Data Privacy Framework bzw. EU-Standardvertragsklauseln abgesichert.",
     ],
   },
