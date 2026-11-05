@@ -1,5 +1,6 @@
 "use client";
 
+import { IconTile, OccasionIcon } from "./site/OccasionIcon";
 import { PhotoWheel } from "./PhotoWheel";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -651,8 +652,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             )}
             {event.wheel && (
               <button onClick={() => setWheelOpen(true)} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
-                <span className="relative flex h-11 w-11 flex-none items-center justify-center rounded-xl text-2xl" style={{ background: "color-mix(in srgb, var(--a) 25%, transparent)" }}>
-                  🎡
+                <span className="relative">
+                  <IconTile id="wheel" />
                 </span>
                 <span className="relative flex-1 text-[13px] leading-snug text-white/75">
                   <span className="block text-[15px] font-semibold text-white">Foto-Glücksrad</span>
@@ -664,8 +665,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             {missions.length > 0 && (
               <button onClick={() => setSheet("missionen")} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
                 <span className="vb-shimmer pointer-events-none absolute inset-0 opacity-40" />
-                <span className="relative flex h-11 w-11 flex-none items-center justify-center rounded-xl text-2xl" style={{ background: "color-mix(in srgb, var(--a) 25%, transparent)" }}>
-                  🎯
+                <span className="relative">
+                  <IconTile id="target" />
                 </span>
                 <span className="relative flex-1 text-[13px] leading-snug text-white/75">
                   <span className="block text-[15px] font-semibold text-white">Foto-Missionen</span>
@@ -676,7 +677,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             )}
             {missions.length > 0 && myRank && myRank.players > 0 && (
               <button onClick={() => setSheet("bestenliste")} className="flex w-full items-center justify-center gap-2 rounded-full border border-white/10 px-4 py-2.5 text-[13px] font-semibold text-white/85">
-                🏆 {myRank.rank ? `Du bist auf Platz ${myRank.rank} von ${myRank.players}` : `${myRank.players} ${myRank.players === 1 ? "Gast sammelt" : "Gäste sammeln"} Punkte`}
+                <OccasionIcon id="trophy" className="h-4 w-4 text-[color:var(--a)]" />
+                {myRank.rank ? `Du bist auf Platz ${myRank.rank} von ${myRank.players}` : `${myRank.players} ${myRank.players === 1 ? "Gast sammelt" : "Gäste sammeln"} Punkte`}
                 <span className="text-white/50">· Bestenliste ansehen</span>
               </button>
             )}
@@ -773,7 +775,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 </div>
               ) : wheelTask ? (
                 <div className="vb-chip flex max-w-full items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 text-[13px] font-semibold" style={{ background: "color-mix(in srgb, var(--a) 24%, rgba(20,20,23,0.85))", border: "1px solid color-mix(in srgb, var(--a) 55%, transparent)" }}>
-                  <span className="text-base">🎡</span>
+                  <OccasionIcon id="wheel" className="h-4 w-4 flex-none text-[color:var(--a)]" />
                   <span className="truncate">{wheelTask}</span>
                   <button onClick={() => setWheelTask(null)} disabled={busyShot} className="ml-1 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black/30 text-xs" aria-label="Aufgabe entfernen">
                     ✕
@@ -783,13 +785,15 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 (missions.length > 0 || event.wheel) && (
                   <div className="flex gap-2">
                     {missions.length > 0 && (
-                      <button onClick={() => setSheet("missionen")} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
-                        🎯 Mission wählen
+                      <button onClick={() => setSheet("missionen")} disabled={busyShot} className="vb-glass flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
+                        <OccasionIcon id="target" className="h-4 w-4 text-[color:var(--a)]" />
+                        Mission wählen
                       </button>
                     )}
                     {event.wheel && (
-                      <button onClick={() => setWheelOpen(true)} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
-                        🎡 Glücksrad
+                      <button onClick={() => setWheelOpen(true)} disabled={busyShot} className="vb-glass flex items-center gap-1.5 rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
+                        <OccasionIcon id="wheel" className="h-4 w-4 text-[color:var(--a)]" />
+                        Glücksrad
                       </button>
                     )}
                   </div>
