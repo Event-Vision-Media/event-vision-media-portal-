@@ -332,11 +332,11 @@ export function getTemplate(id: string | null | undefined): VbTemplate {
 
 /** Passende Designs je Anlass für die Auswahl bei der Buchung (Standard-Design des Anlasses kommt zuerst). */
 const FOR_OCCASION: Record<VbOccasionId, string[]> = {
-  hochzeit: ["elegant-gold", "botanisch", "eukalyptus", "champagner", "romantik", "boho", "minimal-weiss", "polaroid", "vollbild"],
+  hochzeit: ["elegant-gold", "botanisch", "champagner", "romantik", "boho", "minimal-weiss", "polaroid", "vollbild"],
   geburtstag: ["gold-ballons", "schwarz-gold", "champagner", "bunt-ballons", "neon-geburtstag", "kreide", "party-konfetti", "elegant-gold", "boho", "polaroid", "minimal-weiss"],
   kindergeburtstag: ["dino-dschungel", "feuerwehr-comic", "prinzessin-schloss", "dino", "feuerwehr", "prinzessin", "einhorn", "pirat", "weltraum", "fussball", "bunt-ballons", "kreide"],
-  babyparty: ["minimal-weiss", "botanisch", "eukalyptus", "champagner", "bunt-ballons", "romantik", "boho", "polaroid"],
-  party: ["neon-party", "neon-geburtstag", "bunt-ballons", "schwarz-gold", "kreide", "neon", "party-konfetti", "polaroid", "vollbild"],
+  babyparty: ["minimal-weiss", "champagner", "bunt-ballons", "romantik", "boho", "polaroid"],
+  party: ["neon-geburtstag", "bunt-ballons", "schwarz-gold", "kreide", "neon", "party-konfetti", "polaroid", "vollbild"],
   firma: ["corporate", "schwarz-gold", "elegant-gold", "minimal-weiss", "polaroid", "vollbild"],
   weihnachtsfeier: ["winterzauber", "schwarz-gold", "elegant-gold", "corporate", "kreide", "polaroid"],
   messe: ["corporate", "minimal-weiss", "elegant-gold", "vollbild"],

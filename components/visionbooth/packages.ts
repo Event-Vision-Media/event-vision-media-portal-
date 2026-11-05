@@ -62,7 +62,7 @@ export const VB_OCCASIONS: VbOccasion[] = [
   { id: "kindergeburtstag", label: "Kindergeburtstag", template: "dino-dschungel", challenges: "kinder", aiStyles: [], noAi: true },
   { id: "babyparty", label: "Babyparty / Gender Reveal", template: "minimal-weiss", challenges: "babyparty", aiStyles: ["glamour", "animation", "vintage", "superheld"], reveal: true },
   { id: "geburtstag", label: "Geburtstag", template: "gold-ballons", challenges: "geburtstag", aiStyles: ["superheld", "comic", "animation", "glamour"] },
-  { id: "party", label: "Party / Abiball", template: "neon-party", challenges: "party", aiStyles: ["neon", "comic", "superheld", "animation"] },
+  { id: "party", label: "Party / Abiball", template: "neon-geburtstag", challenges: "party", aiStyles: ["neon", "comic", "superheld", "animation"] },
   { id: "firma", label: "Firmenfeier", template: "corporate", challenges: "firma", aiStyles: ["business", "superheld", "comic", "glamour"] },
   { id: "weihnachtsfeier", label: "Weihnachtsfeier", template: "winterzauber", challenges: "firma", aiStyles: ["weihnachten", "superheld", "comic", "business"] },
   { id: "messe", label: "Messe / Promotion", template: "corporate", challenges: null, aiStyles: ["business", "superheld", "comic", "neon"] },
