@@ -1,5 +1,6 @@
 "use server";
 
+import { parseWheel, WHEEL_MIN } from "@/components/visionbooth/wheel";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { deleteVbPhoto, loadVbEventByToken, VB_BUCKET } from "@/lib/visionbooth";
@@ -79,6 +80,26 @@ export async function updateVbChallenges(token: string, _prev: VbCustomerResult,
     return { error: "Ungültige Eingabe." };
   }
   const { error } = await createAdminClient().from("vb_events").update({ challenges: parseChallenges(raw) }).eq("id", event.id);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  revalidatePath(`/vb/verwalten/${token}`);
+  return { success: true };
+}
+
+/** Foto-Glücksrad ein-/ausschalten und Aufgaben anpassen. */
+export async function updateVbWheel(token: string, _prev: VbCustomerResult, formData: FormData): Promise<VbCustomerResult> {
+  const event = await loadVbEventByToken(token);
+  if (!event) return { error: "Link ungültig." };
+  if (event.photos_deleted_at) return { error: "Dieses Event ist abgeschlossen." };
+  let raw: unknown = [];
+  try {
+    raw = JSON.parse(String(formData.get("wheel_items") ?? "[]"));
+  } catch {
+    return { error: "Ungültige Eingabe." };
+  }
+  const enabled = formData.get("wheel_enabled") === "on";
+  const cfg = parseWheel({ enabled, items: raw });
+  if (enabled && !cfg.enabled) return { error: `Bitte mindestens ${WHEEL_MIN} Aufgaben eintragen.` };
+  const { error } = await createAdminClient().from("vb_events").update({ wheel: { enabled: cfg.enabled, items: cfg.items } }).eq("id", event.id);
   if (error) return { error: "Speichern fehlgeschlagen." };
   revalidatePath(`/vb/verwalten/${token}`);
   return { success: true };

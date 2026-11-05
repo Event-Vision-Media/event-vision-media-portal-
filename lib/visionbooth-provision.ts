@@ -7,6 +7,7 @@ import { CHALLENGE_SETS } from "@/components/visionbooth/challenges";
 import { defaultGames, getOccasion, getPlan, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 import { LEAD_DEFAULT } from "@/components/visionbooth/leads";
 import { REVEAL_DEFAULT } from "@/components/visionbooth/reveal";
+import { wheelDefaultFor } from "@/components/visionbooth/wheel";
 import { getTemplate } from "@/components/visionbooth/templates";
 
 // Ein VisionBooth-Event komplett einrichten – aus dem Admin, aus einer Fotobox-Buchung
@@ -104,6 +105,7 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     guest_uploads: occ.id !== "kindergeburtstag",
     challenges,
     reveal: games.reveal ? { ...REVEAL_DEFAULT, enabled: true } : {},
+    wheel: { enabled: Boolean(games.wheel), items: wheelDefaultFor(occ.id) },
     leads: games.leads && plan.firma ? { ...LEAD_DEFAULT, enabled: true, sponsor: input.company?.trim() || input.contactName?.trim() || "" } : {},
   };
 

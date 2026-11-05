@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges, type Challenge } from "@/components/visionbooth/challenges";
+import { parseWheel } from "@/components/visionbooth/wheel";
 import { leadConsentText, leadMarketingText, parseLeadConfig, type LeadField } from "@/components/visionbooth/leads";
 import { parseReveal, type RevealOption } from "@/components/visionbooth/reveal";
 
@@ -50,6 +51,8 @@ export interface VbEvent {
   leads: unknown;
   /** Tippspiel / Gender Reveal (jsonb, reveal.ts) */
   reveal: unknown;
+  /** Foto-Glücksrad (jsonb, wheel.ts) */
+  wheel?: unknown;
   plan: string | null;
   occasion: string | null;
 }
@@ -75,6 +78,8 @@ export interface VbGuestEvent {
   leads: { title: string; text: string; fields: LeadField[]; consent: string; marketing: string | null; privacyUrl: string; sponsor: string } | null;
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
+  /** Aufgaben des Foto-Glücksrads – null = aus */
+  wheel: string[] | null;
 }
 
 /** Event über den geheimen Verwaltungs-Link des Kunden laden. */
@@ -118,6 +123,10 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     aiPerGuest: e.ai_per_guest,
     deleteAfter: vbDeleteAfter(e).toISOString().slice(0, 10),
     challenges: e.gallery_enabled ? parseChallenges(e.challenges) : [],
+    wheel: (() => {
+      const w = parseWheel(e.wheel);
+      return w.enabled ? w.items : null;
+    })(),
     reveal: (() => {
       const r = parseReveal(e.reveal);
       return r.enabled ? { question: r.question, options: r.options, result: r.result } : null;

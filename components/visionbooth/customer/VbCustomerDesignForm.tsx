@@ -60,6 +60,11 @@ export function VbCustomerDesignForm({ action, initial }: { action: (prev: VbCus
         </div>
         <div>
           <label className={label} htmlFor="c-logo">Logo (optional · PNG mit transparentem Hintergrund ideal)</label>
+          {getTemplate(template).art && (
+            <p className="-mt-1 mb-2 text-xs text-anthracite-500">
+              Bei gestalteten Designs erscheint das Logo klein oben rechts im Foto. Für einen großen Logo-Auftritt passt ein schlichtes Design wie „Corporate“ besser.
+            </p>
+          )}
           {initial.logoUrl && (
             <label className="mb-1.5 flex items-center gap-2 text-xs text-anthracite-500">
               <input type="checkbox" name="remove_logo" onChange={(e) => setLogoPreview(e.target.checked ? null : initial.logoUrl)} /> Aktuelles Logo entfernen

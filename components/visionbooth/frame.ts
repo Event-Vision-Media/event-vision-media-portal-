@@ -453,7 +453,29 @@ function drawArt(ctx: CanvasRenderingContext2D, t: VbTemplate, layer: ArtLayer, 
   });
   const ov = artImg(layer.overlay);
   if (ov) ctx.drawImage(ov, 0, 0, W, H);
-  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin", ink: layer.ink ?? t.ink }, layer.hideSub ? { ...o, subtext: undefined } : o, layer.text, { creditY: layer.creditY });
+  // Logo bei gestalteten Designs klein als Plakette oben rechts im ersten Foto – stört Banner und Titel nicht
+  if (o.logo && o.logo.naturalWidth && layer.slots[0]) logoBadge(ctx, o.logo, layer.slots[0]);
+  const textOpts = { ...(layer.hideSub ? { ...o, subtext: undefined } : o), logo: null };
+  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin", ink: layer.ink ?? t.ink }, textOpts, layer.text, { creditY: layer.creditY });
+}
+
+function logoBadge(ctx: CanvasRenderingContext2D, logo: HTMLImageElement, slot: Box) {
+  const maxW = Math.min(170, slot.w * 0.22);
+  const maxH = 80;
+  const s = Math.min(maxW / logo.naturalWidth, maxH / logo.naturalHeight);
+  const w = logo.naturalWidth * s;
+  const h = logo.naturalHeight * s;
+  const pad = 12;
+  const x = slot.x + slot.w - w - pad * 2 - 18;
+  const y = slot.y + 18;
+  ctx.save();
+  ctx.shadowColor = "rgba(0,0,0,0.25)";
+  ctx.shadowBlur = 10;
+  ctx.fillStyle = "rgba(255,255,255,0.88)";
+  roundRect(ctx, x, y, w + pad * 2, h + pad * 2, 14);
+  ctx.fill();
+  ctx.restore();
+  ctx.drawImage(logo, x + pad, y + pad, w, h);
 }
 
 export function drawFrame(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, sw: number, sh: number, o: FrameOptions) {

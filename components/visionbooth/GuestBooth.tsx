@@ -1,5 +1,6 @@
 "use client";
 
+import { PhotoWheel } from "./PhotoWheel";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -55,6 +56,7 @@ interface GuestEvent {
   leads: { title: string; text: string; fields: LeadField[]; consent: string; marketing: string | null; privacyUrl: string; sponsor: string } | null;
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
+  wheel?: string[] | null;
 }
 
 type Format = "einzel" | "streifen";
@@ -106,6 +108,9 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   // Foto-Missionen
   const missions = event.challenges;
   const [mission, setMission] = useState<Challenge | null>(null);
+  /** Aufgabe vom Foto-Glücksrad (ohne Punkte) – gilt bis zum nächsten Foto */
+  const [wheelTask, setWheelTask] = useState<string | null>(null);
+  const [wheelOpen, setWheelOpen] = useState(false);
   const [pending, setPending] = useState<Challenge | null>(null);
   const [sheet, setSheet] = useState<"missionen" | "name" | "bestenliste" | "kontakt" | null>(null);
   const [leadDone, setLeadDone] = useState(true);
@@ -337,6 +342,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     setVariants([v]);
     setSel(v.id);
     setStep("ergebnis");
+    setWheelTask(null);
     setConfetti((n) => n + 1);
     try {
       setCanShare(Boolean(navigator.canShare?.({ files: [new File([framed], "visionbooth.jpg", { type: "image/jpeg" })] })));
@@ -639,6 +645,18 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 {revealOpt(reveal.result)?.emoji} Aufgelöst: Es wird ein {revealOpt(reveal.result)?.label}! 🎉
               </button>
             )}
+            {event.wheel && (
+              <button onClick={() => setWheelOpen(true)} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
+                <span className="relative flex h-11 w-11 flex-none items-center justify-center rounded-xl text-2xl" style={{ background: "color-mix(in srgb, var(--a) 25%, transparent)" }}>
+                  🎡
+                </span>
+                <span className="relative flex-1 text-[13px] leading-snug text-white/75">
+                  <span className="block text-[15px] font-semibold text-white">Foto-Glücksrad</span>
+                  Dreh am Rad und mach das Foto, das es dir sagt
+                </span>
+                <span className="relative text-xl text-white/50">›</span>
+              </button>
+            )}
             {missions.length > 0 && (
               <button onClick={() => setSheet("missionen")} className="vb-glass group relative flex w-full items-center gap-3 overflow-hidden rounded-2xl px-4 py-3.5 text-left">
                 <span className="vb-shimmer pointer-events-none absolute inset-0 opacity-40" />
@@ -743,11 +761,28 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                     ✕
                   </button>
                 </div>
-              ) : (
-                missions.length > 0 && (
-                  <button onClick={() => setSheet("missionen")} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
-                    🎯 Mission wählen
+              ) : wheelTask ? (
+                <div className="vb-chip flex max-w-full items-center gap-2 rounded-full py-1.5 pl-3 pr-1.5 text-[13px] font-semibold" style={{ background: "color-mix(in srgb, var(--a) 24%, rgba(20,20,23,0.85))", border: "1px solid color-mix(in srgb, var(--a) 55%, transparent)" }}>
+                  <span className="text-base">🎡</span>
+                  <span className="truncate">{wheelTask}</span>
+                  <button onClick={() => setWheelTask(null)} disabled={busyShot} className="ml-1 flex h-7 w-7 flex-none items-center justify-center rounded-full bg-black/30 text-xs" aria-label="Aufgabe entfernen">
+                    ✕
                   </button>
+                </div>
+              ) : (
+                (missions.length > 0 || event.wheel) && (
+                  <div className="flex gap-2">
+                    {missions.length > 0 && (
+                      <button onClick={() => setSheet("missionen")} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
+                        🎯 Mission wählen
+                      </button>
+                    )}
+                    {event.wheel && (
+                      <button onClick={() => setWheelOpen(true)} disabled={busyShot} className="vb-glass rounded-full px-4 py-1.5 text-[13px] font-semibold text-white/85">
+                        🎡 Glücksrad
+                      </button>
+                    )}
+                  </div>
                 )
               )}
               {event.formats.length > 1 && (
@@ -896,6 +931,19 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       )}
 
       {reveal?.result && !revealShown && <RevealMoment state={reveal} onClose={() => setRevealShown(true)} />}
+
+      {wheelOpen && event.wheel && (
+        <PhotoWheel
+          items={event.wheel}
+          onClose={() => setWheelOpen(false)}
+          onDone={(task) => {
+            setWheelOpen(false);
+            setWheelTask(task);
+            if (step === "ergebnis") again();
+            else setStep("kamera");
+          }}
+        />
+      )}
 
       {sheet === "missionen" && (
         <Sheet title="Foto-Missionen" onClose={() => setSheet(null)}>

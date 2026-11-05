@@ -174,6 +174,16 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 how={GAME_HOW.missions}
               />
             )}
+            {fitGames.wheel && (
+              <GameToggle
+                on={Boolean(games.wheel)}
+                onChange={(v) => setGames({ ...games, wheel: v })}
+                icon="wheel"
+                title="Foto-Glücksrad"
+                text="Drehen, lustige Foto-Aufgabe bekommen, abdrücken – spontan und ohne Punkte."
+                how={GAME_HOW.wheel}
+              />
+            )}
             {fitGames.reveal && (
               <GameToggle
                 on={games.reveal}
@@ -288,7 +298,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <Row label="Anlass" value={`${getOccasion(occasion).label} · Design ${getTemplate(design ?? getOccasion(occasion).template).name}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
-              value={[games?.missions && fitGames.missions && "Missionen", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              value={[games?.missions && fitGames.missions && "Missionen", games?.wheel && fitGames.wheel && "Glücksrad", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
               onEdit={() => go(2)}
             />
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />

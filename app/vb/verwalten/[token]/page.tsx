@@ -1,11 +1,13 @@
 import type { Metadata, Viewport } from "next";
+import { VbWheelEditor } from "@/components/visionbooth/customer/VbWheelEditor";
+import { parseWheel, wheelDefaultFor } from "@/components/visionbooth/wheel";
 import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
-import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal } from "@/app/actions/vb-customer";
+import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal, updateVbWheel } from "@/app/actions/vb-customer";
 import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
 import { parseReveal } from "@/components/visionbooth/reveal";
 import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
@@ -201,6 +203,14 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
               </div>
             </section>
           );
+          const wheel = (n: number) => (
+            <section key="w" className="rounded-3xl bg-white p-6 shadow-card">
+              <Step n={n} title="Foto-Glücksrad" hint="Gäste drehen am Rad und bekommen eine lustige Foto-Aufgabe – spontan und ohne Punkte." how={GAME_HOW.wheel} />
+              <div className="mt-5">
+                <VbWheelEditor action={updateVbWheel.bind(null, params.token)} initial={parseWheel(event.wheel)} defaults={wheelDefaultFor(event.occasion)} />
+              </div>
+            </section>
+          );
           const reveal = (n: number) => (
             <section key="r" className="rounded-3xl bg-white p-6 shadow-card">
               <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." how={GAME_HOW.reveal} />
@@ -220,6 +230,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           // oben: passt zum Anlass oder ist schon eingeschaltet
           const items = [
             { key: "missions", top: fit.missions || parseChallenges(event.challenges).length > 0, render: missions, done: false },
+            { key: "wheel", top: Boolean(fit.wheel) || parseWheel(event.wheel).enabled, render: wheel, done: deleted },
             { key: "leads", top: fit.leads || parseLeadConfig(event.leads).enabled, render: leads, done: deleted },
             { key: "reveal", top: fit.reveal || parseReveal(event.reveal).enabled, render: reveal, done: deleted },
           ];

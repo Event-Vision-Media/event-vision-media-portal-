@@ -212,3 +212,6 @@ alter table public.vb_events add column if not exists push_state jsonb not null 
 
 -- Online-Buchung: Nachweis der Zustimmungen (AGB, sofortiger Leistungsbeginn/Widerruf) mit Zeitpunkt und Textfassung
 alter table public.vb_orders add column if not exists consents jsonb;
+
+-- Foto-Glücksrad: {enabled, items[]} – Gäste drehen und bekommen eine lustige Foto-Aufgabe
+alter table public.vb_events add column if not exists wheel jsonb not null default '{}'::jsonb;

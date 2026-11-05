@@ -1,7 +1,7 @@
 // Kurze Erklärungen zu Spielen und Foto-Wand – gleiche Texte in Buchung und Kundenbereich,
 // damit niemand rätseln muss, was „Mission“ oder „Foto-Wand“ bedeutet.
 
-export type GameKey = "missions" | "reveal" | "leads";
+export type GameKey = "missions" | "reveal" | "leads" | "wheel";
 
 export const GAME_HOW: Record<GameKey, { title: string; steps: string[] }> = {
   missions: {
@@ -17,7 +17,15 @@ export const GAME_HOW: Record<GameKey, { title: string; steps: string[] }> = {
     steps: [
       "Vor dem Foto tippen eure Gäste: Junge oder Mädchen? Ihr Foto bekommt die Farbe ihres Tipps (rosa oder blau).",
       "Den aktuellen Stand seht ihr im Kundenbereich und auf der Foto-Wand.",
-      "Zum großen Moment drückt ihr im Kundenbereich auf „Auflösen“ – das Ergebnis erscheint sofort auf allen Handys und der Foto-Wand.",
+      "Zum großen Moment drückt ihr im Kundenbereich auf „Auflösen“ – das Ergebnis erscheint sofort auf der Foto-Wand und auf allen Handys, auf denen die VisionBooth gerade offen ist. Wer sie später öffnet, sieht die Auflösung dann. Anmelden muss sich niemand.",
+    ],
+  },
+  wheel: {
+    title: "So funktioniert das Foto-Glücksrad",
+    steps: [
+      "Eure Gäste tippen in der VisionBooth auf „Foto-Glücksrad“ und drehen am Rad.",
+      "Das Rad bleibt bei einer lustigen Foto-Aufgabe stehen – z. B. „Alle machen ein Herz mit den Händen“.",
+      "Dann geht es direkt zur Kamera: Foto machen, fertig. Keine Punkte, kein Stress – einfach Spaß. Die Aufgaben könnt ihr selbst anpassen.",
     ],
   },
   leads: {

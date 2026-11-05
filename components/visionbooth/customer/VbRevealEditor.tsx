@@ -83,7 +83,7 @@ export function VbRevealEditor({ action, initial, counts }: { action: (p: Result
           ) : (
             <div className="rounded-2xl border-2 border-dashed border-anthracite-200 p-4">
               <p className="text-sm font-semibold text-anthracite-800">🎉 Der große Moment</p>
-              <p className="mt-0.5 text-xs text-anthracite-500">Erst drücken, wenn alle gespannt vor der Foto-Wand stehen – die Auflösung erscheint sofort auf Wand und allen Handys.</p>
+              <p className="mt-0.5 text-xs text-anthracite-500">Erst drücken, wenn alle gespannt vor der Foto-Wand stehen – die Auflösung erscheint sofort auf der Wand und auf allen Handys, auf denen die VisionBooth gerade offen ist.</p>
               <div className="mt-3 grid grid-cols-2 gap-2">
                 {initial.options.map((o) => (
                   <Btn key={o.id} intent={`reveal_${o.id}`} confirmText={`Jetzt auflösen: Es wird ein ${o.label}?`} className="rounded-full py-3 text-sm font-bold text-white shadow-md" style={{ background: o.color }}>
