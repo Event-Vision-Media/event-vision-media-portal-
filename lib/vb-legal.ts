@@ -121,7 +121,7 @@ export const VB_AGB: LegalSection[] = [
   {
     title: "§ 14 Datenschutz",
     blocks: [
-      "Informationen zur Verarbeitung personenbezogener Daten finden sich in unseren Datenschutzhinweisen (fotobox-essen.com/datenschutz.html) und für Gäste direkt in der VisionBooth unter „Datenschutz“.",
+      "Informationen zur Verarbeitung personenbezogener Daten finden sich in unseren Datenschutzhinweisen (visionbooth.de/vb/datenschutz) und für Gäste direkt in der VisionBooth unter „Datenschutz“.",
       "Firmenkunden, die VisionBooth als Verantwortliche für die Daten ihrer Gäste einsetzen, erhalten auf Anfrage einen Vertrag zur Auftragsverarbeitung.",
     ],
   },
@@ -185,3 +185,92 @@ export function legalText(sections: LegalSection[]): string {
     .map((s) => `${s.title}\n\n${s.blocks.map((b) => (typeof b === "string" ? b : b.ul.map((i) => `- ${i}`).join("\n"))).join("\n\n")}`)
     .join("\n\n");
 }
+
+/** Datenschutzerklärung für Website, Buchung und Kundenbereich (Gäste: eigene Seite je Event). */
+export const VB_DATENSCHUTZ: LegalSection[] = [
+  {
+    title: "1. Verantwortlicher",
+    blocks: [`${provider}.`, "Einen Datenschutzbeauftragten müssen wir nicht benennen; bei Fragen erreichst du uns direkt unter der genannten E-Mail-Adresse."],
+  },
+  {
+    title: "2. Worum es geht",
+    blocks: [
+      "Diese Erklärung gilt für die VisionBooth-Website, die Online-Buchung und den Kundenbereich. Was mit den Fotos und Angaben der Gäste in einer VisionBooth passiert, steht in den Datenschutzhinweisen für Gäste, die in jeder VisionBooth unter „Datenschutz“ verlinkt sind.",
+      "Wir setzen auf den VisionBooth-Seiten keine Werbe- oder Analyse-Cookies und kein Tracking ein.",
+    ],
+  },
+  {
+    title: "3. Hosting und Server-Protokolle",
+    blocks: [
+      "Die Seiten werden bei Vercel Inc. (USA) gehostet; ausgeliefert werden sie über Rechenzentren in der EU und den USA. Beim Aufruf verarbeitet der Server technisch notwendige Daten (IP-Adresse, Zeitpunkt, aufgerufene Seite, Browsertyp), um die Seite auszuliefern und vor Missbrauch zu schützen. Rechtsgrundlage ist unser berechtigtes Interesse an einem sicheren Betrieb (Art. 6 Abs. 1 lit. f DSGVO). Protokolle werden kurzfristig automatisch gelöscht.",
+      "Mit Vercel besteht ein Vertrag zur Auftragsverarbeitung; Übermittlungen in die USA sind über das EU-US Data Privacy Framework bzw. EU-Standardvertragsklauseln abgesichert.",
+    ],
+  },
+  {
+    title: "4. Datenbank und Speicher",
+    blocks: ["Buchungen, Event-Einstellungen und Fotos speichern wir bei Supabase (Supabase Inc.) in einem Rechenzentrum in der EU (Stockholm). Es besteht ein Vertrag zur Auftragsverarbeitung."],
+  },
+  {
+    title: "5. Buchung und Zahlung",
+    blocks: [
+      "Für die Buchung verarbeiten wir die Angaben aus dem Formular (Name, E-Mail-Adresse, ggf. Firma, Anlass, Paket, Eventdatum, Text für den Foto-Rahmen) sowie die Zustimmungen zu AGB und sofortigem Leistungsbeginn mit Zeitpunkt. Rechtsgrundlage ist die Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO); die Zustimmungen speichern wir als Nachweis (Art. 6 Abs. 1 lit. c und f DSGVO).",
+      "Die Zahlung wickelt Stripe Payments Europe Ltd. (Irland) ab. Stripe erhält dafür die Zahlungsdaten und ggf. die Rechnungsadresse und ist für die Zahlungsabwicklung selbst verantwortlich; bei Zahlung mit PayPal ist zusätzlich PayPal (Europe) S.à r.l. et Cie, S.C.A. (Luxemburg) beteiligt. Kartendaten sehen wir nicht. Mehr dazu in den Datenschutzhinweisen von Stripe (stripe.com/de/privacy).",
+    ],
+  },
+  {
+    title: "6. Rechnungen",
+    blocks: ["Rechnungen erstellen wir mit Lexware Office (Haufe-Lexware GmbH & Co. KG, Freiburg). Rechtsgrundlage ist unsere gesetzliche Pflicht zur Rechnungsstellung und Aufbewahrung (Art. 6 Abs. 1 lit. c DSGVO i. V. m. § 14 UStG, § 147 AO)."],
+  },
+  {
+    title: "7. E-Mails",
+    blocks: [
+      "Wir senden dir Mails zu deiner Buchung: Link zum Kundenbereich mit Vertragsbestätigung, Rechnung, Erinnerung vor dem Event, Hinweis nach dem Event und vor der Löschung der Fotos. Versendet werden sie über Resend, Inc. (USA); es besteht ein Vertrag zur Auftragsverarbeitung mit EU-Standardvertragsklauseln. Rechtsgrundlage ist die Vertragserfüllung (Art. 6 Abs. 1 lit. b DSGVO). Werbung schicken wir nicht.",
+    ],
+  },
+  {
+    title: "8. Kundenbereich und Mitteilungen",
+    blocks: [
+      "Der Kundenbereich ist über einen persönlichen Link erreichbar; ein Passwort gibt es nicht – bitte gib den Link deshalb nicht weiter. Speicherst du den Kundenbereich als App, legt dein Browser dafür Dateien auf deinem Gerät ab.",
+      "Mitteilungen aufs Handy (z. B. bei neuen Fotos) senden wir nur, wenn du sie im Kundenbereich einschaltest (Einwilligung, Art. 6 Abs. 1 lit. a DSGVO). Zugestellt werden sie über den Push-Dienst deines Browsers bzw. Betriebssystems (z. B. Apple, Google oder Mozilla). Du kannst sie jederzeit im Kundenbereich oder in den Handy-Einstellungen ausschalten.",
+    ],
+  },
+  {
+    title: "9. Fotos, Spiele und KI in der VisionBooth",
+    blocks: [
+      "Die Fotos und Angaben der Gäste speichern wir nur, wenn Gäste das selbst wählen, und löschen sie automatisch nach der im Paket genannten Frist. Für KI-Verwandlungen übermitteln wir einzelne Fotos auf Wunsch des Gastes an fal.ai (Features & Labels, Inc., USA), abgesichert durch EU-Standardvertragsklauseln; fal.ai speichert die Dateien höchstens eine Stunde. Einzelheiten stehen in den Datenschutzhinweisen für Gäste.",
+      "Nutzt ein Firmenkunde das Gewinnspiel bzw. Kontaktformular, ist er für diese Angaben verantwortlich; wir verarbeiten sie nur in seinem Auftrag.",
+    ],
+  },
+  {
+    title: "10. Kontakt",
+    blocks: ["Schreibst du uns per E-Mail, Telefon oder WhatsApp, verarbeiten wir deine Angaben, um deine Anfrage zu beantworten (Art. 6 Abs. 1 lit. b bzw. f DSGVO). Bei WhatsApp gelten zusätzlich die Datenschutzhinweise von WhatsApp (Meta Platforms Ireland Ltd.)."],
+  },
+  {
+    title: "11. Wie lange wir Daten speichern",
+    blocks: [
+      { ul: [
+        "Fotos und Gäste-Angaben: bis zum Ende der Speicherfrist des Pakets, danach automatische Löschung.",
+        "Buchungsdaten: für die Dauer des Vertrags und danach, solange Ansprüche verjähren können (in der Regel 3 Jahre).",
+        "Rechnungen und Buchungsbelege: nach den gesetzlichen Aufbewahrungsfristen (bis zu 10 Jahre).",
+      ] },
+    ],
+  },
+  {
+    title: "12. Deine Rechte",
+    blocks: [
+      "Du hast das Recht auf Auskunft (Art. 15 DSGVO), Berichtigung (Art. 16), Löschung (Art. 17), Einschränkung der Verarbeitung (Art. 18), Datenübertragbarkeit (Art. 20) und Widerspruch gegen Verarbeitungen auf Grundlage berechtigter Interessen (Art. 21). Eine Einwilligung kannst du jederzeit mit Wirkung für die Zukunft widerrufen.",
+      "Du kannst dich bei einer Datenschutz-Aufsichtsbehörde beschweren, z. B. bei der Landesbeauftragten für Datenschutz und Informationsfreiheit Nordrhein-Westfalen (ldi.nrw.de).",
+      "Für eine Buchung brauchen wir Name, E-Mail-Adresse und die Angaben zum Event; ohne sie können wir keinen Vertrag schließen. Eine automatisierte Entscheidungsfindung findet nicht statt.",
+    ],
+  },
+];
+
+/** Impressum nach § 5 DDG und § 18 Abs. 2 MStV. */
+export const VB_IMPRESSUM: LegalSection[] = [
+  { title: "Angaben gemäß § 5 DDG", blocks: [`${LANDLORD.name}`, `${LANDLORD.street}`, `${LANDLORD.zipCity}`, "Deutschland"] },
+  { title: "Kontakt", blocks: [`Telefon: ${LANDLORD.phone} (auch WhatsApp)`, `E-Mail: ${LANDLORD.email}`] },
+  { title: "Umsatzsteuer", blocks: ["Kleinunternehmer gemäß § 19 UStG – es wird keine Umsatzsteuer ausgewiesen."] },
+  { title: "Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV", blocks: [`Dustin Nowitzki, ${LANDLORD.street}, ${LANDLORD.zipCity}`] },
+  { title: "Verbraucherstreitbeilegung", blocks: ["Wir sind weder bereit noch verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen."] },
+  { title: "Marke", blocks: ["„VisionBooth“ ist als Marke beim Deutschen Patent- und Markenamt angemeldet."] },
+];

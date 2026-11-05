@@ -288,6 +288,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
             <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(3)} />
             <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(3)} />
+            <Row label="Laufzeit" value={`einmalig, kein Abo · Gäste-Link ab Eventtag ${p.days + (p.id === "messe" ? days - 1 : 0)} Tage aktiv · Fotos ${p.retentionDays} Tage gespeichert, danach automatisch gelöscht`} />
             <div className="flex items-center justify-between px-5 py-4">
               <span className="font-semibold">Gesamt</span>
               <span className="text-right">
@@ -301,7 +302,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <span>
               Ich akzeptiere die <a href="/vb/agb" target="_blank" className="underline underline-offset-2">AGB</a> und habe die{" "}
               <a href="/vb/widerruf" target="_blank" className="underline underline-offset-2">Widerrufsbelehrung</a> und die{" "}
-              <a href="https://fotobox-essen.com/datenschutz.html" target="_blank" className="underline underline-offset-2">Datenschutzhinweise</a> gelesen.
+              <a href="/vb/datenschutz" target="_blank" className="underline underline-offset-2">Datenschutzhinweise</a> gelesen.
             </span>
           </label>
           <label className="mt-3 flex items-start gap-3 text-[13px] leading-snug text-white/70">
@@ -329,14 +330,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-function Row({ label, value, onEdit }: { label: string; value: string; onEdit: () => void }) {
+function Row({ label, value, onEdit }: { label: string; value: string; onEdit?: () => void }) {
   return (
     <div className="flex items-start gap-3 px-5 py-3.5">
       <span className="w-16 flex-none text-[13px] text-white/50">{label}</span>
       <span className="flex-1 text-[14px] font-medium">{value}</span>
-      <button type="button" onClick={onEdit} className="text-xs font-semibold text-white/50 underline underline-offset-2">
-        ändern
-      </button>
+      {onEdit && (
+        <button type="button" onClick={onEdit} className="text-xs font-semibold text-white/50 underline underline-offset-2">
+          ändern
+        </button>
+      )}
     </div>
   );
 }

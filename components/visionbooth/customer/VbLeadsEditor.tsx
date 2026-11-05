@@ -45,6 +45,16 @@ export function VbLeadsEditor({ action, initial, count, csvUrl }: { action: (p: 
           <Field label="Wofür werden sie genutzt?">
             <input name="lead_purpose" defaultValue={initial.purpose} maxLength={160} className="input-field" />
           </Field>
+          <Field label="Link zu Teilnahmebedingungen / Datenschutz (empfohlen)">
+            <input name="lead_privacy_url" type="url" defaultValue={initial.privacyUrl} maxLength={300} className="input-field" placeholder="https://www.eure-firma.de/gewinnspiel" />
+          </Field>
+          <label className="flex items-start gap-2 text-sm text-anthracite-700 sm:col-span-2">
+            <input type="checkbox" name="lead_marketing" defaultChecked={initial.marketing} className="mt-1 h-4 w-4" />
+            <span>
+              Zusätzlich ein <strong>getrenntes, freiwilliges</strong> Häkchen für E-Mail-Werbung anbieten
+              <span className="block text-xs text-anthracite-400">Werbung nur an Gäste, die dieses Häkchen setzen – das Gewinnspiel ist davon unabhängig (so verlangt es das Wettbewerbsrecht).</span>
+            </span>
+          </label>
           <div className="flex flex-wrap gap-4 text-sm text-anthracite-700 sm:col-span-2">
             {LEAD_FIELDS.map((f) => (
               <label key={f.id} className="flex items-center gap-2">

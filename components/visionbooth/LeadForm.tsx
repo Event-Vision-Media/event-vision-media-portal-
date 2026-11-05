@@ -8,6 +8,9 @@ interface Lead {
   text: string;
   fields: LeadField[];
   consent: string;
+  marketing: string | null;
+  privacyUrl: string;
+  sponsor: string;
 }
 
 const INPUT = "w-full rounded-2xl border border-white/15 bg-white/5 px-4 py-3.5 text-[16px] text-white outline-none placeholder:text-white/35 focus:border-[color:var(--a)]";
@@ -30,6 +33,7 @@ export function LeadTeaser({ lead, onOpen }: { lead: Lead; onOpen: () => void })
 export function LeadFormView({ slug, guest, lead, onDone }: { slug: string; guest: string; lead: Lead; onDone: () => void }) {
   const [v, setV] = useState({ name: "", email: "", company: "", phone: "" });
   const [consent, setConsent] = useState(false);
+  const [marketing, setMarketing] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [ok, setOk] = useState(false);
@@ -57,7 +61,7 @@ export function LeadFormView({ slug, guest, lead, onDone }: { slug: string; gues
         const res = await fetch(`/api/vb/${slug}/lead`, {
           method: "POST",
           headers: { "content-type": "application/json", "x-vb-guest": guest },
-          body: JSON.stringify({ ...v, consent }),
+          body: JSON.stringify({ ...v, consent, marketing }),
         }).catch(() => null);
         const data = await res?.json().catch(() => ({}));
         setBusy(false);
@@ -84,6 +88,25 @@ export function LeadFormView({ slug, guest, lead, onDone }: { slug: string; gues
         <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
         <span>{lead.consent}</span>
       </label>
+      {lead.marketing && (
+        <label className="flex items-start gap-3 rounded-2xl bg-white/5 px-3.5 py-3 text-[12px] leading-snug text-white/70">
+          <input type="checkbox" checked={marketing} onChange={(e) => setMarketing(e.target.checked)} className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
+          <span>
+            {lead.marketing} <span className="text-white/45">(freiwillig)</span>
+          </span>
+        </label>
+      )}
+      <p className="text-[11px] leading-snug text-white/45">
+        Verantwortlich für deine Angaben ist {lead.sponsor}; VisionBooth speichert sie nur in deren Auftrag.
+        {lead.privacyUrl && (
+          <>
+            {" "}
+            <a href={lead.privacyUrl} target="_blank" rel="noreferrer" className="underline underline-offset-2">
+              Teilnahmebedingungen &amp; Datenschutz
+            </a>
+          </>
+        )}
+      </p>
       {error && <p className="text-xs text-red-300">{error}</p>}
       <button disabled={busy || !consent} className="vb-btn w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
         {busy ? "Wird gesendet …" : "Jetzt mitmachen"}

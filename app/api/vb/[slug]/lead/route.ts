@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEvent, vbClosedReason } from "@/lib/visionbooth";
 import { cleanGuestKey } from "@/lib/visionbooth-board";
-import { leadConsentText, parseLeadConfig } from "@/components/visionbooth/leads";
+import { leadConsentText, leadMarketingText, parseLeadConfig } from "@/components/visionbooth/leads";
 
 export const dynamic = "force-dynamic";
 
@@ -30,7 +30,10 @@ export async function POST(req: NextRequest, props: { params: Promise<{ slug: st
     email,
     company: cfg.fields.includes("company") ? clip(b?.company, 120) : null,
     phone: cfg.fields.includes("phone") ? clip(b?.phone, 40) : null,
-    consent_text: leadConsentText(cfg, event.contact_name || event.title),
+    // Werbe-Einwilligung nur, wenn angeboten UND angehakt – getrennt dokumentiert
+    consent_text:
+      leadConsentText(cfg, event.contact_name || event.title) +
+      (cfg.marketing && b?.marketing === true ? `\n+ E-Mail-Werbung: ${leadMarketingText(cfg, event.contact_name || event.title)}` : ""),
   });
   // Doppelter Eintrag mit gleicher E-Mail = schon dabei, kein Fehler für den Gast
   if (error && error.code !== "23505") return NextResponse.json({ error: "Speichern fehlgeschlagen" }, { status: 500 });

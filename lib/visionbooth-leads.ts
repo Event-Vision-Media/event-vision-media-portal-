@@ -11,6 +11,8 @@ export function leadConfigFromForm(f: FormData) {
     fields: LEAD_FIELDS.map((x) => x.id).filter((id) => f.get(`lead_field_${id}`) === "on"),
     sponsor: f.get("lead_sponsor"),
     purpose: f.get("lead_purpose"),
+    marketing: f.get("lead_marketing") === "on",
+    privacyUrl: f.get("lead_privacy_url"),
   });
 }
 

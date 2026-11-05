@@ -586,3 +586,25 @@ export function drawStory(ctx: CanvasRenderingContext2D, img: CanvasImageSource,
   ctx.font = `600 30px system-ui, -apple-system, sans-serif`;
   ctx.fillText("V I S I O N B O O T H", W / 2, H - 70);
 }
+
+/**
+ * Sichtbarer Hinweis „KI-Bild“ oben rechts auf KI-verwandelten Fotos – Transparenz nach der
+ * EU-KI-Verordnung (Art. 50): realistisch wirkende KI-Bilder echter Personen müssen erkennbar sein.
+ */
+export function drawAiBadge(ctx: CanvasRenderingContext2D, fonts?: { ui?: string }) {
+  const label = "✨ KI-Bild";
+  ctx.save();
+  ctx.font = `600 30px ${fonts?.ui ?? "system-ui, sans-serif"}`;
+  const w = ctx.measureText(label).width + 36;
+  const h = 50;
+  const x = FRAME_W - w - 28;
+  const y = 28;
+  ctx.fillStyle = "rgba(0,0,0,0.55)";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, h, h / 2);
+  ctx.fill();
+  ctx.fillStyle = "#ffffff";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + 18, y + h / 2 + 1);
+  ctx.restore();
+}

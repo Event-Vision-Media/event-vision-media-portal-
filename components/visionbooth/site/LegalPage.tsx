@@ -14,6 +14,8 @@ export function LegalPage({ title, intro, sections, children, version }: { title
           <span className="flex gap-4 text-sm text-white/55">
             <Link href="/vb/agb" className="hover:text-white">AGB</Link>
             <Link href="/vb/widerruf" className="hover:text-white">Widerruf</Link>
+            <Link href="/vb/datenschutz" className="hover:text-white">Datenschutz</Link>
+            <Link href="/vb/impressum" className="hover:text-white">Impressum</Link>
           </span>
         </div>
         <h1 className="vb-display mt-10 hyphens-auto break-words text-[2rem] font-semibold leading-tight sm:text-4xl print:text-black">{title}</h1>

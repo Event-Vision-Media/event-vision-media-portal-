@@ -268,8 +268,8 @@ export default async function VisionBoothHome() {
         <VbLogo variant="logo" height={88} className="mx-auto mb-4 opacity-90" />
         <p>VisionBooth ist ein Angebot von Event Vision Media · {LANDLORD.phone} · {LANDLORD.email}</p>
         <p className="mt-2 space-x-4">
-          <a href="https://fotobox-essen.com/impressum.html" className="hover:text-white">Impressum</a>
-          <a href="https://fotobox-essen.com/datenschutz.html" className="hover:text-white">Datenschutz</a>
+          <a href="/vb/impressum" className="hover:text-white">Impressum</a>
+          <a href="/vb/datenschutz" className="hover:text-white">Datenschutz</a>
           <a href="/vb/agb" className="hover:text-white">AGB</a>
           <a href="/vb/widerruf" className="hover:text-white">Widerruf</a>
         </p>

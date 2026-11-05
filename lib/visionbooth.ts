@@ -3,7 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { VB_STYLES } from "@/lib/visionbooth-ai";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { parseChallenges, type Challenge } from "@/components/visionbooth/challenges";
-import { leadConsentText, parseLeadConfig, type LeadField } from "@/components/visionbooth/leads";
+import { leadConsentText, leadMarketingText, parseLeadConfig, type LeadField } from "@/components/visionbooth/leads";
 import { parseReveal, type RevealOption } from "@/components/visionbooth/reveal";
 
 // VisionBooth: digitale Fotobox per QR-Code (Tabellen vb_*, Bucket "visionbooth", Migration 0029).
@@ -72,7 +72,7 @@ export interface VbGuestEvent {
   /** Foto-Missionen – nur wenn die Galerie an ist (Punkte zählen nur für geteilte Fotos) */
   challenges: Challenge[];
   /** Freiwilliges Kontaktformular (Firmen-Events) */
-  leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
+  leads: { title: string; text: string; fields: LeadField[]; consent: string; marketing: string | null; privacyUrl: string; sponsor: string } | null;
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
 }
@@ -124,7 +124,10 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     })(),
     leads: (() => {
       const c = parseLeadConfig(e.leads);
-      return c.enabled ? { title: c.title, text: c.text, fields: c.fields, consent: leadConsentText(c, e.contact_name || e.title) } : null;
+      const who = e.contact_name || e.title;
+      return c.enabled
+        ? { title: c.title, text: c.text, fields: c.fields, consent: leadConsentText(c, who), marketing: c.marketing ? leadMarketingText(c, who) : null, privacyUrl: c.privacyUrl, sponsor: c.sponsor || who }
+        : null;
     })(),
     formats: (() => {
       const f = (e.formats ?? []).filter((x): x is "einzel" | "streifen" => x === "einzel" || x === "streifen");

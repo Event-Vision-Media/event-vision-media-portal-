@@ -70,8 +70,9 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
         <Section title="KI-Verwandlung">
           <p>
             Nur wenn du einen KI-Stil antippst, übertragen wir dein Foto zur Bearbeitung an unseren Dienstleister fal.ai (Features &amp; Labels, Inc., USA), der dafür ein
-            KI-Modell von Google einsetzt. Dabei werden Daten in die USA übermittelt, wo ein geringeres Datenschutzniveau als in der EU bestehen kann. Rechtsgrundlage ist
-            deine Einwilligung durch das Antippen des Stils (Art. 6 Abs. 1 lit. a, Art. 49 Abs. 1 lit. a DSGVO).
+            KI-Modell von Google einsetzt. Dabei werden Daten in die USA übermittelt, wo ein geringeres Datenschutzniveau als in der EU bestehen kann; abgesichert ist die
+            Übermittlung durch EU-Standardvertragsklauseln (Art. 46 DSGVO). Rechtsgrundlage ist deine Einwilligung durch das Antippen des Stils (Art. 6 Abs. 1 lit. a DSGVO).
+            KI-Bilder sind mit „KI-Bild“ gekennzeichnet.
           </p>
           <p className="mt-2">
             Wir haben fal.ai angewiesen, dein Foto und das Ergebnis nicht im Verlauf zu speichern und die Bilddateien nach spätestens einer Stunde zu löschen.
@@ -79,14 +80,40 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
           </p>
         </Section>
 
+        <Section title="Missionen, Bestenliste und Spiele">
+          <p>
+            Machst du bei Foto-Missionen mit, speichern wir den Spitznamen, den du dafür eingibst, deine erledigten Missionen und Punkte. Spitzname und Punkte erscheinen
+            auf der Bestenliste in der App und auf der Foto-Wand. Auch Herzen für Fotos und Tipps beim Tippspiel werden gespeichert. Ein Vorname oder Spitzname reicht – du
+            musst keinen echten Namen angeben. Rechtsgrundlage ist deine Einwilligung durch die Teilnahme (Art. 6 Abs. 1 lit. a DSGVO). Gelöscht wird alles zusammen mit
+            den Fotos.
+          </p>
+        </Section>
+
+        <Section title="Eigene Fotos hochladen">
+          <p>
+            Lädst du Fotos aus deiner Handy-Galerie hoch, gilt dasselbe wie beim Galerie-Schalter: Sie werden gespeichert, in der Event-Galerie gezeigt und automatisch
+            gelöscht. Bitte lade nur Fotos hoch, auf denen die abgebildeten Personen einverstanden sind.
+          </p>
+        </Section>
+
+        {g?.leads && (
+          <Section title="Gewinnspiel / Kontaktformular">
+            <p>
+              Trägst du dich freiwillig ein, erhält {g.leads.sponsor} deine Angaben für den genannten Zweck – {g.leads.sponsor} ist dafür verantwortlich, wir speichern
+              die Daten nur in dessen Auftrag (Art. 28 DSGVO). Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO), die du jederzeit widerrufen kannst.
+              E-Mail-Werbung bekommst du nur, wenn du das gesonderte Häkchen dafür gesetzt hast. Dein Foto bekommst du auch ohne Teilnahme.
+            </p>
+          </Section>
+        )}
+
         <Section title="Technik">
           <p>
             Die Seite läuft bei unserem Hosting-Dienstleister Vercel, gespeicherte Fotos liegen bei unserem Datenbank-Dienstleister Supabase. Mit beiden bestehen
             Verträge zur Auftragsverarbeitung. Es gibt keine Cookies, kein Tracking und keine Werbung.
           </p>
           <p className="mt-2">
-            Damit das Limit für KI-Verwandlungen pro Gast funktioniert, legen wir im Speicher deines Browsers eine zufällige Kennung ab. Sie verrät nichts über dich und
-            wird nur für diese Fotobox genutzt.
+            Damit Limits, Missionen und „Meine Fotos“ funktionieren, legen wir im Speicher deines Browsers eine zufällige Kennung ab. Sie verrät nichts über dich,
+            wird nur für diese Fotobox genutzt und ist für diese von dir gewünschten Funktionen technisch nötig (§ 25 Abs. 2 TDDDG).
           </p>
         </Section>
 
@@ -96,7 +123,7 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
             Datenschutz-Aufsichtsbehörde, z. B. der Landesbeauftragten für Datenschutz und Informationsfreiheit NRW.
           </p>
           <p className="mt-2">
-            Ausführlich: <a className="underline" href="https://fotobox-essen.com/datenschutz">Datenschutzerklärung von Event Vision Media</a>
+            Ausführlich: <a className="underline" href="/vb/datenschutz">Datenschutzerklärung von VisionBooth</a>
           </p>
         </Section>
 

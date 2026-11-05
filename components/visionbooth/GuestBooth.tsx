@@ -6,6 +6,7 @@ import {
   CELL_H,
   CELL_W,
   drawCover,
+  drawAiBadge,
   drawFrame,
   drawStory,
   drawStrip,
@@ -50,7 +51,7 @@ interface GuestEvent {
   /** Foto-Missionen (leer = aus) */
   challenges: Challenge[];
   /** Freiwilliges Kontaktformular (Firmen-Events) */
-  leads: { title: string; text: string; fields: LeadField[]; consent: string } | null;
+  leads: { title: string; text: string; fields: LeadField[]; consent: string; marketing: string | null; privacyUrl: string; sponsor: string } | null;
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
 }
@@ -410,6 +411,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       c.width = FRAME_W;
       c.height = FRAME_H;
       drawFrame(c.getContext("2d")!, aiImg, aiImg.naturalWidth, aiImg.naturalHeight, opts(false));
+      drawAiBadge(c.getContext("2d")!);
       const framed = await toBlob(c);
       if (!framed) throw new Error("Bild konnte nicht erstellt werden.");
       setConfetti((n) => n + 1);
