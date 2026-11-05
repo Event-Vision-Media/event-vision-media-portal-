@@ -54,6 +54,8 @@ export interface VbEvent {
   reveal: unknown;
   /** Foto-Glücksrad (jsonb, wheel.ts) */
   wheel?: unknown;
+  /** Gästebuch-Grüße an */
+  guestbook?: boolean;
   plan: string | null;
   occasion: string | null;
 }
@@ -81,6 +83,8 @@ export interface VbGuestEvent {
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
   /** Aufgaben des Foto-Glücksrads – null = aus */
   wheel: string[] | null;
+  /** Gäste können zum Foto einen Gruß schreiben (nur mit Galerie) */
+  guestbook: boolean;
 }
 
 /** Event über den geheimen Verwaltungs-Link des Kunden laden. */
@@ -124,6 +128,7 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     aiPerGuest: e.ai_per_guest,
     deleteAfter: vbDeleteAfter(e).toISOString().slice(0, 10),
     challenges: e.gallery_enabled ? parseChallenges(e.challenges) : [],
+    guestbook: Boolean(e.guestbook) && e.gallery_enabled,
     wheel: (() => {
       const w = parseWheel(e.wheel);
       return w.enabled ? w.items : null;

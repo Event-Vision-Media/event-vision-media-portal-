@@ -39,7 +39,7 @@ export async function startVbCheckout(_prev: VbShopResult, formData: FormData): 
     const g = JSON.parse(String(formData.get("games") ?? "{}"));
     // nur Spiele, die zum Anlass passen
     const fit = relevantGames(occ.id, plan.id);
-    games = { missions: g.missions === true && fit.missions, reveal: g.reveal === true && fit.reveal, leads: g.leads === true && plan.firma && fit.leads, wheel: g.wheel === true && Boolean(fit.wheel) };
+    games = { missions: g.missions === true && fit.missions, reveal: g.reveal === true && fit.reveal, leads: g.leads === true && plan.firma && fit.leads, wheel: g.wheel === true && Boolean(fit.wheel), guestbook: g.guestbook === true && Boolean(fit.guestbook) };
   } catch {
     /* Vorauswahl behalten */
   }

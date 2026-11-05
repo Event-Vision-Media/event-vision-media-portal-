@@ -105,6 +105,17 @@ export async function updateVbWheel(token: string, _prev: VbCustomerResult, form
   return { success: true };
 }
 
+/** Gästebuch-Grüße ein-/ausschalten. */
+export async function updateVbGuestbook(token: string, _prev: VbCustomerResult, formData: FormData): Promise<VbCustomerResult> {
+  const event = await loadVbEventByToken(token);
+  if (!event) return { error: "Link ungültig." };
+  if (event.photos_deleted_at) return { error: "Dieses Event ist abgeschlossen." };
+  const { error } = await createAdminClient().from("vb_events").update({ guestbook: formData.get("guestbook_enabled") === "on" }).eq("id", event.id);
+  if (error) return { error: "Speichern fehlgeschlagen." };
+  revalidatePath(`/vb/verwalten/${token}`);
+  return { success: true };
+}
+
 /** Kontaktformular (Firmen-Events) ein-/ausschalten und Texte anpassen. */
 export async function updateVbLeads(token: string, _prev: VbCustomerResult, formData: FormData): Promise<VbCustomerResult> {
   const event = await loadVbEventByToken(token);

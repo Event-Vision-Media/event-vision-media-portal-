@@ -215,3 +215,8 @@ alter table public.vb_orders add column if not exists consents jsonb;
 
 -- Foto-Glücksrad: {enabled, items[]} – Gäste drehen und bekommen eine lustige Foto-Aufgabe
 alter table public.vb_events add column if not exists wheel jsonb not null default '{}'::jsonb;
+
+-- Gästebuch-Grüße: Gäste schreiben zum Foto einen Gruß (am Ende als Gästebuch zum Drucken)
+alter table public.vb_events add column if not exists guestbook boolean not null default false;
+alter table public.vb_photos add column if not exists greeting text;
+alter table public.vb_photos add column if not exists greeting_name text;

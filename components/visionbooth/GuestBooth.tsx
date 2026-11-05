@@ -1,5 +1,6 @@
 "use client";
 
+import { GreetingCard } from "./GreetingCard";
 import { IconTile, OccasionIcon } from "./site/OccasionIcon";
 import { PhotoWheel } from "./PhotoWheel";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
@@ -58,6 +59,7 @@ interface GuestEvent {
   /** Tippspiel (Gender Reveal) */
   reveal: { question: string; options: [RevealOption, RevealOption]; result: "a" | "b" | null } | null;
   wheel?: string[] | null;
+  guestbook?: boolean;
   /** Probefoto des Gastgebers: nichts wird gespeichert */
   probe?: boolean;
 }
@@ -72,6 +74,8 @@ interface Variant {
   url: string;
   upload: Upload;
   uploadMsg?: string;
+  /** ID des gespeicherten Fotos (für den Gästebuch-Gruß) */
+  photoId?: string;
 }
 
 type Step = "start" | "kamera" | "ergebnis";
@@ -315,7 +319,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
       const res = await fetch(`/api/vb/${event.slug}/upload`, { method: "POST", headers, body });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data?.error || "Upload fehlgeschlagen");
-      setVariant(v.id, { upload: "ok" });
+      setVariant(v.id, { upload: "ok", photoId: typeof data?.id === "string" ? data.id : undefined });
       if (m && data?.mission) {
         missionRef.current = null;
         setMission(null);
@@ -854,6 +858,10 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           </div>
 
           {win && <MissionWinCard win={win} onNext={() => setSheet("missionen")} onBoard={() => setSheet("bestenliste")} />}
+          {event.guestbook && (() => {
+            const orig = variants.find((v) => v.id === "original");
+            return orig?.upload === "ok" && orig.photoId ? <GreetingCard key={orig.photoId} slug={event.slug} photoId={orig.photoId} guestKey={guestKey()} defaultName={myName} /> : null;
+          })()}
           {!win && mission && current.upload === "laeuft" && <p className="vb-fade text-center text-sm text-white/70">{mission.emoji} Mission wird gewertet …</p>}
 
           {variants.length > 1 && (

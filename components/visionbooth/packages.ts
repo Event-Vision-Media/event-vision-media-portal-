@@ -19,6 +19,8 @@ export interface VbGames {
   leads: boolean;
   /** Foto-Glücksrad (ältere Buchungen ohne Feld = aus) */
   wheel?: boolean;
+  /** Gästebuch-Grüße zum Foto */
+  guestbook?: boolean;
 }
 
 export interface VbPlan {
@@ -77,7 +79,7 @@ export const getOccasion = (id: string | null | undefined) => VB_OCCASIONS.find(
 /** Vorauswahl der Spiele je Paket und Anlass. */
 export function defaultGames(plan: VbPlanId, occasion: VbOccasionId): VbGames {
   const o = getOccasion(occasion);
-  return { missions: Boolean(o.challenges), reveal: Boolean(o.reveal), leads: plan === "business" || plan === "messe", wheel: ["hochzeit", "geburtstag", "kindergeburtstag", "party"].includes(occasion) };
+  return { missions: Boolean(o.challenges), reveal: Boolean(o.reveal), leads: plan === "business" || plan === "messe", wheel: ["hochzeit", "geburtstag", "kindergeburtstag", "party"].includes(occasion), guestbook: ["hochzeit", "geburtstag"].includes(occasion) };
 }
 
 /**
@@ -85,13 +87,14 @@ export function defaultGames(plan: VbPlanId, occasion: VbOccasionId): VbGames {
  * Ohne Anlass (ältere Events) passt alles.
  */
 export function relevantGames(occasion: string | null | undefined, plan: string | null | undefined): VbGames {
-  if (!occasion || !VB_OCCASIONS.some((o) => o.id === occasion)) return { missions: true, reveal: true, leads: true, wheel: true };
+  if (!occasion || !VB_OCCASIONS.some((o) => o.id === occasion)) return { missions: true, reveal: true, leads: true, wheel: true, guestbook: true };
   const firmaAnlass = occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
   return {
     missions: occasion !== "messe",
     reveal: occasion === "babyparty",
     leads: firmaAnlass || (Boolean(plan) && getPlan(plan).firma),
     wheel: occasion !== "messe",
+    guestbook: !["kindergeburtstag", "messe"].includes(occasion),
   };
 }
 

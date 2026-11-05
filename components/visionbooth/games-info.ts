@@ -1,7 +1,7 @@
 // Kurze Erklärungen zu Spielen und Foto-Wand – gleiche Texte in Buchung und Kundenbereich,
 // damit niemand rätseln muss, was „Mission“ oder „Foto-Wand“ bedeutet.
 
-export type GameKey = "missions" | "reveal" | "leads" | "wheel";
+export type GameKey = "missions" | "reveal" | "leads" | "wheel" | "guestbook";
 
 export const GAME_HOW: Record<GameKey, { title: string; steps: string[] }> = {
   missions: {
@@ -27,6 +27,14 @@ export const GAME_HOW: Record<GameKey, { title: string; steps: string[] }> = {
       "Eure Gäste tippen in der VisionBooth auf „Foto-Glücksrad“ und drehen am Rad.",
       "Das Rad bleibt bei einer lustigen Foto-Aufgabe stehen – z. B. „Alle machen ein Herz mit den Händen“.",
       "Dann geht es direkt zur Kamera: Foto machen, fertig. Keine Punkte, kein Stress – einfach Spaß. Die Aufgaben könnt ihr selbst anpassen.",
+    ],
+  },
+  guestbook: {
+    title: "So funktionieren die Gästebuch-Grüße",
+    steps: [
+      "Nach dem Foto können eure Gäste einen kurzen Gruß dazu schreiben – mit Namen, ganz freiwillig.",
+      "Alle Grüße seht ihr im Kundenbereich, jeweils mit dem passenden Foto.",
+      "Nach dem Event öffnet ihr euer Gästebuch: jede Seite ein Foto mit Gruß, im Design eures Events – zum Drucken oder als PDF zum Aufheben.",
     ],
   },
   leads: {

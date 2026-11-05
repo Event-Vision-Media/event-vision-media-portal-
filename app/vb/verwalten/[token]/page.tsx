@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VbGuestbookEditor } from "@/components/visionbooth/customer/VbGuestbookEditor";
 import { VbWheelEditor } from "@/components/visionbooth/customer/VbWheelEditor";
 import { parseWheel, wheelDefaultFor } from "@/components/visionbooth/wheel";
 import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
@@ -7,7 +8,7 @@ import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, vbProbeKey, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
-import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbLeads, updateVbReveal, updateVbWheel } from "@/app/actions/vb-customer";
+import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbGuestbook, updateVbLeads, updateVbReveal, updateVbWheel } from "@/app/actions/vb-customer";
 import { VbRevealEditor } from "@/components/visionbooth/customer/VbRevealEditor";
 import { parseReveal } from "@/components/visionbooth/reveal";
 import { VbLeadsEditor } from "@/components/visionbooth/customer/VbLeadsEditor";
@@ -59,15 +60,21 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   }
 
   const supabase = createAdminClient();
-  const [{ data: photoRows }, { count: photoTotal }, { count: aiDone }, { data: guests }] = await Promise.all([
+  const [{ data: photoRows }, { count: photoTotal }, { count: aiDone }, { data: guests }, { data: greetRows, count: greetTotal }] = await Promise.all([
     supabase.from("vb_photos").select("id, kind, style, file_path, thumb_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fertig"),
     supabase.from("vb_photos").select("guest_key").eq("event_id", event.id).not("guest_key", "is", null).limit(5000),
+    supabase.from("vb_photos").select("id, greeting, greeting_name, thumb_path, file_path", { count: "exact" }).eq("event_id", event.id).eq("hidden", false).not("greeting", "is", null).order("created_at", { ascending: false }).limit(6),
   ]);
-  const paths = [...(photoRows ?? []).flatMap((p) => (p.thumb_path ? [p.thumb_path, p.file_path] : [p.file_path])), ...(event.logo_path ? [event.logo_path] : [])];
+  const paths = [
+    ...(photoRows ?? []).flatMap((p) => (p.thumb_path ? [p.thumb_path, p.file_path] : [p.file_path])),
+    ...(greetRows ?? []).map((g) => g.thumb_path || g.file_path),
+    ...(event.logo_path ? [event.logo_path] : []),
+  ];
   const { data: signed } = paths.length ? await supabase.storage.from(VB_BUCKET).createSignedUrls(paths, 3600) : { data: [] };
   const url = new Map((signed ?? []).map((s) => [s.path, s.signedUrl]));
+  const greetings = (greetRows ?? []).map((g) => ({ id: g.id, text: g.greeting as string, name: g.greeting_name as string | null, thumb: url.get(g.thumb_path || g.file_path) ?? "" }));
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, kind: p.kind, style: p.style, hidden: p.hidden, createdAt: p.created_at, url: url.get(p.thumb_path || p.file_path) ?? "", full: url.get(p.file_path) ?? "" }));
 
   const guestUrl = vbGuestUrl(event.slug);
@@ -83,6 +90,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   const gameCount = [
     fit.missions || parseChallenges(event.challenges).length > 0,
     !deleted && (Boolean(fit.wheel) || parseWheel(event.wheel).enabled),
+    Boolean(fit.guestbook) || Boolean(event.guestbook) || (greetTotal ?? 0) > 0,
     !deleted && (fit.leads || parseLeadConfig(event.leads).enabled),
     !deleted && (fit.reveal || parseReveal(event.reveal).enabled),
   ].filter(Boolean).length;
@@ -207,6 +215,14 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
               </div>
             </section>
           );
+          const guestbook = (n: number) => (
+            <section key="g" className="rounded-3xl bg-white p-6 shadow-card">
+              <Step n={n} title="Gästebuch-Grüße" hint="Gäste schreiben zum Foto einen kurzen Gruß – am Ende habt ihr ein Gästebuch mit Fotos zum Drucken." how={GAME_HOW.guestbook} />
+              <div className="mt-5">
+                <VbGuestbookEditor action={updateVbGuestbook.bind(null, params.token)} enabled={Boolean(event.guestbook)} galleryEnabled={event.gallery_enabled} greetings={greetings} total={greetTotal ?? 0} bookUrl={`/vb/verwalten/${params.token}/gaestebuch`} />
+              </div>
+            </section>
+          );
           const reveal = (n: number) => (
             <section key="r" className="rounded-3xl bg-white p-6 shadow-card">
               <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." how={GAME_HOW.reveal} />
@@ -227,6 +243,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           const items = [
             { key: "missions", top: fit.missions || parseChallenges(event.challenges).length > 0, render: missions, done: false },
             { key: "wheel", top: Boolean(fit.wheel) || parseWheel(event.wheel).enabled, render: wheel, done: deleted },
+            { key: "guestbook", top: Boolean(fit.guestbook) || Boolean(event.guestbook) || (greetTotal ?? 0) > 0, render: guestbook, done: false },
             { key: "leads", top: fit.leads || parseLeadConfig(event.leads).enabled, render: leads, done: deleted },
             { key: "reveal", top: fit.reveal || parseReveal(event.reveal).enabled, render: reveal, done: deleted },
           ];
@@ -241,7 +258,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
                     <span>
                       <span className="block font-serif text-xl font-semibold text-anthracite-800">Weitere Spiele &amp; Extras</span>
                       <span className="mt-0.5 block text-sm text-anthracite-500">
-                        {more.map((i) => ({ missions: "Missionen", wheel: "Glücksrad", reveal: "Tippspiel", leads: "Gewinnspiel" })[i.key]).join(" · ")} – passt nicht zu jedem Anlass, aber jederzeit möglich
+                        {more.map((i) => ({ missions: "Missionen", wheel: "Glücksrad", guestbook: "Gästebuch", reveal: "Tippspiel", leads: "Gewinnspiel" })[i.key]).join(" · ")} – passt nicht zu jedem Anlass, aber jederzeit möglich
                       </span>
                     </span>
                     <span className="text-2xl text-anthracite-400 transition group-open:rotate-45">+</span>

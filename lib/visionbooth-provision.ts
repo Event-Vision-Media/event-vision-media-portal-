@@ -106,6 +106,7 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     challenges,
     reveal: games.reveal ? { ...REVEAL_DEFAULT, enabled: true } : {},
     wheel: { enabled: Boolean(games.wheel), items: wheelDefaultFor(occ.id) },
+    guestbook: Boolean(games.guestbook),
     leads: games.leads && plan.firma ? { ...LEAD_DEFAULT, enabled: true, sponsor: input.company?.trim() || input.contactName?.trim() || "" } : {},
   };
 

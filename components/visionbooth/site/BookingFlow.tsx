@@ -191,6 +191,16 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 how={GAME_HOW.wheel}
               />
             )}
+            {fitGames.guestbook && (
+              <GameToggle
+                on={Boolean(games.guestbook)}
+                onChange={(v) => setGames({ ...games, guestbook: v })}
+                icon="heart"
+                title="Gästebuch-Grüße"
+                text="Gäste schreiben zum Foto einen Gruß – am Ende euer Gästebuch mit Fotos zum Drucken."
+                how={GAME_HOW.guestbook}
+              />
+            )}
             {fitGames.reveal && (
               <GameToggle
                 on={games.reveal}
@@ -305,7 +315,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <Row label="Anlass" value={`${getOccasion(occasion).label} · Design ${getTemplate(design ?? getOccasion(occasion).template).name}`} onEdit={() => go(0)} />
             <Row
               label="Spiele"
-              value={[games?.missions && fitGames.missions && "Missionen", games?.wheel && fitGames.wheel && "Glücksrad", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              value={[games?.missions && fitGames.missions && "Missionen", games?.wheel && fitGames.wheel && "Glücksrad", games?.guestbook && fitGames.guestbook && "Gästebuch", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
               onEdit={() => go(2)}
             />
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />

@@ -96,6 +96,13 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
           </p>
         </Section>
 
+        <Section title="Gästebuch-Grüße">
+          <p>
+            Schreibst du zu deinem Foto einen Gruß, speichern wir den Text und – falls angegeben – deinen Namen zusammen mit dem Foto. Der Gruß ist freiwillig, erscheint im
+            Gästebuch der Gastgeber und wird zusammen mit dem Foto automatisch gelöscht. Rechtsgrundlage ist deine Einwilligung (Art. 6 Abs. 1 lit. a DSGVO).
+          </p>
+        </Section>
+
         {g?.leads && (
           <Section title="Gewinnspiel / Kontaktformular">
             <p>
