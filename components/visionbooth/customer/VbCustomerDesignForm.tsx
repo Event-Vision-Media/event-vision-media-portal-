@@ -3,6 +3,7 @@
 import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { VbDesignPicker } from "@/components/admin/visionbooth/VbDesignPicker";
+import { getTemplate } from "@/components/visionbooth/templates";
 import type { VbCustomerResult } from "@/app/actions/vb-customer";
 
 interface Values {
@@ -50,7 +51,7 @@ export function VbCustomerDesignForm({ action, initial }: { action: (prev: VbCus
           <input id="c-sub" name="frame_subtext" maxLength={60} value={subtext} onChange={(e) => setSubtext(e.target.value)} className="input-field" placeholder="14.11.2026 · Schloss Hugenpoet" />
         </div>
         <div>
-          <label className={label} htmlFor="c-accent">Akzentfarbe</label>
+          <label className={label} htmlFor="c-accent">{getTemplate(template).art ? "Textfarbe" : "Akzentfarbe"}</label>
           <div className="flex gap-2">
             <input id="c-accent" type="color" value={accent} onChange={(e) => setAccent(e.target.value)} className="h-11 w-14 flex-none cursor-pointer rounded-lg border border-anthracite-200" />
             <input name="accent_color" value={accent} onChange={(e) => setAccent(e.target.value)} className="input-field font-mono" maxLength={7} />

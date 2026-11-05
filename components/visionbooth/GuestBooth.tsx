@@ -14,6 +14,7 @@ import {
   FRAME_H,
   FRAME_W,
   loadVbFonts,
+  preloadArt,
   onAccent,
   STORY_H,
   STORY_W,
@@ -198,7 +199,8 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   // Schriften der Vorlage fürs Canvas laden
   useEffect(() => {
     loadVbFonts(mainRef.current).then((f) => (fontsRef.current = f));
-  }, []);
+    preloadArt(event.template);
+  }, [event.template]);
 
   // Logo einmal laden (crossOrigin, damit das Canvas exportierbar bleibt)
   useEffect(() => {

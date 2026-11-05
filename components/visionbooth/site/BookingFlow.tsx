@@ -4,7 +4,7 @@ import { IconTile, OccasionIcon, type LineIconName } from "./OccasionIcon";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
-import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, type VbFonts } from "@/components/visionbooth/frame";
+import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, onArtReady, type VbFonts } from "@/components/visionbooth/frame";
 import { defaultGames, getOccasion, getPlan, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 import { getTemplate, VB_TEMPLATES } from "@/components/visionbooth/templates";
 import { VB_CONSENT_START } from "@/components/visionbooth/consent";
@@ -21,7 +21,8 @@ const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
   messe: "Muster GmbH",
   sonstiges: "Unser Event",
 };
-const KID_MOTTOS = VB_TEMPLATES.filter((t) => t.group === "kinder");
+// gestaltete Motive zuerst, dann die schlichten Mottos
+const KID_MOTTOS = VB_TEMPLATES.filter((t) => t.group === "kinder").sort((a, b) => Number(Boolean(b.art)) - Number(Boolean(a.art)));
 const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
 // Je Anlass nur die passenden Pakete (wie auf der Website Privat/Business) – „Sonstiges“ zeigt alle
 const BUSINESS_OCC: VbOccasionId[] = ["firma", "weihnachtsfeier", "messe"];
@@ -210,7 +211,12 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                     className={`flex flex-none flex-col items-center gap-1 rounded-2xl px-3 py-2.5 transition active:scale-95 ${motto === t.id ? "ring-2" : "vb-glass"}`}
                     style={motto === t.id ? { background: `color-mix(in srgb, ${t.accent} 30%, #141417)`, ["--tw-ring-color" as string]: t.accent } : undefined}
                   >
-                    <span className="text-3xl">{t.stickers![0]}</span>
+                    {t.art ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={t.art.single.bg} alt="" className="h-9 w-[29px] rounded-md object-cover" />
+                    ) : (
+                      <span className="text-3xl">{t.stickers?.[0]}</span>
+                    )}
                     <span className="whitespace-nowrap text-[12px] font-semibold">{t.name}</span>
                   </button>
                 ))}
@@ -364,6 +370,7 @@ function FramePreview({ occasion, template, text, date }: { occasion: VbOccasion
       fonts.current = f;
       setReady((n) => n + 1);
     });
+    return onArtReady(() => setReady((n) => n + 1));
   }, []);
 
   useEffect(() => {

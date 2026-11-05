@@ -1,7 +1,7 @@
 // Zeichnet VisionBooth-Bilder im Design der gewählten Vorlage (templates.ts): Einzelfoto (4:5),
 // Fotostreifen, Live-Vorschau und Story-Version. Vorschau und Ergebnis sind identisch.
 
-import { getTemplate, type FontRole, type VbTemplate } from "./templates";
+import { getTemplate, type ArtLayer, type FontRole, type VbTemplate } from "./templates";
 
 export const FRAME_W = 1080;
 export const FRAME_H = 1350;
@@ -313,7 +313,7 @@ function sparkle(ctx: CanvasRenderingContext2D, x: number, y: number, s: number)
 }
 
 /** Titel, Unterzeile, Logo und Marke im Textband. */
-function textBand(ctx: CanvasRenderingContext2D, t: VbTemplate, o: FrameOptions, area: Box, opts: { logoLeft?: boolean; light?: boolean } = {}) {
+function textBand(ctx: CanvasRenderingContext2D, t: VbTemplate, o: FrameOptions, area: Box, opts: { logoLeft?: boolean; light?: boolean; creditY?: number } = {}) {
   const ink = col(t.ink, o.accent);
   const sub = col(t.sub, o.accent);
   let left = area.x;
@@ -387,17 +387,83 @@ function textBand(ctx: CanvasRenderingContext2D, t: VbTemplate, o: FrameOptions,
   ctx.globalAlpha = 0.75;
   ctx.font = `500 18px ${fam(o, "ui")}`;
   ctx.textAlign = "center";
-  ctx.fillText("VisionBooth by Event Vision Media", area.x + area.w / 2, area.y + area.h - 16);
+  ctx.fillText("VisionBooth by Event Vision Media", area.x + area.w / 2, opts.creditY ?? area.y + area.h - 16);
   ctx.restore();
 }
 
 // ---------- Einzelfoto ----------
+
+// ---------- Gestaltete Bild-Vorlagen ----------
+
+const artImgs = new Map<string, HTMLImageElement>();
+const artListeners = new Set<() => void>();
+
+/** Bild einer Vorlage holen (lädt beim ersten Aufruf; null, solange es noch lädt). */
+function artImg(url: string): HTMLImageElement | null {
+  if (typeof Image === "undefined") return null;
+  let img = artImgs.get(url);
+  if (!img) {
+    img = new Image();
+    img.decoding = "async";
+    img.onload = () => artListeners.forEach((f) => f());
+    img.src = url;
+    artImgs.set(url, img);
+  }
+  return img.complete && img.naturalWidth ? img : null;
+}
+
+/** Bilder einer Vorlage vorladen – Ergebnis, sobald alle da sind (oder fehlgeschlagen). */
+export function preloadArt(templateId: string | null | undefined): Promise<void> {
+  const t = getTemplate(templateId);
+  if (!t.art) return Promise.resolve();
+  const urls = [t.art.single.bg, t.art.single.overlay, ...(t.art.strip ? [t.art.strip.bg, t.art.strip.overlay] : [])];
+  return Promise.all(
+    urls.map((u) => {
+      const img = artImg(u) ?? artImgs.get(u);
+      if (!img || (img.complete && img.naturalWidth)) return;
+      return new Promise<void>((res) => {
+        img.addEventListener("load", () => res(), { once: true });
+        img.addEventListener("error", () => res(), { once: true });
+      });
+    }),
+  ).then(() => undefined);
+}
+
+/** Meldet, wenn ein Vorlagenbild fertig geladen ist (zum Neuzeichnen von Vorschauen). */
+export function onArtReady(cb: () => void): () => void {
+  artListeners.add(cb);
+  return () => {
+    artListeners.delete(cb);
+  };
+}
+
+function drawArt(ctx: CanvasRenderingContext2D, t: VbTemplate, layer: ArtLayer, W: number, H: number, photos: ({ src: CanvasImageSource; w: number; h: number; mirror: boolean } | null)[], o: FrameOptions) {
+  const bg = artImg(layer.bg);
+  ctx.fillStyle = t.bg;
+  ctx.fillRect(0, 0, W, H);
+  if (bg) ctx.drawImage(bg, 0, 0, W, H);
+  layer.slots.forEach((b, i) => {
+    const p = photos[i];
+    if (p && p.w && p.h) drawCover(ctx, p.src, p.w, p.h, b.x, b.y, b.w, b.h, p.mirror);
+    else {
+      ctx.fillStyle = "#1a1a1d";
+      ctx.fillRect(b.x, b.y, b.w, b.h);
+    }
+  });
+  const ov = artImg(layer.overlay);
+  if (ov) ctx.drawImage(ov, 0, 0, W, H);
+  textBand(ctx, { ...t, photo: t.photo === "neon" ? "neon" : "thin" }, o, layer.text, { creditY: layer.creditY });
+}
 
 export function drawFrame(ctx: CanvasRenderingContext2D, src: CanvasImageSource | null, sw: number, sh: number, o: FrameOptions) {
   const W = FRAME_W;
   const H = FRAME_H;
   const t = getTemplate(o.template);
   const mirror = Boolean(o.mirror);
+  if (t.art) {
+    drawArt(ctx, t, t.art.single, W, H, [src ? { src, w: sw, h: sh, mirror } : null], o);
+    return;
+  }
   ctx.fillStyle = t.bg;
   ctx.fillRect(0, 0, W, H);
 
@@ -477,7 +543,14 @@ function stripTemplate(t: VbTemplate): VbTemplate {
 export function drawStrip(ctx: CanvasRenderingContext2D, shots: Shot[], o: FrameOptions) {
   const W = STRIP_W;
   const H = STRIP_H;
-  const t = stripTemplate(getTemplate(o.template));
+  let base = getTemplate(o.template);
+  if (base.art?.strip) {
+    drawArt(ctx, base, base.art.strip, W, H, shots.map((s) => (s ? { ...s, mirror: false } : null)), o);
+    return;
+  }
+  // gestaltetes Design ohne eigenen Streifen: passende schlichte Vorlage
+  if (base.art) base = getTemplate(base.art.stripFallback);
+  const t = stripTemplate(base);
   ctx.fillStyle = t.bg;
   ctx.fillRect(0, 0, W, H);
   decorate(ctx, t, W, H, o.accent, 11);
@@ -504,7 +577,8 @@ export function drawStrip(ctx: CanvasRenderingContext2D, shots: Shot[], o: Frame
 export function drawStripPreview(ctx: CanvasRenderingContext2D, live: Shot | null, shots: Shot[], current: number, o: FrameOptions) {
   const W = FRAME_W;
   const H = FRAME_H;
-  const t = stripTemplate(getTemplate(o.template));
+  const base = getTemplate(o.template);
+  const t = stripTemplate(base.art && !base.art.strip ? getTemplate(base.art.stripFallback) : base);
   const ink = col(t.ink, o.accent);
   ctx.fillStyle = t.bg;
   ctx.fillRect(0, 0, W, H);
