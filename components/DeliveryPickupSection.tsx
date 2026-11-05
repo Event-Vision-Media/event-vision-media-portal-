@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { formatDateGerman, formatTimeGerman } from "@/lib/format";
 import type { Booking } from "@/lib/types";
+import { bookingHandover, HANDOVER_LABELS, TRAVEL } from "@/lib/catalog";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -95,20 +96,25 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
     });
   }
 
+  const handover = bookingHandover(booking.inquiry_items);
+  const labels = HANDOVER_LABELS[handover];
+  const sie = booking.customer_type === "business";
+  const intro = {
+    lieferung: sie ? "Hier sehen Sie, wann und von wem die Technik geliefert und wieder abgeholt wird." : "Hier seht ihr, wann und von wem die Technik geliefert und wieder abgeholt wird.",
+    abholung: sie
+      ? `Sie holen die Technik bei uns ab (${TRAVEL.origin}) und bringen sie wieder zurück. Hier sehen Sie die vereinbarten Termine.`
+      : `Ihr holt die Technik bei uns ab (${TRAVEL.origin}) und bringt sie wieder zurück. Hier seht ihr die vereinbarten Termine.`,
+    versand: sie ? "Wir schicken Ihnen die Technik per Paket zu. Hier sehen Sie, wann sie verschickt wird und wann sie zurück soll." : "Wir schicken euch die Technik per Paket zu. Hier seht ihr, wann sie verschickt wird und wann sie zurück soll.",
+  }[handover];
+
   return (
     <Card>
-      <h2 className="font-serif text-lg font-semibold text-anthracite-800">
-        Lieferung &amp; Abholung
-      </h2>
-      <p className="mt-1 text-sm text-anthracite-500">
-        {booking.customer_type === "business"
-          ? "Hier sehen Sie, wann und von wem die Technik geliefert und wieder abgeholt wird."
-          : "Hier seht ihr, wann und von wem die Technik geliefert und wieder abgeholt wird."}
-      </p>
+      <h2 className="font-serif text-lg font-semibold text-anthracite-800">{labels.title}</h2>
+      <p className="mt-1 text-sm text-anthracite-500">{intro}</p>
 
       <div className="mt-4 flex flex-col gap-3 sm:flex-row">
         <InfoBlock
-          title="Lieferung"
+          title={labels.first}
           date={booking.delivery_date}
           time={booking.delivery_time}
           timeWindow={booking.delivery_time_window}
@@ -116,7 +122,7 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
           contactPhone={booking.delivery_contact_phone}
         />
         <InfoBlock
-          title="Abholung"
+          title={labels.second}
           date={booking.pickup_date}
           time={booking.pickup_time}
           timeWindow={booking.pickup_time_window}
@@ -125,6 +131,7 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
         />
       </div>
 
+      {handover === "lieferung" && (
       <div className="mt-4">
         <div className="flex items-center justify-between gap-2">
           <label className="text-sm font-medium text-anthracite-600">
@@ -178,6 +185,7 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
           </p>
         )}
       </div>
+      )}
     </Card>
   );
 }

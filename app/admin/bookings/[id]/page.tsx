@@ -33,6 +33,7 @@ import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
 import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
+import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
@@ -586,7 +587,7 @@ export default async function AdminBookingDetailPage(props: {
 
         <section>
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">
-            Lieferung &amp; Abholung
+            {HANDOVER_LABELS[bookingHandover(booking.inquiry_items)].title}
           </h2>
           <Card>
             <DeliveryPickupForm booking={booking} />

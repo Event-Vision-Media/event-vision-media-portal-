@@ -7,18 +7,20 @@ import {
 } from "@/app/actions/admin";
 import { Button } from "@/components/ui/Button";
 import type { Booking } from "@/lib/types";
+import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
 
 const initialState: AdminActionResult = {};
 
 export function DeliveryPickupForm({ booking }: { booking: Booking }) {
   const boundAction = updateDeliveryPickupInfo.bind(null, booking.id);
   const [state, formAction] = useFormState(boundAction, initialState);
+  const labels = HANDOVER_LABELS[bookingHandover(booking.inquiry_items)];
 
   return (
     <form action={formAction} className="space-y-6">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <fieldset className="space-y-3 rounded-xl border border-anthracite-100 p-4">
-          <legend className="px-1 text-sm font-semibold text-anthracite-700">Lieferung</legend>
+          <legend className="px-1 text-sm font-semibold text-anthracite-700">{labels.first}</legend>
           <div>
             <label htmlFor="delivery_date" className="mb-1 block text-xs font-medium text-anthracite-600">
               Datum
@@ -89,7 +91,7 @@ export function DeliveryPickupForm({ booking }: { booking: Booking }) {
         </fieldset>
 
         <fieldset className="space-y-3 rounded-xl border border-anthracite-100 p-4">
-          <legend className="px-1 text-sm font-semibold text-anthracite-700">Abholung</legend>
+          <legend className="px-1 text-sm font-semibold text-anthracite-700">{labels.second}</legend>
           <div>
             <label htmlFor="pickup_date" className="mb-1 block text-xs font-medium text-anthracite-600">
               Datum

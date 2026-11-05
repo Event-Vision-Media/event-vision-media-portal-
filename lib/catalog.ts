@@ -198,6 +198,23 @@ export function handoverFor(device: DeviceKey, packageId: string | undefined, ex
   return "lieferung";
 }
 
+/** Übergabe einer ganzen Buchung für Beschriftungen: sobald wir ein Gerät liefern „lieferung“, sonst Selbstabholung bzw. Versand. */
+export function bookingHandover(items: { packages?: { id: string; product: string }[]; extras?: { id: string }[] } | null | undefined): Handover {
+  const pk = items?.packages ?? [];
+  if (!pk.length) return "lieferung"; // ältere/manuelle Buchungen ohne Paketangaben
+  const ex = new Set((items?.extras ?? []).map((e) => e.id));
+  const kinds = pk.map((p) => handoverFor(p.product as DeviceKey, p.id, ex));
+  if (kinds.includes("lieferung")) return "lieferung";
+  return kinds.includes("abholung") ? "abholung" : "versand";
+}
+
+/** Beschriftung des Bereichs „Lieferung & Abholung“ passend zur Übergabe. */
+export const HANDOVER_LABELS: Record<Handover, { title: string; first: string; second: string }> = {
+  lieferung: { title: "Lieferung & Abholung", first: "Lieferung", second: "Abholung" },
+  abholung: { title: "Abholung & Rückgabe", first: "Abholung bei uns", second: "Rückgabe" },
+  versand: { title: "Versand & Rücksendung", first: "Versand", second: "Rücksendung" },
+};
+
 /** Liefern wir mindestens ein Gerät selbst aus? (dann: Abholzeit & Fahrtkosten) */
 export function hasDelivery(packages: { id: string; product: DeviceKey }[], extraIds: string[]): boolean {
   const ex = new Set(extraIds);
