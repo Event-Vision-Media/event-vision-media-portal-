@@ -26,7 +26,12 @@ export default async function VisionBoothThanksPage(props: { searchParams: Promi
             <p className="mt-3 text-white/70">
               Danke{res.order?.name ? `, ${res.order.name.split(" ")[0]}` : ""}! Die Zahlung ist angekommen. Deinen persönlichen Link schicken wir dir außerdem per E-Mail an <strong className="text-white">{res.order?.email}</strong> – falls sie nicht ankommt, schau kurz im Spam-Ordner oder nutze einfach den Knopf hier.
             </p>
-            <a href={res.manageUrl} className="vb-btn mt-8 block rounded-full py-4 text-[17px] font-bold">
+            <ol className="vb-glass mx-auto mt-7 max-w-sm space-y-2 rounded-2xl p-4 text-left text-[14px] text-white/75">
+              <li><strong className="text-white">1.</strong> Design &amp; Text anpassen</li>
+              <li><strong className="text-white">2.</strong> Spiele auswählen</li>
+              <li><strong className="text-white">3.</strong> QR-Aufsteller drucken – fertig!</li>
+            </ol>
+            <a href={res.manageUrl} className="vb-btn mt-6 block rounded-full py-4 text-[17px] font-bold">
               Jetzt gestalten &amp; QR-Code holen
             </a>
             <p className="mt-4 text-xs text-white/45">Tipp: Lege dir den Link als Lesezeichen an – damit verwaltest du alles bis nach dem Event.</p>

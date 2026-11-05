@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { VB_TEMPLATES } from "@/components/visionbooth/templates";
 import { IconTile } from "@/components/visionbooth/site/OccasionIcon";
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import Link from "next/link";
@@ -30,7 +31,8 @@ const FEATURES = [
   { icon: "target" as const, title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste – so machen auch die Fotofaulen mit, und ihr habt am Ende viel mehr Erinnerungen." },
   { icon: "tv" as const, title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
   { icon: "babyparty" as const, title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
-  { icon: "image" as const, title: "17 Designs & Fotostreifen", text: "Von Elegant Gold bis Neon Night – dazu Kinder-Mottos wie Dino, Prinzessin oder Feuerwehr. Plus 3er-Fotostreifen und Story-Format." },
+  { icon: "image" as const, title: `${VB_TEMPLATES.length} Designs & Fotostreifen`, text: `${VB_TEMPLATES.filter((t) => t.art).length} liebevoll gestaltete Designs mit Ballons, Neon & Co. plus schlichte Designs in euren Farben – dazu Kinder-Motive wie Dino, Prinzessin oder Feuerwehr. Alles auch als 3er-Fotostreifen und Story.` },
+  { icon: "wheel" as const, title: "Foto-Glücksrad", text: "Am Rad drehen, lustige Foto-Aufgabe bekommen, abdrücken – spontan und ohne Punkte. Die Lacher sind garantiert." },
   { icon: "heart" as const, title: "Galerie mit Herzen", text: "Alle Fotos an einem Ort, „Foto des Abends“ per Herz – und am Ende alles als ZIP." },
 ];
 

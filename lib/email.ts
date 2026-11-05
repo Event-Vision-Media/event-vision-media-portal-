@@ -761,16 +761,17 @@ export function vbManageMail(o: { name: string | null; title: string; date: stri
     html: layout(
       "Deine VisionBooth ist bereit 📸",
       `<p style="line-height:1.6">${esc(hello)},</p>
-<p style="line-height:1.6">deine digitale Fotobox für „${esc(o.title)}“${when} ist eingerichtet. Über deinen persönlichen Link gestaltest du sie in wenigen Minuten:</p>
-<ul style="line-height:1.7;padding-left:20px">
-<li>Design-Vorlage, Namen bzw. Text und Logo wählen – mit Live-Vorschau</li>
-<li>QR-Aufsteller ausdrucken und den Gäste-Link teilen</li>
-<li>Fotos ansehen, unpassende ausblenden und alles als ZIP herunterladen</li>
-</ul>
+<p style="line-height:1.6">deine digitale Fotobox für „${esc(o.title)}“${when} ist eingerichtet. In drei kurzen Schritten ist sie startklar:</p>
+<ol style="line-height:1.8;padding-left:20px">
+<li><strong>Design &amp; Text anpassen</strong> – Vorlage, Namen, Farbe und Logo, mit Live-Vorschau</li>
+<li><strong>Spiele auswählen</strong> – Foto-Missionen, Glücksrad &amp; Co.</li>
+<li><strong>QR-Aufsteller drucken</strong> oder den Gäste-Link teilen – fertig!</li>
+</ol>
+<p style="line-height:1.6">Nach dem Event findest du dort alle Fotos und kannst sie als ZIP herunterladen.</p>
 <div style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Meine VisionBooth gestalten</a></div>
 <p style="color:#6f7882;font-size:13px;line-height:1.6">Bitte gib diesen Link nicht weiter – wer ihn hat, kann deine VisionBooth bearbeiten. Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>${contract.html}`
     ),
-    text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. Hier gestaltest du sie (Vorlage, Text, Logo), druckst den QR-Aufsteller und siehst alle Fotos:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}${contract.text}`,
+    text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. In drei Schritten startklar:\n1. Design & Text anpassen\n2. Spiele auswählen\n3. QR-Aufsteller drucken oder Link teilen\n\nDein Link:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}${contract.text}`,
   };
 }
 

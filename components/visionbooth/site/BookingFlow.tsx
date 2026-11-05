@@ -50,6 +50,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [email, setEmail] = useState("");
   const [company, setCompany] = useState("");
   const [games, setGames] = useState<VbGames | null>(null);
+  const [triedDetails, setTriedDetails] = useState(false);
   const [design, setDesign] = useState<string | null>(null);
   const [allPlans, setAllPlans] = useState(false);
   const [state, action] = useActionState<VbShopResult, FormData>(startVbCheckout, {});
@@ -63,7 +64,13 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const fitGames = relevantGames(occasion, plan);
   const firma = Boolean(p?.firma) || occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
   const today = new Date().toISOString().slice(0, 10);
-  const detailsOk = frameText.trim().length > 0 && date >= today && name.trim().length > 1 && /^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email);
+  const missing = [
+    !frameText.trim() && "Text im Rahmen",
+    !(date >= today) && "Datum",
+    name.trim().length < 2 && "Name",
+    !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email) && "E-Mail",
+  ].filter(Boolean) as string[];
+  const detailsOk = missing.length === 0;
 
   return (
     <div ref={top} className="mx-auto w-full max-w-xl scroll-mt-4 px-5 pb-16">
@@ -268,10 +275,10 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
               </Field>
             )}
           </div>
-          <button type="button" disabled={!detailsOk} onClick={() => go(4)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50">
+          <button type="button" onClick={() => (detailsOk ? go(4) : setTriedDetails(true))} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold">
             Weiter zur Übersicht
           </button>
-          {!detailsOk && <p className="mt-2 text-center text-xs text-white/45">Bitte Rahmen-Text, Datum, Name und E-Mail ausfüllen.</p>}
+          {triedDetails && !detailsOk && <p className="mt-2 text-center text-[13px] text-amber-200">Fast fertig – es fehlt noch: {missing.join(", ")}.</p>}
         </section>
       )}
 
@@ -304,7 +311,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
             <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(3)} />
             <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(3)} />
-            <Row label="Laufzeit" value={`einmalig, kein Abo · Gäste-Link ab Eventtag ${p.days + (p.id === "messe" ? days - 1 : 0)} Tage aktiv · Fotos ${p.retentionDays} Tage gespeichert, danach automatisch gelöscht`} />
+            <Row label="Laufzeit" value={`einmalig, kein Abo · Gäste machen ab dem Eventtag ${p.days + (p.id === "messe" ? days - 1 : 0)} Tage lang mit · Fotos ${p.retentionDays} Tage gespeichert, danach automatisch gelöscht`} />
             <div className="flex items-center justify-between px-5 py-4">
               <span className="font-semibold">Gesamt</span>
               <span className="text-right">
@@ -312,6 +319,14 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 <span className="block text-[11px] text-white/45">{vbTaxNote()}</span>
               </span>
             </div>
+          </div>
+          <div className="vb-glass mt-5 rounded-2xl p-4">
+            <p className="text-[13px] font-semibold text-white">So geht&apos;s nach dem Bezahlen weiter</p>
+            <ol className="mt-2 space-y-1.5 text-[13px] leading-snug text-white/70">
+              <li><strong className="text-white">1.</strong> Euer persönlicher Link kommt sofort per E-Mail – und ihr landet direkt in eurem Bereich.</li>
+              <li><strong className="text-white">2.</strong> Dort passt ihr Design, Texte und Spiele in Ruhe an – jederzeit änderbar.</li>
+              <li><strong className="text-white">3.</strong> QR-Aufsteller ausdrucken oder Link teilen – fertig für euer Event.</li>
+            </ol>
           </div>
           <label className="mt-5 flex items-start gap-3 text-[13px] leading-snug text-white/70">
             <input type="checkbox" name="agb" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />

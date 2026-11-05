@@ -78,8 +78,10 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   // Spiele: Zähler und Reihenfolge für die Schritte (siehe unten)
   const [tips, leadCount] = await Promise.all([tipCounts(event.id), listVbLeads(event.id).then((l) => l.length)]);
   const fit = relevantGames(event.occasion, event.plan);
-  const photoStep = [
+  // Anzahl der Spiele, die oben (nummeriert) stehen – gleiche Regeln wie unten bei „items“
+  const gameCount = [
     fit.missions || parseChallenges(event.challenges).length > 0,
+    !deleted && (Boolean(fit.wheel) || parseWheel(event.wheel).enabled),
     !deleted && (fit.leads || parseLeadConfig(event.leads).enabled),
     !deleted && (fit.reveal || parseReveal(event.reveal).enabled),
   ].filter(Boolean).length;
@@ -105,67 +107,32 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
       </header>
 
       <div className="mx-auto -mt-4 max-w-4xl space-y-6 px-4">
-        {/* 1 · Teilen */}
-        <section className="relative rounded-3xl bg-white p-6 shadow-card">
-          <Step n={1} title="Teilen & aufstellen" hint="Druck den Aufsteller aus oder schick den Link vorab an eure Gäste." />
-          <div className="mt-5 grid gap-6 sm:grid-cols-[1fr_180px]">
-            <div className="space-y-4">
-              <div>
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Gäste-Link</p>
-                <CopyField value={guestUrl} />
-              </div>
-              {event.gallery_enabled && (
-                <div>
-                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Galerie-Link (für nach dem Event)</p>
-                  <CopyField value={`${guestUrl}/galerie`} />
-                </div>
-              )}
-              <div className="flex flex-wrap gap-2 pt-1">
-                <a href={`/vb/verwalten/${params.token}/aufsteller`} target="_blank" className="rounded-full bg-anthracite-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-anthracite-700">
-                  QR-Aufsteller drucken (A5)
-                </a>
-                <VbQrDownload svg={qrSvg} name={`visionbooth-${event.slug}`} />
-                {event.wall_enabled && (
-                  <a href={`/vb/${event.slug}/wall`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
-                    Foto-Wand öffnen
-                  </a>
-                )}
-                <a href={`/vb/${event.slug}`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
-                  Selbst ausprobieren
-                </a>
-              </div>
-            </div>
-            <div className="mx-auto w-40 rounded-2xl border border-anthracite-100 bg-white p-3" dangerouslySetInnerHTML={{ __html: qrSvg }} />
-          </div>
-          {event.wall_enabled && (
-            <details className="group mt-5 rounded-2xl border border-anthracite-100 bg-sand-50/60 p-4 text-sm text-anthracite-600" open>
-              <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-anthracite-800">
-                📺 Foto-Wand auf dem Fernseher zeigen – so geht&apos;s
-                <span className="ml-auto text-xs font-normal text-anthracite-400 group-open:hidden">anzeigen</span>
-              </summary>
-              <p className="mt-2 leading-relaxed">{WALL_INFO.intro}</p>
-              <div className="mt-3">
-                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Link zur Foto-Wand</p>
-                <CopyField value={`${guestUrl}/wall`} />
-              </div>
-              <ol className="mt-3 space-y-2">
-                {WALL_INFO.ways.map((w, i) => (
-                  <li key={w.title} className="flex gap-2">
-                    <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-anthracite-900 text-[11px] font-bold text-white">{i + 1}</span>
-                    <span>
-                      <strong className="text-anthracite-800">{w.title}:</strong> {w.text}
+        {!deleted && (
+          <nav className="rounded-3xl bg-white p-5 shadow-card" aria-label="So wird eure VisionBooth startklar">
+            <p className="font-serif text-lg font-semibold text-anthracite-800">So wird eure VisionBooth startklar</p>
+            <ol className="mt-3 grid gap-2 sm:grid-cols-3">
+              {[
+                ["#gestalten", "Design & Text anpassen", "Vorlage, Namen, Farbe"],
+                ["#spiele", "Spiele auswählen", "Missionen, Glücksrad & Co."],
+                ["#teilen", "QR-Aufsteller drucken", "oder Link an Gäste schicken"],
+              ].map(([href, title, sub], i) => (
+                <li key={href}>
+                  <a href={href} className="flex items-center gap-3 rounded-2xl border border-anthracite-100 px-3 py-2.5 transition hover:border-gold-400">
+                    <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-anthracite-900 text-xs font-bold text-white">{i + 1}</span>
+                    <span className="min-w-0">
+                      <span className="block text-sm font-semibold text-anthracite-800">{title}</span>
+                      <span className="block text-xs text-anthracite-500">{sub}</span>
                     </span>
-                  </li>
-                ))}
-              </ol>
-              <p className="mt-3 text-xs text-anthracite-500">Neue Fotos erscheinen automatisch – niemand muss etwas bedienen. Tipp: Vorher einmal kurz testen, ob der Fernseher den Link öffnet.</p>
-            </details>
-          )}
-        </section>
-
-        {/* 2 · Gestalten */}
-        <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={2} title="Gestalten" hint={`Aktuell: Vorlage „${t.name}“. Änderungen gelten sofort für alle neuen Fotos.`} />
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <p className="mt-3 text-xs text-anthracite-500">Alles lässt sich bis zum Event jederzeit ändern – Änderungen gelten sofort.</p>
+          </nav>
+        )}
+        {/* 1 · Gestalten */}
+        <section id="gestalten" className="scroll-mt-6 rounded-3xl bg-white p-6 shadow-card">
+          <Step n={1} title="Gestalten" hint={`Aktuell: Vorlage „${t.name}“. Änderungen gelten sofort für alle neuen Fotos.`} />
           <div className="mt-5">
             {deleted ? (
               <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
@@ -238,14 +205,14 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           const more = items.filter((i) => !i.top && !i.done);
           return (
             <>
-              {top.map((i, n) => i.render(3 + n))}
+              {top.map((i, n) => <div key={i.key} id={n === 0 ? "spiele" : undefined} className="scroll-mt-6">{i.render(2 + n)}</div>)}
               {more.length > 0 && (
                 <details className="group rounded-3xl bg-white p-6 shadow-card">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <span>
                       <span className="block font-serif text-xl font-semibold text-anthracite-800">Weitere Spiele &amp; Extras</span>
                       <span className="mt-0.5 block text-sm text-anthracite-500">
-                        {more.map((i) => (i.key === "missions" ? "🎯 Missionen" : i.key === "reveal" ? "🔮 Tippspiel" : "🎁 Gewinnspiel")).join(" · ")} – passt nicht zu jedem Anlass, aber jederzeit möglich
+                        {more.map((i) => ({ missions: "Missionen", wheel: "Glücksrad", reveal: "Tippspiel", leads: "Gewinnspiel" })[i.key]).join(" · ")} – passt nicht zu jedem Anlass, aber jederzeit möglich
                       </span>
                     </span>
                     <span className="text-2xl text-anthracite-400 transition group-open:rotate-45">+</span>
@@ -257,9 +224,67 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           );
         })()}
 
+        {/* 3 · Teilen & aufstellen (nach Gestalten und Spielen) */}
+        <section id="teilen" className="relative scroll-mt-6 rounded-3xl bg-white p-6 shadow-card">
+          <Step n={2 + gameCount} title="Teilen & aufstellen" hint="Wenn Design und Spiele passen: Aufsteller ausdrucken oder den Link vorab an eure Gäste schicken." />
+          <div className="mt-5 grid gap-6 sm:grid-cols-[1fr_180px]">
+            <div className="space-y-4">
+              <div>
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Gäste-Link</p>
+                <CopyField value={guestUrl} />
+              </div>
+              {event.gallery_enabled && (
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Galerie-Link (für nach dem Event)</p>
+                  <CopyField value={`${guestUrl}/galerie`} />
+                </div>
+              )}
+              <div className="flex flex-wrap gap-2 pt-1">
+                <a href={`/vb/verwalten/${params.token}/aufsteller`} target="_blank" className="rounded-full bg-anthracite-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-anthracite-700">
+                  QR-Aufsteller drucken (A5)
+                </a>
+                <VbQrDownload svg={qrSvg} name={`visionbooth-${event.slug}`} />
+                {event.wall_enabled && (
+                  <a href={`/vb/${event.slug}/wall`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
+                    Foto-Wand öffnen
+                  </a>
+                )}
+                <a href={`/vb/${event.slug}`} target="_blank" className="rounded-full border border-anthracite-200 bg-white px-4 py-2.5 text-sm font-medium text-anthracite-800 hover:border-gold-400">
+                  Selbst ausprobieren
+                </a>
+              </div>
+            </div>
+            <div className="mx-auto w-40 rounded-2xl border border-anthracite-100 bg-white p-3" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+          </div>
+          {event.wall_enabled && (
+            <details className="group mt-5 rounded-2xl border border-anthracite-100 bg-sand-50/60 p-4 text-sm text-anthracite-600" open>
+              <summary className="flex cursor-pointer list-none items-center gap-2 font-semibold text-anthracite-800">
+                📺 Foto-Wand auf dem Fernseher zeigen – so geht&apos;s
+                <span className="ml-auto text-xs font-normal text-anthracite-400 group-open:hidden">anzeigen</span>
+              </summary>
+              <p className="mt-2 leading-relaxed">{WALL_INFO.intro}</p>
+              <div className="mt-3">
+                <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Link zur Foto-Wand</p>
+                <CopyField value={`${guestUrl}/wall`} />
+              </div>
+              <ol className="mt-3 space-y-2">
+                {WALL_INFO.ways.map((w, i) => (
+                  <li key={w.title} className="flex gap-2">
+                    <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-anthracite-900 text-[11px] font-bold text-white">{i + 1}</span>
+                    <span>
+                      <strong className="text-anthracite-800">{w.title}:</strong> {w.text}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+              <p className="mt-3 text-xs text-anthracite-500">Neue Fotos erscheinen automatisch – niemand muss etwas bedienen. Tipp: Vorher einmal kurz testen, ob der Fernseher den Link öffnet.</p>
+            </details>
+          )}
+        </section>
+
         {/* 4 · Fotos */}
         <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={3 + photoStep} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
+          <Step n={3 + gameCount} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
           <div className="mt-5 grid grid-cols-3 gap-3 text-center">
             <Kpi label="Fotos" value={photoTotal ?? 0} />
             <Kpi label="Gäste" value={new Set((guests ?? []).map((g) => g.guest_key)).size} />

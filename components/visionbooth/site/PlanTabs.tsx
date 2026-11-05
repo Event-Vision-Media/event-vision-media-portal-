@@ -19,8 +19,8 @@ const GROUPS = {
       { icon: "heart" as const, title: "Erinnerungen, die bleiben", text: "Fotos im Look eures Festes, KI-Verwandlungen zum Lachen – und alles am nächsten Tag als ZIP." },
     ],
     plans: [
-      { id: "party" as VbPlanId, tag: null, points: ["Eigener Foto-Rahmen & Design", "Fotostreifen & Story", "Foto-Missionen & Bestenliste", "Live-Foto-Wand & Galerie", "Link 7 Tage aktiv"] },
-      { id: "hochzeit" as VbPlanId, tag: "Beliebt", points: ["Alles aus Party", "150 KI-Verwandlungen", "Hochzeits-Missionen", "Link 14 Tage aktiv", "Galerie 6 Monate"] },
+      { id: "party" as VbPlanId, tag: null, points: ["Eigener Foto-Rahmen & Design", "Fotostreifen & Story", "Missionen, Glücksrad & Bestenliste", "Live-Foto-Wand & Galerie", "Gäste machen 7 Tage lang mit", "Galerie 3 Monate"] },
+      { id: "hochzeit" as VbPlanId, tag: "Beliebt", points: ["Alles aus Classic", "150 KI-Verwandlungen", "Missionen passend zum Anlass", "Gäste machen 14 Tage lang mit", "Galerie 6 Monate"] },
     ],
   },
   business: {
@@ -33,7 +33,7 @@ const GROUPS = {
       { icon: "magnet" as const, title: "Magnet für euren Stand", text: "KI-Verwandlungen und die Live-Foto-Wand ziehen Besucher an – ohne Personal, ohne Aufbau." },
     ],
     plans: [
-      { id: "business" as VbPlanId, tag: "Beliebt", points: ["Firmen-Design mit Logo", "300 KI-Verwandlungen", "Team-Missionen", "Gewinnspiel / Kontaktformular", "Kontakte als CSV"] },
+      { id: "business" as VbPlanId, tag: "Beliebt", points: ["Firmen-Design mit Logo", "300 KI-Verwandlungen", "Missionen für Firmen-Events", "Gewinnspiel / Kontaktformular", "Kontakte als CSV"] },
       { id: "messe" as VbPlanId, tag: null, points: ["Mehrtägig (bis 5 Tage)", "1.000 KI-Verwandlungen", "Marken-Rahmen", "Gewinnspiel / Kontaktformular", "Live-Foto-Wand für den Stand"] },
     ],
   },
@@ -110,7 +110,7 @@ export function PlanTabs() {
         {tab === "privat" ? (
           <>
           <p className="mx-auto mt-6 max-w-xl rounded-2xl bg-white/5 px-4 py-3 text-center text-sm text-white/70">
-            Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das beim Hochzeitspaket nur{" "}
+            Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das beim Paket „Premium mit KI“ nur{" "}
             {(getPlan("hochzeit").price / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
           </p>
           <p className="mx-auto mt-4 max-w-xl text-center text-sm text-white/55">

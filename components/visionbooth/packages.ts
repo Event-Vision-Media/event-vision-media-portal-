@@ -38,8 +38,8 @@ export interface VbPlan {
 }
 
 export const VB_PLANS: VbPlan[] = [
-  { id: "party", label: "Party", price: 79, kind: "privat", firma: false, aiLimit: 0, aiPerGuest: 0, days: 7, retentionDays: 90, summary: "Rahmen, Fotostreifen, Galerie, Foto-Wand, Missionen" },
-  { id: "hochzeit", label: "Hochzeit", price: 129, kind: "privat", firma: false, aiLimit: 150, aiPerGuest: 3, days: 14, retentionDays: 180, summary: "wie Party + 150 KI-Bilder, 6 Monate Galerie" },
+  { id: "party", label: "Classic", price: 79, kind: "privat", firma: false, aiLimit: 0, aiPerGuest: 0, days: 7, retentionDays: 90, summary: "Rahmen, Fotostreifen, Galerie, Foto-Wand, Spiele" },
+  { id: "hochzeit", label: "Premium mit KI", price: 129, kind: "privat", firma: false, aiLimit: 150, aiPerGuest: 3, days: 14, retentionDays: 180, summary: "wie Classic + 150 KI-Bilder, 6 Monate Galerie" },
   { id: "business", label: "Business", price: 299, kind: "business", firma: true, aiLimit: 300, aiPerGuest: 3, days: 7, retentionDays: 90, summary: "Firmen-Design mit Logo, 300 KI-Bilder, Missionen für Teams" },
   { id: "messe", label: "Messe", price: 699, kind: "business", firma: true, aiLimit: 1000, aiPerGuest: 2, days: 5, retentionDays: 60, summary: "mehrtägig, 1.000 KI-Bilder, Marken-Rahmen" },
   { id: "addon-privat", label: "Add-on Fotobox (privat)", price: 49, kind: "addon", firma: false, aiLimit: 100, aiPerGuest: 3, days: 14, retentionDays: 90, summary: "zusätzlich zur Fotobox/Spiegel, 100 KI-Bilder" },
