@@ -303,7 +303,6 @@ export const VB_TEMPLATES: VbTemplate[] = [
   artSingle("neon-geburtstag", "Neon Geburtstag", "Geburtstag · Party", { accent: "#ff4fc3", bg: "#120c2a", sub: "rgba(160,240,255,0.85)", font: "script", size: 92, neon: true, fallback: "neon" }, { x: 131, y: 167, w: 819, h: 797 }, { x: 210, y: 1022, w: 660, h: 190 }),
   artSingle("kreide", "Kreidetafel", "Geburtstag · Party · Kindergeburtstag", { accent: "#ffffff", bg: "#1c1c1c", sub: "rgba(255,255,255,0.75)", font: "hand", weight: 600, size: 72, fallback: "elegant-gold", creditY: 1346 }, { x: 108, y: 149, w: 862, h: 866 }, { x: 250, y: 1112, w: 580, h: 130 }),
   artSingle("botanisch", "Botanisch", "Hochzeit · Verlobung · Taufe", { accent: "#4b5b4f", bg: "#ffffff", sub: "rgba(75,91,79,0.7)", font: "script", size: 100, fallback: "minimal-weiss", creditY: 1336 }, { x: 70, y: 88, w: 940, h: 861 }, { x: 315, y: 1050, w: 450, h: 170 }),
-  artSingle("eukalyptus", "Eukalyptus", "Hochzeit · Verlobung · Taufe", { accent: "#5d6b5a", bg: "#fbfaf6", sub: "rgba(93,107,90,0.7)", font: "script", size: 100, fallback: "minimal-weiss" }, { x: 187, y: 98, w: 704, h: 929 }, { x: 270, y: 1095, w: 520, h: 200 }),
   artSingle("dino-dschungel", "Dino-Dschungel", "Kindergeburtstag", { accent: "#5a3a17", bg: "#2f4a1e", sub: "rgba(90,58,23,0.75)", font: "hand", weight: 700, size: 70, kinder: true, fallback: "dino", creditY: 1336 }, { x: 138, y: 145, w: 781, h: 838 }, { x: 240, y: 1035, w: 600, h: 150 }),
   artSingle("feuerwehr-comic", "Feuerwehr-Comic", "Kindergeburtstag", { accent: "#c8102e", bg: "#1d4fd6", sub: "rgba(120,20,20,0.8)", font: "ui", weight: 800, size: 72, upper: true, kinder: true, fallback: "feuerwehr", creditY: 1336 }, { x: 124, y: 52, w: 820, h: 1015 }, { x: 220, y: 1110, w: 640, h: 160 }),
   artSingle("prinzessin-schloss", "Prinzessin & Einhorn", "Kindergeburtstag", { accent: "#a3155f", bg: "#f6c6e0", sub: "rgba(120,20,70,0.8)", font: "script", size: 90, kinder: true, fallback: "prinzessin", creditY: 1336, hideSub: true }, { x: 172, y: 100, w: 735, h: 925 }, { x: 230, y: 1118, w: 620, h: 130 }),
@@ -329,7 +328,6 @@ const ART_STRIPS: Record<string, ArtLayer> = {
   "bunt-ballons": { ...artLayer("bunt-ballons", "strip", [{ x: 93, y: 89, w: 894, h: 579 }, { x: 92, y: 724, w: 895, h: 581 }, { x: 92, y: 1362, w: 896, h: 581 }], { x: 150, y: 2010, w: 780, h: 230 }) },
   "champagner": { ...artLayer("champagner", "strip", [{ x: 156, y: 149, w: 758, h: 528 }, { x: 80, y: 711, w: 920, h: 605 }, { x: 81, y: 1353, w: 919, h: 603 }], { x: 260, y: 1878, w: 560, h: 120 }), creditY: 2380, hideSub: true },
   "dino-dschungel": { ...artLayer("dino-dschungel", "strip", [{ x: 86, y: 86, w: 906, h: 583 }, { x: 86, y: 724, w: 906, h: 583 }, { x: 86, y: 1366, w: 906, h: 583 }], { x: 240, y: 2033, w: 620, h: 120 }), creditY: 2380, hideSub: true },
-  "eukalyptus": { ...artLayer("eukalyptus", "strip", [{ x: 85, y: 82, w: 910, h: 589 }, { x: 85, y: 721, w: 911, h: 589 }, { x: 84, y: 1359, w: 912, h: 588 }], { x: 280, y: 2050, w: 480, h: 150 }), creditY: 2236 },
   "feuerwehr-comic": { ...artLayer("feuerwehr-comic", "strip", [{ x: 81, y: 184, w: 927, h: 521 }, { x: 51, y: 803, w: 957, h: 527 }, { x: 81, y: 1395, w: 918, h: 563 }], { x: 200, y: 2117, w: 680, h: 180 }), creditY: 2390 },
   "kreide": { ...artLayer("kreide", "strip", [{ x: 79, y: 89, w: 901, h: 573 }, { x: 100, y: 728, w: 879, h: 571 }, { x: 79, y: 1368, w: 901, h: 571 }], { x: 260, y: 2063, w: 560, h: 120 }), creditY: 2380, hideSub: true },
   "neon-geburtstag": { ...artLayer("neon-geburtstag", "strip", [{ x: 98, y: 198, w: 884, h: 443 }, { x: 98, y: 745, w: 887, h: 535 }, { x: 100, y: 1388, w: 881, h: 530 }], { x: 230, y: 1990, w: 620, h: 200 }) },
@@ -341,7 +339,7 @@ for (const t of VB_TEMPLATES) if (t.art && !t.art.strip && ART_STRIPS[t.id]) t.a
 export const DEFAULT_TEMPLATE = "elegant-gold";
 
 /** Alte Rahmen-Stile (vor den Vorlagen) auf Vorlagen abbilden. */
-const LEGACY: Record<string, string> = { gold: "elegant-gold", weiss: "minimal-weiss", schwarz: "elegant-gold", ohne: "vollbild" };
+const LEGACY: Record<string, string> = { gold: "elegant-gold", weiss: "minimal-weiss", schwarz: "elegant-gold", ohne: "vollbild", eukalyptus: "botanisch" };
 
 export function getTemplate(id: string | null | undefined): VbTemplate {
   const key = id && (VB_TEMPLATES.some((t) => t.id === id) ? id : LEGACY[id]);
