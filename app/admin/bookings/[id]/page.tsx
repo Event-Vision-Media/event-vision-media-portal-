@@ -34,6 +34,7 @@ import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
 import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
+import type { StaffRequest } from "@/lib/staff-upsell";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
@@ -113,6 +114,9 @@ export default async function AdminBookingDetailPage(props: {
   const contract = booking ? await getLatestContract(booking.id) : null;
   const [payment, invoices] = booking ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
+  // 360°-Betreuung im Portal angefragt und noch nicht eingetragen
+  const staffReq = (booking?.inquiry_items as { staffRequest?: StaffRequest | null } | null)?.staffRequest ?? null;
+  const staffRequestOpen = booking && staffReq && !staffFor(booking.inquiry_items) ? staffReq : null;
 
   if (!booking) {
     return (
@@ -366,6 +370,19 @@ export default async function AdminBookingDetailPage(props: {
                 <StaffHoursForm bookingId={booking.id} staff={staffFor(booking.inquiry_items)!} locked={Boolean(contract)} />
               </div>
             )}
+          </Card>
+        )}
+
+        {staffRequestOpen && (
+          <Card className="border-gold-300 bg-gold-50">
+            <p className="font-serif text-lg font-semibold text-anthracite-800">🎥 Betreuung angefragt</p>
+            <p className="mt-1 text-sm text-anthracite-600">
+              Der Kunde wünscht Betreuung für die 360° Video Booth: {staffRequestOpen.hours} Std.
+              {staffRequestOpen.start ? ` ab ${staffRequestOpen.start} Uhr` : ", Uhrzeit noch offen"} (angefragt am {formatDateTimeGerman(staffRequestOpen.at)}).
+            </p>
+            <p className="mt-2 text-xs text-anthracite-500">
+              Wenn Personal frei ist: kurz zusagen und unter „Extras ändern“ die Betreuung hinzufügen{staffRequestOpen.hours > 5 ? " und die Stunden bestätigen" : ""}. Danach verschwindet dieser Hinweis.
+            </p>
           </Card>
         )}
 

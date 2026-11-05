@@ -10,6 +10,8 @@ import { travelForAddress } from "@/lib/distance";
 import { sendEmail } from "@/lib/email";
 import { DELIVERY_UPSELL_MIN_DAYS, deliveryUpsells, isDeliverySwitch } from "@/lib/delivery-upsell";
 import type { Booking } from "@/lib/types";
+import { STAFF_INCLUDED_HOURS as STAFF_BASE_HOURS } from "@/lib/catalog";
+import { staffUpsellFor } from "@/lib/staff-upsell";
 
 export interface UpgradeResult {
   success?: boolean;
@@ -213,5 +215,40 @@ export async function bookDelivery(key: string, pickup: string): Promise<Upgrade
   }
   revalidatePath("/dashboard");
   revalidatePath("/admin/kalender");
+  return { success: true };
+}
+
+/**
+ * Kunde fragt Betreuung durch Personal für die 360° Video Booth an (keine Buchung – du bestätigst
+ * und trägst sie im Admin unter „Extras ändern“ ein).
+ */
+export async function requestStaff(hours: number, start: string): Promise<UpgradeResult> {
+  const booking = await getCurrentBooking();
+  if (!booking) return { error: "Bitte melde dich erneut an." };
+  const upsell = staffUpsellFor(booking);
+  if (!upsell) return { error: "Die Betreuung kann für diese Buchung nicht mehr online angefragt werden – bitte meldet euch kurz bei uns." };
+  if (upsell.requested) return { success: true };
+
+  const h = Math.min(STAFF_BASE_HOURS + 6, Math.max(STAFF_BASE_HOURS, Math.round(Number(hours) || STAFF_BASE_HOURS)));
+  const st = /^\d{2}:\d{2}$/.test(String(start)) ? String(start) : null;
+  const request = { at: new Date().toISOString(), hours: h, start: st };
+  const { error } = await createAdminClient()
+    .from("bookings")
+    .update({ inquiry_items: { ...booking.inquiry_items, staffRequest: request } })
+    .eq("id", booking.id);
+  if (error) return { error: "Die Anfrage konnte nicht gespeichert werden. Bitte versucht es nochmal." };
+
+  const price = upsell.price + (h - STAFF_BASE_HOURS) * upsell.hourPrice;
+  const message = `🎥 Betreuung für die 360° Video Booth angefragt: ${h} Std.${st ? ` ab ${st} Uhr` : ", Uhrzeit offen"} (${formatEuro(price)}${upsell.selfService ? ", dafür Wechsel auf 360° Komfort mit Lieferung nötig" : ""}) – bitte bestätigen und unter „Extras ändern“ eintragen`;
+  await logActivity(booking.id, "betreuung_wunsch", message);
+  if (process.env.ADMIN_EMAIL) {
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL,
+      subject: `🎥 Betreuung angefragt ${booking.booking_code} · ${booking.event_date}`,
+      html: `<p>${booking.customer_name || booking.couple_names} (${booking.booking_code}, ${booking.event_date}) hat im Kundenportal Betreuung für die 360° Video Booth angefragt:</p><p><strong>${message}</strong></p><p>Bitte prüfen, ob Personal frei ist, dem Kunden kurz zusagen und die Betreuung im Admin unter „Extras ändern“ hinzufügen – danach wählt der Kunde die Startzeit im Portal.</p>`,
+      text: `${booking.customer_name || booking.couple_names} (${booking.booking_code}): ${message}`,
+    });
+  }
+  revalidatePath("/dashboard");
   return { success: true };
 }

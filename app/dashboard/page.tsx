@@ -20,6 +20,8 @@ import { DeviceCrossSell, type CrossSellOffer } from "@/components/DeviceCrossSe
 import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
 import { DeliveryUpsellList } from "@/components/DeliveryUpsellCard";
+import { StaffUpsellCard } from "@/components/StaffUpsellCard";
+import { STAFF_360_PERKS, STAFF_360_PERKS_SIE, staffUpsellFor } from "@/lib/staff-upsell";
 import { DELIVERY_UPSELL_MIN_DAYS, deliveryUpsells, isDeliverySwitch } from "@/lib/delivery-upsell";
 import { UpsellSection } from "@/components/UpsellSection";
 import { getLatestContract } from "@/lib/contract-server";
@@ -203,6 +205,7 @@ export default async function DashboardPage() {
     contract || booking.contract_on_file || daysUntil(booking.event_date) < DELIVERY_UPSELL_MIN_DAYS ? "contact" : "open";
   const showContract = contractRequired(booking) || Boolean(contract);
   const [payment, invoices] = paymentsTracked(booking) ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
+  const staffUpsell = staffUpsellFor(booking);
   const contractMissing = contractRequired(booking) && !contract && daysUntil(booking.event_date) >= 0;
 
   // Fortschritt passend zur Buchung
@@ -385,6 +388,18 @@ export default async function DashboardPage() {
           sie={booking.customer_type === "business"}
           mode={deliveryMode}
         />
+
+        {staffUpsell && (
+          <StaffUpsellCard
+            sie={sie}
+            price={staffUpsell.price}
+            hourPrice={staffUpsell.hourPrice}
+            includedHours={staffUpsell.includedHours}
+            selfService={staffUpsell.selfService}
+            perks={sie ? STAFF_360_PERKS_SIE : STAFF_360_PERKS}
+            requested={staffUpsell.requested}
+          />
+        )}
 
         {upgrade && <UpgradeCard offer={upgrade} sie={booking.customer_type === "business"} />}
 
