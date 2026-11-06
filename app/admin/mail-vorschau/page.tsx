@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, mediaReadyMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
 import { weeklyPlanMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
@@ -78,7 +78,13 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
         [{ name: "XXL-LOVE Leuchtbuchstaben", priceLabel: "149,00 €" }, { name: "Aufblasbare Fotokabine", priceLabel: "69,00 €" }]
       ),
     },
-    { title: "7 · Nach dem Event: Galerie + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review") },
+    { title: "7 · Nach dem Event: Fotos + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 0 }) },
+    { title: "7b · Nach dem Event: nur Audiogästebuch (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: false, audios: 23 }) },
+    { title: "7c · Nach dem Event: schon informiert → nur Danke + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 23 }, true) },
+    { title: "7d · Knopf „Kunde informieren“: Fotos & Audios sind da", mail: mediaReadyMail(sample, { photos: true, audios: 23 }) },
+    { title: "7e · Knopf „Kunde informieren“: nur Audios", mail: mediaReadyMail(sample, { photos: false, audios: 23 }) },
+    { title: "7f · Knopf „Kunde informieren“: 360° Video Booth", mail: mediaReadyMail(sample, { photos: false, videos: true, audios: 0 }) },
+    { title: "7g · Knopf „Kunde informieren“: Fotospiegel + 360° + Audio", mail: mediaReadyMail(sample, { photos: true, videos: true, audios: 23 }) },
     {
       title: "8 · Benachrichtigung an dich (neue Anfrage)",
       mail: adminNotificationMail({

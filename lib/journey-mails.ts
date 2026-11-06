@@ -1,4 +1,5 @@
 import "server-only";
+import { mediaStatus } from "@/lib/media-ready";
 import { staffUpsellFor } from "@/lib/staff-upsell";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRecommendations } from "@/lib/recommendations";
@@ -219,13 +220,18 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
 
   for (const b of (past ?? []) as Booking[]) {
     if (daysUntil(b.event_date) > -GALLERY_UNLOCK_DAYS) continue;
+    // Was liegt bereit? Fotos (Galerie-Link) und/oder Audios – nur das ankündigen, was gebucht und da ist
+    const media = await mediaStatus(b);
+    const missing = ((media.photoBooked || media.videoBooked) && !media.galleryReady) || (media.audioBooked && media.audios === 0);
+    // Noch nicht alles hochgeladen: bis 14 Tage nach dem Event warten, danach Danke + Bewertung mit dem, was da ist
+    if (!media.informedAt && missing && daysUntil(b.event_date) > -14) continue;
     let sent = false;
     if (!dryRun) {
-      const mail = followupMail(toMailBooking(b), reviewUrl);
+      const mail = followupMail(toMailBooking(b), reviewUrl, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: Link zur Online-Galerie${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
+        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: ${media.informedAt ? "Danke" : [media.galleryReady && "Online-Galerie", media.audios && "Audio-Nachrichten"].filter(Boolean).join(" + ") || "Danke"}${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
       }
     }
     result.followups.push({ booking: b.booking_code, sent });

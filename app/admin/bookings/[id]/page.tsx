@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { MediaReadyCard } from "@/components/admin/MediaReadyCard";
+import { mediaStatus } from "@/lib/media-ready";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BookingRowActions } from "@/components/admin/BookingRowActions";
@@ -114,6 +116,7 @@ export default async function AdminBookingDetailPage(props: {
   const contract = booking ? await getLatestContract(booking.id) : null;
   const [payment, invoices] = booking ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
+  const media = booking ? await mediaStatus(booking) : { photos: false, videos: false, audios: 0, galleryReady: false, photoBooked: false, videoBooked: false, audioBooked: false, informedAt: null };
   // 360°-Betreuung im Portal angefragt und noch nicht eingetragen
   const staffReq = (booking?.inquiry_items as { staffRequest?: StaffRequest | null } | null)?.staffRequest ?? null;
   const staffRequestOpen = booking && staffReq && !staffFor(booking.inquiry_items) ? staffReq : null;
@@ -610,6 +613,19 @@ export default async function AdminBookingDetailPage(props: {
             <DeliveryPickupForm booking={booking} />
           </Card>
         </section>
+
+        {(media.photoBooked || media.videoBooked || media.audioBooked) && booking.lifecycle === "bestaetigt" && (
+          <MediaReadyCard
+            bookingId={booking.id}
+            email={booking.email ?? null}
+            photoBooked={media.photoBooked}
+            videoBooked={media.videoBooked}
+            audioBooked={media.audioBooked}
+            galleryReady={media.galleryReady}
+            audios={media.audios}
+            informedAt={media.informedAt}
+          />
+        )}
 
         <section id="online-galerie" className="scroll-mt-6">
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">
