@@ -220,3 +220,6 @@ alter table public.vb_events add column if not exists wheel jsonb not null defau
 alter table public.vb_events add column if not exists guestbook boolean not null default false;
 alter table public.vb_photos add column if not exists greeting text;
 alter table public.vb_photos add column if not exists greeting_name text;
+
+-- Rabattcodes (Stripe): tatsächlich bezahlter Betrag (amount_cents bleibt der Listenpreis)
+alter table public.vb_orders add column if not exists paid_cents integer;

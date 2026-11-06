@@ -24,7 +24,7 @@ export default async function VisionBoothThanksPage(props: { searchParams: Promi
             <p className="vb-points text-7xl">🎉</p>
             <h1 className="vb-display vb-gold-text mt-4 text-4xl font-semibold">Eure VisionBooth ist startklar!</h1>
             <p className="mt-3 text-white/70">
-              Danke{res.order?.name ? `, ${res.order.name.split(" ")[0]}` : ""}! Die Zahlung ist angekommen. Deinen persönlichen Link schicken wir dir außerdem per E-Mail an <strong className="text-white">{res.order?.email}</strong> – falls sie nicht ankommt, schau kurz im Spam-Ordner oder nutze einfach den Knopf hier.
+              Danke{res.order?.name ? `, ${res.order.name.split(" ")[0]}` : ""}! {res.order?.paid_cents === 0 ? "Dein Gutschein wurde eingelöst." : "Die Zahlung ist angekommen."} Deinen persönlichen Link schicken wir dir außerdem per E-Mail an <strong className="text-white">{res.order?.email}</strong> – falls sie nicht ankommt, schau kurz im Spam-Ordner oder nutze einfach den Knopf hier.
             </p>
             <ol className="vb-glass mx-auto mt-7 max-w-sm space-y-2 rounded-2xl p-4 text-left text-[14px] text-white/75">
               <li><strong className="text-white">1.</strong> Design &amp; Text anpassen</li>

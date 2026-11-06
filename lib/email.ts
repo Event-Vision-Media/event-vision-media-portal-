@@ -723,11 +723,14 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.ki
 export interface VbOrderConfirmation {
   plan: string;
   price: number;
+  /** Listenpreis, falls ein Rabattcode eingelöst wurde */
+  listPrice?: number;
   orderNo: string;
 }
 
 function vbContractBlock(c: VbOrderConfirmation): { html: string; text: string } {
-  const eur = c.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  const fmt = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  const eur = c.listPrice != null ? `${fmt(c.price)} (statt ${fmt(c.listPrice)} – Gutschein eingelöst)` : fmt(c.price);
   const para = (t: string) => `<p style="margin:6px 0;line-height:1.5">${esc(t)}</p>`;
   const sections = VB_WIDERRUF.map((s) => `<p style="margin:14px 0 4px;font-weight:600">${esc(s.title)}</p>${s.blocks.map((b) => (typeof b === "string" ? para(b) : "")).join("")}`).join("");
   const form = VB_WIDERRUF_FORM.map((l, i) => (i === 0 ? `<p style="margin:14px 0 4px;font-weight:600">${esc(l)}</p>` : para(l))).join("");

@@ -36,8 +36,10 @@ export interface VbOrder {
   email: string;
   company: string | null;
   amount_cents: number;
+  /** Tatsächlich bezahlt (nach Rabattcode); null = Listenpreis bzw. noch nicht bezahlt */
+  paid_cents?: number | null;
   template: string | null;
-  games: Partial<{ missions: boolean; reveal: boolean; leads: boolean }> | null;
+  games: Partial<{ missions: boolean; reveal: boolean; leads: boolean; wheel: boolean; guestbook: boolean }> | null;
   status: "offen" | "wird_eingerichtet" | "bezahlt" | "abgebrochen" | "fehler";
   stripe_session_id: string | null;
   vb_event_id: string | null;
@@ -79,6 +81,8 @@ export async function createCheckout(order: VbOrder): Promise<string> {
     "line_items[0][price_data][unit_amount]": String(order.amount_cents),
     "line_items[0][price_data][product_data][name]": `VisionBooth ${plan.label}`,
     "line_items[0][price_data][product_data][description]": `${occ.label}${order.event_date ? ` am ${new Date(order.event_date).toLocaleDateString("de-DE")}` : ""} – ${plan.summary}`,
+    // Rabattcodes (z. B. 100 % für Testkunden) – werden im Stripe-Dashboard angelegt
+    allow_promotion_codes: "true",
     success_url: `${base}/vb/buchen/danke?session_id={CHECKOUT_SESSION_ID}`,
     cancel_url: `${base}/vb/buchen?abbruch=${order.id}`,
   });
@@ -98,7 +102,9 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
   if (order.status === "bezahlt") return { order, manageUrl: await manageUrlFor(order.vb_event_id) };
 
   const session = await stripe(`checkout/sessions/${encodeURIComponent(sessionId)}`);
-  if (session.payment_status !== "paid") return { order, error: "Die Zahlung ist noch nicht abgeschlossen." };
+  // „no_payment_required“ = 0 € dank Rabattcode
+  if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") return { order, error: "Die Zahlung ist noch nicht abgeschlossen." };
+  const paidCents = typeof session.amount_total === "number" ? session.amount_total : order.amount_cents;
 
   const { data: locked } = await supabase
     .from("vb_orders")
@@ -106,6 +112,7 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
       status: "wird_eingerichtet",
       stripe_payment_intent: session.payment_intent ?? null,
       paid_at: new Date().toISOString(),
+      paid_cents: paidCents,
       billing: billingFrom(session, order),
     })
     .eq("id", order.id)
@@ -133,9 +140,12 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     contactEmail: order.email,
     company: order.company,
     template: order.template,
-    games: order.games && Object.keys(order.games).length ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads) } : undefined,
+    games:
+      order.games && Object.keys(order.games).length
+        ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads), wheel: Boolean(order.games.wheel), guestbook: Boolean(order.games.guestbook) }
+        : undefined,
     sendMail: true,
-    order: { plan: getPlan(order.plan).label, price: order.amount_cents / 100, orderNo: order.id.slice(0, 8).toUpperCase() },
+    order: { plan: getPlan(order.plan).label, price: paidCents / 100, listPrice: paidCents < order.amount_cents ? order.amount_cents / 100 : undefined, orderNo: order.id.slice(0, 8).toUpperCase() },
   });
   if ("error" in res) {
     await supabase.from("vb_orders").update({ status: "fehler" }).eq("id", order.id);
@@ -144,7 +154,8 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
   }
   await supabase.from("vb_orders").update({ status: "bezahlt", vb_event_id: res.id }).eq("id", order.id);
   // Rechnung über Lexware (nur wenn aktiviert) – Fehler blockieren die Einrichtung nicht
-  await issueVbInvoice(order.id).catch((e) => console.error("VisionBooth-Rechnung:", e));
+  // 0 € (100-%-Gutschein): keine Rechnung
+  if (paidCents > 0) await issueVbInvoice(order.id).catch((e) => console.error("VisionBooth-Rechnung:", e));
   return { order: { ...order, status: "bezahlt", vb_event_id: res.id }, manageUrl: res.manageUrl };
 }
 

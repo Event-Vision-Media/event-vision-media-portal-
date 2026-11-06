@@ -40,7 +40,7 @@ export default async function AdminVbOrdersPage() {
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <p className="font-semibold text-anthracite-800">
-                    {o.frame_text || o.title} · {getPlan(o.plan).label} · {euro(o.amount_cents)}
+                    {o.frame_text || o.title} · {getPlan(o.plan).label} · {o.paid_cents != null && o.paid_cents < o.amount_cents ? `${euro(o.paid_cents)} (Gutschein, statt ${euro(o.amount_cents)})` : euro(o.amount_cents)}
                   </p>
                   <p className="mt-0.5 text-sm text-anthracite-500">
                     {o.name}

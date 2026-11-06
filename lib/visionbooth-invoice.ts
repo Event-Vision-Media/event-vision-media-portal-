@@ -25,6 +25,7 @@ export async function issueVbInvoice(orderId: string): Promise<{ ok: boolean; er
   if (!order) return { ok: false, error: "Bestellung nicht gefunden." };
   if (order.status !== "bezahlt") return { ok: false, error: "Bestellung ist noch nicht bezahlt." };
   if (order.invoice_id) return { ok: true };
+  if ((order.paid_cents ?? order.amount_cents) <= 0) return { ok: false, skipped: true, error: "Kostenlos (Gutschein) – keine Rechnung nötig." };
 
   // Sperre gegen doppelte Rechnungen (Webhook + Danke-Seite + Admin gleichzeitig)
   const { data: lock } = await supabase
@@ -40,7 +41,7 @@ export async function issueVbInvoice(orderId: string): Promise<{ ok: boolean; er
   const plan = getPlan(order.plan);
   const occ = getOccasion(order.occasion);
   const b = (order.billing ?? {}) as VbBilling;
-  const amount = order.amount_cents / 100;
+  const amount = (order.paid_cents ?? order.amount_cents) / 100;
   const date = order.event_date ? new Date(order.event_date).toLocaleDateString("de-DE") : null;
   try {
     const inv = await createLexwareInvoice({

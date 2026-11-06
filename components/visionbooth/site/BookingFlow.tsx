@@ -358,6 +358,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <PayButton price={p.price} />
           </div>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-white/45"><OccasionIcon id="lock" className="h-3.5 w-3.5 flex-none" />Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
+          <p className="mt-1 text-center text-xs text-white/45">Gutschein-Code? Den gibst du auf der nächsten Seite unter „Code hinzufügen“ ein.</p>
           {testMode && <p className="mt-2 text-center text-xs font-semibold text-amber-300">Testmodus – es wird kein echtes Geld abgebucht.</p>}
         </form>
       )}
