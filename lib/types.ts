@@ -100,6 +100,12 @@ export interface Booking {
   inquiry_message: string | null;
   confirmed_at: string | null;
   rest_payment_method?: "ueberweisung" | "bar" | null;
+  /** Gesamtbetrag, der beim Abhaken „Rest erhalten“ bezahlt war (für Nachzahlungen). */
+  rest_paid_amount?: number | null;
+  /** Zahlungsart der Nachzahlung (wählt der Kunde im Portal). */
+  extra_payment_method?: "ueberweisung" | "bar" | null;
+  /** Positionen zum Zeitpunkt „Rest erhalten“ (für die Aufschlüsselung der Nachzahlung). */
+  rest_paid_lines?: { name: string; price: string }[] | null;
   deposit_amount?: number | null;
   deposit_paid_at?: string | null;
   rest_paid_at?: string | null;

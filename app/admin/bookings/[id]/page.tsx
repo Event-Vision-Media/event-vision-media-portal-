@@ -392,7 +392,7 @@ export default async function AdminBookingDetailPage(props: {
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />
 
-        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
+        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} email={booking.email ?? null} />}
 
         {(booking as any).layout_draft && (
           <Card>

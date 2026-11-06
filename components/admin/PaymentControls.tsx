@@ -11,6 +11,7 @@ export function PaymentControls({
   method,
   compact = false,
   noDeposit = false,
+  followUp = false,
 }: {
   bookingId: string;
   depositPaid: boolean;
@@ -19,6 +20,8 @@ export function PaymentControls({
   compact?: boolean;
   /** Gesamtpreis bis NO_DEPOSIT_UP_TO (250 €): keine Anzahlung, nur ein Haken für den Gesamtbetrag. */
   noDeposit?: boolean;
+  /** Später zugebuchte Leistung offen: Haken und Zahlungsart gelten für die Nachzahlung. */
+  followUp?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -37,14 +40,14 @@ export function PaymentControls({
         onChange={(v) => run(() => setPaymentReceived(bookingId, "deposit", v))}
       />}
       <Toggle
-        label={noDeposit ? (method === "bar" ? "Bar erhalten" : "Bezahlt") : method === "bar" ? "Rest bar erhalten" : "Rest erhalten"}
+        label={followUp ? (method === "bar" ? "Nachzahlung bar erhalten" : "Nachzahlung erhalten") : noDeposit ? (method === "bar" ? "Bar erhalten" : "Bezahlt") : method === "bar" ? "Rest bar erhalten" : "Rest erhalten"}
         checked={restPaid}
         disabled={pending}
         onChange={(v) => run(() => setPaymentReceived(bookingId, "rest", v))}
       />
       {!compact && (
         <label className="flex items-center gap-2 text-sm text-anthracite-600">
-          Restzahlung:
+          {followUp ? "Nachzahlung:" : "Restzahlung:"}
           <select
             className="rounded-lg border border-anthracite-200 bg-white px-2 py-1 text-sm"
             value={method ?? ""}

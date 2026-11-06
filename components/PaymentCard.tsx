@@ -1,6 +1,7 @@
 import { Card } from "@/components/ui/Card";
 import { formatCurrencyEUR, formatDateGerman } from "@/lib/format";
 import type { PaymentSummary } from "@/lib/payments";
+import { ExtraPaymentChoice } from "@/components/ExtraPaymentChoice";
 
 /** Zahlungsübersicht im Kundenportal: Anzahlung, Restbetrag, Bankverbindung. */
 export function PaymentCard({
@@ -42,6 +43,11 @@ export function PaymentCard({
           : { label: t("Zahlungsart wählt ihr beim Vertrag", "Zahlungsart wählen Sie beim Vertrag"), tone: "text-anthracite-500" };
 
   const showBank = p.bank?.iban && (!p.depositPaid || (p.method === "ueberweisung" && !p.restPaid));
+  const extraStatus = p.method === "bar"
+    ? { label: p.pickupOnly ? "Bar bei Abholung" : "Bar bei Lieferung", tone: "text-anthracite-600" }
+    : p.method === "ueberweisung"
+      ? { label: t("Bitte überweisen – Bankverbindung unten", "Bitte überweisen – Bankverbindung unten"), tone: "text-anthracite-600" }
+      : { label: t("Für später zugebuchte Leistungen", "Für später zugebuchte Leistungen"), tone: "text-gold-700" };
 
   return (
     <Card className="animate-fade-in-up">
@@ -52,7 +58,33 @@ export function PaymentCard({
         )}
       </div>
       <div className="mt-4 divide-y divide-anthracite-100 text-sm">
-        {noDeposit ? (
+        {p.followUp ? (
+          <>
+            <Row title={t("Bereits bezahlt", "Bereits bezahlt")} amount={formatCurrencyEUR(p.paidTotal ?? 0)} status={{ label: "Erhalten ✓", tone: "text-emerald-700" }} />
+            <div className="py-3 last:pb-0">
+              <Row title="Nachzahlung" amount={formatCurrencyEUR(p.rest)} status={extraStatus} />
+              {p.addedLines.length > 0 && (
+                <div className="mt-2 rounded-lg bg-sand-50 px-3 py-2 text-xs text-anthracite-600">
+                  <p className="font-medium text-anthracite-700">{t("Neu dazugebucht:", "Neu dazugebucht:")}</p>
+                  <ul className="mt-1 space-y-0.5">
+                    {p.addedLines.map((l, i) => (
+                      <li key={i} className="flex justify-between gap-3">
+                        <span>{l.name}</span>
+                        <span className="whitespace-nowrap">{l.price}</span>
+                      </li>
+                    ))}
+                  </ul>
+                  {p.replacedLines.length > 0 && (
+                    <p className="mt-1.5 text-anthracite-500">
+                      {t("Statt", "Statt")} {p.replacedLines.map((l) => l.name).join(", ")} ({t("bereits bezahlt – wird angerechnet", "bereits bezahlt – wird angerechnet")})
+                    </p>
+                  )}
+                </div>
+              )}
+              <ExtraPaymentChoice current={p.method} pickupOnly={p.pickupOnly} shippingOnly={p.shippingOnly} sie={sie} />
+            </div>
+          </>
+        ) : noDeposit ? (
           <Row title={t("Gesamtbetrag – keine Anzahlung", "Gesamtbetrag – keine Anzahlung")} amount={from + formatCurrencyEUR(p.rest)} status={restStatus} />
         ) : (
           <>
@@ -99,7 +131,12 @@ export function PaymentCard({
       )}
 
       <p className="mt-3 text-xs text-anthracite-400">
-        {hasContract
+        {p.followUp
+          ? t(
+              "Die Nachzahlung ist für Leistungen, die ihr nach der Bezahlung dazugebucht habt – ganz bequem per Überweisung oder bar.",
+              "Die Nachzahlung ist für Leistungen, die Sie nach der Bezahlung dazugebucht haben – ganz bequem per Überweisung oder bar."
+            )
+          : hasContract
           ? t(
               `Die Rechnung bekommt ihr von uns per E-Mail und findet sie hier im Portal. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`,
               `Die Rechnung erhalten Sie von uns per E-Mail und finden sie hier im Portal. Später im Portal zugebuchte Extras rechnen wir mit dem ${noDeposit ? "Gesamtbetrag" : "Restbetrag"} ab.`

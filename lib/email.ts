@@ -506,6 +506,27 @@ function bankBox(b: MailBooking, bank: MailBank | null, amount: number): { html:
   };
 }
 
+/** Bestätigung an den Kunden: Gesamtbetrag ist vollständig eingegangen (vom Admin per Knopf ausgelöst). */
+export function paymentCompleteMail(b: MailBooking, total: number | null) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const amount = total != null ? ` von <strong>${esc(euro2(total))}</strong>` : "";
+  const intro = sie
+    ? `der Gesamtbetrag${amount} für Ihre Buchung <strong>${esc(b.booking_code)}</strong> ist vollständig bei uns eingegangen – herzlichen Dank! Damit ist alles bezahlt, es folgen keine weiteren Zahlungsaufforderungen.`
+    : `der Gesamtbetrag${amount} für deine Buchung <strong>${esc(b.booking_code)}</strong> ist vollständig bei uns eingegangen – herzlichen Dank! Damit ist alles bezahlt, es kommen keine weiteren Zahlungsaufforderungen.`;
+  const outro = sie
+    ? `Wir freuen uns auf Ihr Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Alle Details und Ihre Rechnung finden Sie jederzeit in Ihrem Kundenportal.`
+    : `Wir freuen uns auf dein Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Alle Details und deine Rechnung findest du jederzeit in deinem Kundenportal.`;
+  const portal = url
+    ? `<p style="margin:18px 0"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kundenportal</a></p>`
+    : "";
+  return {
+    subject: sie ? `Zahlung vollständig erhalten · ${b.booking_code}` : `Zahlung vollständig erhalten ✓ · ${b.booking_code}`,
+    html: layout("Zahlung vollständig erhalten ✓", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p><p style="line-height:1.6">${outro}</p>${portal}`),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${stripTags(outro)}\n\n${url ? `Kundenportal: ${url}\n\n` : ""}${BRAND}`,
+  };
+}
+
 /** Anzahlung 7 Tage nach der Auftragsbestätigung noch nicht eingegangen. */
 export function depositReminderMail(b: MailBooking, amount: number, bank: MailBank | null) {
   const sie = isSie(b);

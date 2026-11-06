@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/Card";
 import { PaymentControls } from "@/components/admin/PaymentControls";
+import { FullPaymentButton } from "@/components/admin/FullPaymentButton";
 import { InvoiceAdminSection } from "@/components/admin/InvoiceAdminSection";
 import { invoiceTitle, type BookingInvoice } from "@/lib/invoices";
 import { formatCurrencyEUR, formatDateGerman } from "@/lib/format";
@@ -12,11 +13,13 @@ export function PaymentAdminCard({
   p,
   invoices,
   hasEmail,
+  email = null,
 }: {
   bookingId: string;
   p: PaymentSummary;
   invoices: BookingInvoice[];
   hasEmail: boolean;
+  email?: string | null;
 }) {
   const from = p.isFromPrice ? "ab " : "";
   // Vorschlag fürs Upload-Formular: zuerst die Anzahlung, danach der Rest (bzw. alles ohne Anzahlung)
@@ -40,14 +43,21 @@ export function PaymentAdminCard({
           )}
           <div className="flex justify-between">
             <dt className="text-anthracite-500">
-              {p.deposit === 0 ? "Gesamtbetrag" : "Restbetrag"}{" "}
+              {p.followUp ? "Nachzahlung (später zugebucht)" : p.deposit === 0 ? "Gesamtbetrag" : "Restbetrag"}{" "}
               {p.method === "bar" ? `· bar bei ${p.pickupOnly ? "Abholung" : "Lieferung"}` : p.method === "ueberweisung" ? `· Überweisung bis ${formatDateGerman(p.restDueDate)}` : ""}
             </dt>
             <dd className="font-medium">{from}{formatCurrencyEUR(p.rest!)}</dd>
           </div>
         </dl>
       )}
-      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} />
+      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} followUp={p.followUp} />
+      {p.followUp && p.paidTotal != null && (
+        <p className="mt-2 text-xs text-amber-700">
+          Bereits bezahlt: {formatCurrencyEUR(p.paidTotal)} – danach zugebucht: {p.addedLines.length ? p.addedLines.map((l) => `${l.name} (${l.price})`).join(", ") : "siehe Positionen"}.{" "}
+          {p.method === null ? "Der Kunde wählt im Portal: Überweisung oder bar." : p.method === "bar" ? "Der Kunde zahlt bar – steht im Wochenplan." : "Der Kunde überweist."}
+        </p>
+      )}
+      <FullPaymentButton bookingId={bookingId} allPaid={p.depositPaid && p.restPaid} email={email} />
       <p className="mt-3 text-xs text-anthracite-400">
         Rechnungen erstellst du wie gewohnt in Lexware Office (Verwendungszweck: Buchungsnummer) und lädst das PDF hier hoch – der Kunde bekommt es
         per E-Mail und findet es im Portal. Eingänge hakst du oben ab; offene Anzahlungen werden nach 7 Tagen automatisch freundlich erinnert.
