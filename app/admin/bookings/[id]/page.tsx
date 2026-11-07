@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { MediaReadyCard } from "@/components/admin/MediaReadyCard";
+import { mediaStatus } from "@/lib/media-ready";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { BookingRowActions } from "@/components/admin/BookingRowActions";
@@ -33,6 +35,9 @@ import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
 import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
 import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
+import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
+import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
+import type { StaffRequest } from "@/lib/staff-upsell";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
@@ -112,6 +117,10 @@ export default async function AdminBookingDetailPage(props: {
   const contract = booking ? await getLatestContract(booking.id) : null;
   const [payment, invoices] = booking ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
+  const media = booking ? await mediaStatus(booking) : { photos: false, videos: false, audios: 0, galleryReady: false, photoBooked: false, videoBooked: false, audioBooked: false, informedAt: null };
+  // 360°-Betreuung im Portal angefragt und noch nicht eingetragen
+  const staffReq = (booking?.inquiry_items as { staffRequest?: StaffRequest | null } | null)?.staffRequest ?? null;
+  const staffRequestOpen = booking && staffReq && !staffFor(booking.inquiry_items) ? staffReq : null;
 
   if (!booking) {
     return (
@@ -258,6 +267,12 @@ export default async function AdminBookingDetailPage(props: {
           </div>
 
           <div className="mt-5 grid grid-cols-1 gap-4 border-t border-anthracite-100 pt-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
+                E-Mail-Adresse des Kunden
+              </p>
+              <BookingEmailCell bookingId={booking.id} email={booking.email ?? null} />
+            </div>
             <div>
               <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-anthracite-400">
                 Login-Passwort
@@ -362,13 +377,26 @@ export default async function AdminBookingDetailPage(props: {
           </Card>
         )}
 
+        {staffRequestOpen && (
+          <Card className="border-gold-300 bg-gold-50">
+            <p className="font-serif text-lg font-semibold text-anthracite-800">🎥 Betreuung angefragt</p>
+            <p className="mt-1 text-sm text-anthracite-600">
+              Der Kunde wünscht Betreuung für die 360° Video Booth: {staffRequestOpen.hours} Std.
+              {staffRequestOpen.start ? ` ab ${staffRequestOpen.start} Uhr` : ", Uhrzeit noch offen"} (angefragt am {formatDateTimeGerman(staffRequestOpen.at)}).
+            </p>
+            <p className="mt-2 text-xs text-anthracite-500">
+              Wenn Personal frei ist: kurz zusagen und unter „Extras ändern“ die Betreuung hinzufügen{staffRequestOpen.hours > 5 ? " und die Stunden bestätigen" : ""}. Danach verschwindet dieser Hinweis.
+            </p>
+          </Card>
+        )}
+
         {booking.lifecycle === "bestaetigt" && (
           <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} invitePending={Boolean(booking.portal_invite_pending)} email={booking.email} />
         )}
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />
 
-        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} />}
+        {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} email={booking.email ?? null} />}
 
         <VbBookingCard booking={booking} />
 
@@ -582,12 +610,25 @@ export default async function AdminBookingDetailPage(props: {
 
         <section>
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">
-            Lieferung &amp; Abholung
+            {HANDOVER_LABELS[bookingHandover(booking.inquiry_items)].title}
           </h2>
           <Card>
             <DeliveryPickupForm booking={booking} />
           </Card>
         </section>
+
+        {(media.photoBooked || media.videoBooked || media.audioBooked) && booking.lifecycle === "bestaetigt" && (
+          <MediaReadyCard
+            bookingId={booking.id}
+            email={booking.email ?? null}
+            photoBooked={media.photoBooked}
+            videoBooked={media.videoBooked}
+            audioBooked={media.audioBooked}
+            galleryReady={media.galleryReady}
+            audios={media.audios}
+            informedAt={media.informedAt}
+          />
+        )}
 
         <section id="online-galerie" className="scroll-mt-6">
           <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">

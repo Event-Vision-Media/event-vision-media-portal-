@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, restTransferReminderMail, declineMail, followupMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, mediaReadyMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
 import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
@@ -60,6 +60,7 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
     { title: "3 · Auftragsbestätigung mit Portal-Zugang (nach Klick auf „Bestätigen“)", mail: confirmationMail(sample) },
     { title: "3b · Portal-Zugang für Bestandsbuchung (Knopf „Portal-Zugang senden“, Vertrag liegt vor)", mail: portalInviteMail(sample, { contractOnFile: true }) },
     { title: "4b · Erinnerung Anzahlung (7 Tage nach Vertragsunterschrift, falls nicht abgehakt)", mail: depositReminderMail(sample, depositFor(sample.total_price ?? 0), { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
+    { title: "4c · Zahlung vollständig erhalten (Knopf „Gesamtbetrag erhalten“ bzw. „Zahlungsbestätigung senden“)", mail: paymentCompleteMail(sample, sample.total_price ?? null) },
     { title: "4c · Erinnerung Restzahlung per Überweisung (ca. 17 Tage vor dem Event, fällig 14 Tage vorher)", mail: restTransferReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0), "2027-05-29", { holder: "Dustin Nowitzki", iban: "DE00 0000 0000 0000 0000 00", bic: null }) },
     { title: "4d · Hinweis Barzahlung bei Lieferung (1–2 Tage vorher)", mail: cashReminderMail(sample, (sample.total_price ?? 0) - depositFor(sample.total_price ?? 0)) },
     {
@@ -77,7 +78,13 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
         [{ name: "XXL-LOVE Leuchtbuchstaben", priceLabel: "149,00 €" }, { name: "Aufblasbare Fotokabine", priceLabel: "69,00 €" }]
       ),
     },
-    { title: "7 · Nach dem Event: Galerie + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review") },
+    { title: "7 · Nach dem Event: Fotos + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 0 }) },
+    { title: "7b · Nach dem Event: nur Audiogästebuch (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: false, audios: 23 }) },
+    { title: "7c · Nach dem Event: schon informiert → nur Danke + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 23 }, true) },
+    { title: "7d · Knopf „Kunde informieren“: Fotos & Audios sind da", mail: mediaReadyMail(sample, { photos: true, audios: 23 }) },
+    { title: "7e · Knopf „Kunde informieren“: nur Audios", mail: mediaReadyMail(sample, { photos: false, audios: 23 }) },
+    { title: "7f · Knopf „Kunde informieren“: 360° Video Booth", mail: mediaReadyMail(sample, { photos: false, videos: true, audios: 0 }) },
+    { title: "7g · Knopf „Kunde informieren“: Fotospiegel + 360° + Audio", mail: mediaReadyMail(sample, { photos: true, videos: true, audios: 23 }) },
     {
       title: "8 · Benachrichtigung an dich (neue Anfrage)",
       mail: adminNotificationMail({

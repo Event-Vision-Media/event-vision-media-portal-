@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { isAdminAuthenticated } from "@/lib/require-admin";
+import { logActivity } from "@/lib/activity-log";
 
 export interface AdminActionResult {
   success?: boolean;
@@ -584,6 +585,25 @@ export async function updateCustomLoginCode(
   }
 
   revalidatePath("/admin/dashboard");
+  return { success: true };
+}
+
+/** E-Mail-Adresse des Kunden korrigieren (z. B. Tippfehler) – wird im Verlauf protokolliert. */
+export async function updateBookingEmail(bookingId: string, email: string): Promise<AdminActionResult> {
+  if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
+  const next = email.trim().toLowerCase();
+  if (!/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(next)) return { error: "Bitte eine gültige E-Mail-Adresse eingeben." };
+
+  const supabase = createAdminClient();
+  const { data: b } = await supabase.from("bookings").select("email").eq("id", bookingId).maybeSingle();
+  if (!b) return { error: "Buchung nicht gefunden." };
+  if ((b.email ?? "").toLowerCase() === next) return { success: true };
+
+  const { error } = await supabase.from("bookings").update({ email: next }).eq("id", bookingId);
+  if (error) return { error: "E-Mail-Adresse konnte nicht gespeichert werden." };
+
+  await logActivity(bookingId, "email_geaendert", `✏️ E-Mail-Adresse von dir geändert: ${b.email || "(keine)"} → ${next}`);
+  revalidatePath(`/admin/bookings/${bookingId}`);
   return { success: true };
 }
 

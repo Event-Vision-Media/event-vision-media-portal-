@@ -1,5 +1,6 @@
 "use server";
 
+import { getPaymentSummary } from "@/lib/payments";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentBooking } from "@/lib/booking-session";
@@ -455,6 +456,25 @@ export async function saveStaffTime(start: string, requestedExtra: number): Prom
 
   const label = staffLabel({ ...current, start });
   await logActivity(booking.id, "kunde_betreuung", `Betreuungszeit: ${label}${extra ? ` · ${extra} weitere Std. angefragt – bitte bestätigen` : ""}`);
+  revalidatePath("/dashboard");
+  return { success: true };
+}
+
+/** Kunde wählt, wie er eine Nachzahlung (später zugebuchte Leistung) begleicht. */
+export async function chooseExtraPaymentMethod(method: "ueberweisung" | "bar"): Promise<ActionResult> {
+  const booking = await getCurrentBooking();
+  if (!booking) return { error: "Deine Sitzung ist abgelaufen. Bitte melde dich erneut an." };
+  if (method !== "ueberweisung" && method !== "bar") return { error: "Ungültige Auswahl." };
+  const p = await getPaymentSummary(booking);
+  if (!p.followUp) return { error: "Es ist keine Nachzahlung offen." };
+  if (method === "bar" && p.shippingOnly) return { error: "Beim Versand ist nur eine Überweisung möglich." };
+  const { error } = await createAdminClient().from("bookings").update({ extra_payment_method: method }).eq("id", booking.id);
+  if (error) return { error: "Konnte nicht gespeichert werden." };
+  await logActivity(
+    booking.id,
+    "nachzahlung_zahlungsart",
+    `Nachzahlung ${p.rest} €: Kunde zahlt ${method === "bar" ? `bar bei ${p.pickupOnly ? "Abholung" : "Lieferung"}` : "per Überweisung"}`
+  );
   revalidatePath("/dashboard");
   return { success: true };
 }

@@ -24,15 +24,17 @@ export default async function AdminPaymentsPage() {
     .eq("source", "website")
     .eq("lifecycle", "bestaetigt")
     .gte("event_date", since)
-    .or("deposit_paid_at.is.null,rest_paid_at.is.null")
+    .or("deposit_paid_at.is.null,rest_paid_at.is.null,rest_paid_amount.not.is.null")
     .order("event_date", { ascending: true })
     .limit(100);
 
   const bookings = (data ?? []) as Booking[];
-  const [rows, { data: invoiceRows }] = await Promise.all([
+  const [allRows, { data: invoiceRows }] = await Promise.all([
     Promise.all(bookings.map(async (b) => ({ b, p: await getPaymentSummary(b) }))),
     supabase.from("booking_invoices").select("booking_id, kind").in("booking_id", bookings.map((b) => b.id)),
   ]);
+  // vollständig bezahlte Buchungen (ohne offene Nachzahlung) nicht anzeigen
+  const rows = allRows.filter(({ p }) => !p.depositPaid || !p.restPaid);
   const invoiced = (bookingId: string, kinds: string[]) => (invoiceRows ?? []).some((i) => i.booking_id === bookingId && kinds.includes(i.kind));
   const openSum = rows.reduce(
     (sum, { p }) => sum + (p.depositPaid ? 0 : p.deposit ?? 0) + (p.restPaid ? 0 : p.rest ?? 0),
@@ -93,7 +95,7 @@ export default async function AdminPaymentsPage() {
                       : `Anzahlung ${p.deposit != null ? formatCurrencyEUR(p.deposit) : "–"} · Rest ${p.rest != null ? formatCurrencyEUR(p.rest) : "–"}`}
                     {p.method === "ueberweisung" ? " per Überweisung" : p.method === "bar" ? " bar" : ""}
                   </span>
-                  <PaymentControls bookingId={b.id} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} compact />
+                  <PaymentControls bookingId={b.id} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} followUp={p.followUp} compact />
                 </div>
               </Card>
             );

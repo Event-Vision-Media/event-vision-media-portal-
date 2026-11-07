@@ -1,4 +1,6 @@
 import "server-only";
+import { mediaStatus } from "@/lib/media-ready";
+import { staffUpsellFor } from "@/lib/staff-upsell";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getRecommendations } from "@/lib/recommendations";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
@@ -175,9 +177,13 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     const openSteps = await openStepsFor(b);
     // Selbstabholung gebucht? Dann zuerst die bequeme Lieferung empfehlen
     const delivery = deliveryUpsells(b.inquiry_items)[0];
+    // 360° ohne Betreuung: Betreuung durch Personal als erste Empfehlung (Anfrage im Portal)
+    const staff = staffUpsellFor(b);
+    const staffRec = staff && !staff.requested ? [{ name: "Betreuung durch Personal für die 360° Video Booth", priceLabel: `${eur(staff.price)} für ${staff.includedHours} Std.` }] : [];
     const recs = [
-      ...(delivery ? [{ name: "Lieferung, Aufbau & Abholung durch uns", priceLabel: `+${delivery.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}` }] : []),
-      ...(await getRecommendations(b, delivery ? 1 : 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel })),
+      ...staffRec,
+      ...(delivery && !staffRec.length ? [{ name: "Lieferung, Aufbau & Abholung durch uns", priceLabel: `+${delivery.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}` }] : []),
+      ...(await getRecommendations(b, delivery || staffRec.length ? 1 : 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel })),
     ];
     let sent = false;
     if (!dryRun) {
@@ -214,13 +220,18 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
 
   for (const b of (past ?? []) as Booking[]) {
     if (daysUntil(b.event_date) > -GALLERY_UNLOCK_DAYS) continue;
+    // Was liegt bereit? Fotos (Galerie-Link) und/oder Audios – nur das ankündigen, was gebucht und da ist
+    const media = await mediaStatus(b);
+    const missing = ((media.photoBooked || media.videoBooked) && !media.galleryReady) || (media.audioBooked && media.audios === 0);
+    // Noch nicht alles hochgeladen: bis 14 Tage nach dem Event warten, danach Danke + Bewertung mit dem, was da ist
+    if (!media.informedAt && missing && daysUntil(b.event_date) > -14) continue;
     let sent = false;
     if (!dryRun) {
-      const mail = followupMail(toMailBooking(b), reviewUrl);
+      const mail = followupMail(toMailBooking(b), reviewUrl, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: Link zur Online-Galerie${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
+        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: ${media.informedAt ? "Danke" : [media.galleryReady && "Online-Galerie", media.audios && "Audio-Nachrichten"].filter(Boolean).join(" + ") || "Danke"}${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
       }
     }
     result.followups.push({ booking: b.booking_code, sent });

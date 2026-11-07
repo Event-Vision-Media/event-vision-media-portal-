@@ -340,23 +340,78 @@ ${recs.map((r) => `<p style="margin:4px 0">${esc(r.name)} – <strong>${esc(r.pr
 }
 
 /** Nach dem Event: Online-Galerie ist freigeschaltet + Bitte um Google-Bewertung. */
-export function followupMail(b: MailBooking, reviewUrl: string | null) {
+/** Was nach dem Event bereitliegt – steuert Betreff und Text der „Ist da“-Mails. */
+export interface MediaReady {
+  /** Online-Galerie mit Fotos (Fotospiegel/Fotobox) ist hinterlegt */
+  photos: boolean;
+  /** Online-Galerie mit 360°-Videos ist hinterlegt */
+  videos?: boolean;
+  /** Anzahl hochgeladener Audio-Nachrichten */
+  audios: number;
+}
+
+function readyTexts(b: MailBooking, m: MediaReady) {
+  const sie = isSie(b);
+  const audios = m.audios > 0;
+  const n = m.audios;
+  const audioLine = sie
+    ? `${n === 1 ? "Die Sprachnachricht Ihrer Gäste ist" : `Alle ${n} Sprachnachrichten Ihrer Gäste sind`} jetzt im Kundenportal – zum Anhören und mit einem Klick als Gesamtpaket (ZIP) zum Herunterladen.`
+    : `${n === 1 ? "Die Sprachnachricht deiner Gäste ist" : `Alle ${n} Sprachnachrichten deiner Gäste sind`} jetzt im Kundenportal – zum Anhören und mit einem Klick als Gesamtpaket (ZIP) zum Herunterladen.`;
+  const galleryWhat = m.photos && m.videos ? "Fotos und 360°-Videos" : m.videos ? "360°-Videos" : "Fotos";
+  const galleryLine = sie
+    ? `Alle ${galleryWhat} stehen in Ihrer Online-Galerie im Kundenportal zum Download bereit.`
+    : `Alle ${galleryWhat} stehen in deiner Online-Galerie im Kundenportal zum Download bereit.`;
+  const words = [m.photos && "Fotos", m.videos && "Videos", audios && "Audio-Nachrichten"].filter(Boolean) as string[];
+  const list = words.length > 1 ? `${words.slice(0, -1).join(", ")} & ${words[words.length - 1]}` : words[0];
+  const emoji = words.length > 1 ? " 🎉" : m.photos ? " 📸" : m.videos ? " 🎬" : audios ? " 🎙️" : "";
+  const verb = m.photos || m.videos ? "sind online" : "sind da";
+  const title = list
+    ? sie ? `Ihre ${list} ${verb}` : `Deine ${list} ${verb}${emoji}`
+    : sie ? "Danke, dass wir dabei sein durften" : "Danke, dass wir dabei sein durften 💛";
+  const lines = [m.photos || m.videos ? galleryLine : "", audios ? audioLine : ""].filter(Boolean);
+  return { title, lines };
+}
+
+/**
+ * Nach dem Event: Fotos und/oder Audios sind da (je nach Buchung) plus Bitte um Bewertung.
+ * informed = Kunde hat die „Ist da“-Info schon per Knopf bekommen → nur noch Danke + Bewertung.
+ */
+export function followupMail(b: MailBooking, reviewUrl: string | null, m: MediaReady = { photos: true, audios: 0 }, informed = false) {
   const sie = isSie(b);
   const url = portalUrl();
-  const title = sie ? "Ihre Fotos sind online" : "Deine Fotos sind online 📸";
-  const intro = sie
-    ? "vielen Dank, dass wir bei Ihrem Event dabei sein durften! Alle Fotos stehen jetzt in Ihrer Online-Galerie im Kundenportal zum Download bereit."
-    : "danke, dass wir bei deinem Event dabei sein durften! Alle Fotos stehen jetzt in deiner Online-Galerie im Kundenportal zum Download bereit.";
+  const r = readyTexts(b, informed ? { photos: false, videos: false, audios: 0 } : m);
+  const thanks = sie ? "vielen Dank, dass wir bei Ihrem Event dabei sein durften!" : "danke, dass wir bei deinem Event dabei sein durften!";
+  const still = informed
+    ? sie
+      ? "Ihre Erinnerungen finden Sie weiterhin jederzeit im Kundenportal."
+      : "Deine Erinnerungen findest du weiterhin jederzeit im Kundenportal."
+    : "";
   const ask = sie
     ? "Hat Ihnen unser Service gefallen? Wir würden uns sehr über eine kurze Google-Bewertung freuen – das hilft uns als kleinem Unternehmen enorm."
     : "Hat es dir gefallen? Wir würden uns riesig über eine kurze Google-Bewertung freuen – das hilft uns als kleinem Unternehmen enorm. 💛";
   const review = reviewUrl
     ? `<p style="margin:22px 0 0;text-align:center"><a href="${esc(reviewUrl)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#16181c;color:#ffffff;text-decoration:none;font-weight:600">★★★★★ Bewertung schreiben</a></p>`
     : "";
+  const body = [thanks, ...r.lines, still].filter(Boolean);
   return {
-    subject: sie ? `Ihre Fotos sind online – ${BRAND}` : `Deine Fotos sind online! – ${BRAND}`,
-    html: layout(title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${codeBox(b)}<p style="line-height:1.6">${ask}</p>${review}`),
-    text: `${greeting(b)},\n\n${intro}\n\nZugangscode: ${loginCode(b)}${url ? `\n${url}` : ""}\n\n${ask}${reviewUrl ? `\n${reviewUrl}` : ""}\n\n${BRAND}`,
+    subject: `${r.title} – ${BRAND}`,
+    html: layout(r.title, `<p style="line-height:1.6">${esc(greeting(b))},</p>${body.map((l) => `<p style="line-height:1.6">${esc(l)}</p>`).join("")}${codeBox(b)}<p style="line-height:1.6">${ask}</p>${review}`),
+    text: `${greeting(b)},\n\n${body.join("\n\n")}\n\nZugangscode: ${loginCode(b)}${url ? `\n${url}` : ""}\n\n${ask}${reviewUrl ? `\n${reviewUrl}` : ""}\n\n${BRAND}`,
+  };
+}
+
+/** Per Knopf im Admin: „Deine Fotos/Audios sind da“ – sofort nach dem Hochladen, ohne Bewertungsbitte. */
+export function mediaReadyMail(b: MailBooking, m: MediaReady) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const r = readyTexts(b, m);
+  const hello = "es ist so weit:";
+  const look = m.photos || m.videos;
+  const enjoy = look && m.audios ? (sie ? "Viel Freude beim Anschauen und Anhören!" : "Viel Freude beim Anschauen und Anhören! 💛") : m.audios ? (sie ? "Viel Freude beim Anhören!" : "Viel Freude beim Anhören! 💛") : sie ? "Viel Freude beim Anschauen!" : "Viel Freude beim Anschauen! 💛";
+  return {
+    subject: `${r.title} – ${BRAND}`,
+    html: layout(r.title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${hello}</p>${r.lines.map((l) => `<p style="line-height:1.6">${esc(l)}</p>`).join("")}${codeBox(b)}<p style="line-height:1.6">${esc(enjoy)}</p>`),
+    text: `${greeting(b)},\n\n${hello}\n\n${r.lines.join("\n\n")}\n\nZugangscode: ${loginCode(b)}${url ? `\n${url}` : ""}\n\n${enjoy}\n\n${BRAND}`,
   };
 }
 
@@ -504,6 +559,27 @@ function bankBox(b: MailBooking, bank: MailBank | null, amount: number): { html:
       .map(([k, v]) => `<tr><td style="color:#6f7882;padding:3px 0">${esc(k)}</td><td style="text-align:right;font-weight:600">${esc(v)}</td></tr>`)
       .join("")}</table>`,
     text: rows.map(([k, v]) => `${k}: ${v}`).join("\n"),
+  };
+}
+
+/** Bestätigung an den Kunden: Gesamtbetrag ist vollständig eingegangen (vom Admin per Knopf ausgelöst). */
+export function paymentCompleteMail(b: MailBooking, total: number | null) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const amount = total != null ? ` von <strong>${esc(euro2(total))}</strong>` : "";
+  const intro = sie
+    ? `der Gesamtbetrag${amount} für Ihre Buchung <strong>${esc(b.booking_code)}</strong> ist vollständig bei uns eingegangen – herzlichen Dank! Damit ist alles bezahlt, es folgen keine weiteren Zahlungsaufforderungen.`
+    : `der Gesamtbetrag${amount} für deine Buchung <strong>${esc(b.booking_code)}</strong> ist vollständig bei uns eingegangen – herzlichen Dank! Damit ist alles bezahlt, es kommen keine weiteren Zahlungsaufforderungen.`;
+  const outro = sie
+    ? `Wir freuen uns auf Ihr Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Alle Details und Ihre Rechnung finden Sie jederzeit in Ihrem Kundenportal.`
+    : `Wir freuen uns auf dein Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Alle Details und deine Rechnung findest du jederzeit in deinem Kundenportal.`;
+  const portal = url
+    ? `<p style="margin:18px 0"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kundenportal</a></p>`
+    : "";
+  return {
+    subject: sie ? `Zahlung vollständig erhalten · ${b.booking_code}` : `Zahlung vollständig erhalten ✓ · ${b.booking_code}`,
+    html: layout("Zahlung vollständig erhalten ✓", `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p><p style="line-height:1.6">${outro}</p>${portal}`),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${stripTags(outro)}\n\n${url ? `Kundenportal: ${url}\n\n` : ""}${BRAND}`,
   };
 }
 
