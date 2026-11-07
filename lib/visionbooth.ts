@@ -126,7 +126,8 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
     galleryEnabled: e.gallery_enabled,
     aiStyles: e.ai_enabled && e.ai_limit > 0 ? e.ai_styles.filter((k) => VB_STYLES[k]).map((k) => ({ key: k, label: VB_STYLES[k].label, emoji: VB_STYLES[k].emoji, waits: VB_STYLES[k].waits, seconds: VB_STYLES[k].seconds })) : [],
     aiPerGuest: e.ai_per_guest,
-    deleteAfter: vbDeleteAfter(e).toISOString().slice(0, 10),
+    // Demo: jedes Foto wird nach der Frist einzeln gelöscht → Datum ab heute
+    deleteAfter: (e.slug === VB_DEMO_SLUG ? new Date(Date.now() + (e.retention_days || 7) * 86_400_000) : vbDeleteAfter(e)).toISOString().slice(0, 10),
     challenges: e.gallery_enabled ? parseChallenges(e.challenges) : [],
     guestbook: Boolean(e.guestbook) && e.gallery_enabled,
     wheel: (() => {
@@ -192,6 +193,11 @@ export async function cleanupVbPhotos(dryRun = false): Promise<{ event: string; 
     .limit(200);
   const out: { event: string; photos: number; deleted: boolean }[] = [];
   for (const e of events ?? []) {
+    // Dauer-Demo der Website: einzelne Fotos rollierend löschen, das Event bleibt offen
+    if (e.slug === VB_DEMO_SLUG) {
+      out.push(await cleanupDemoPhotos(e.id, e.retention_days || 7, dryRun));
+      continue;
+    }
     if (vbDeleteAfter(e) > new Date()) continue;
     const { count } = await supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", e.id);
     if (dryRun) {
@@ -222,6 +228,24 @@ export async function cleanupVbPhotos(dryRun = false): Promise<{ event: string; 
     out.push({ event: e.slug, photos: count ?? 0, deleted: true });
   }
   return out;
+}
+
+/** Slug der Dauer-Demo auf visionbooth.de (Link „Live-Demo am Handy testen“). */
+export const VB_DEMO_SLUG = "demo";
+
+/** Demo: Fotos, die älter als die Speicherfrist sind, einzeln löschen (Event bleibt aktiv). */
+async function cleanupDemoPhotos(eventId: string, days: number, dryRun: boolean): Promise<{ event: string; photos: number; deleted: boolean }> {
+  const supabase = createAdminClient();
+  const before = new Date(Date.now() - days * 86_400_000).toISOString();
+  const { data: old } = await supabase.from("vb_photos").select("id, file_path, thumb_path").eq("event_id", eventId).lt("created_at", before).limit(1000);
+  const list = old ?? [];
+  if (dryRun || !list.length) return { event: VB_DEMO_SLUG, photos: list.length, deleted: false };
+  const paths = list.flatMap((p) => [p.file_path, ...(p.thumb_path ? [p.thumb_path] : [])]);
+  for (let i = 0; i < paths.length; i += 900) await supabase.storage.from(VB_BUCKET).remove(paths.slice(i, i + 900));
+  const ids = list.map((p) => p.id);
+  await supabase.from("vb_ai_jobs").delete().eq("event_id", eventId).lt("created_at", before);
+  await supabase.from("vb_photos").delete().in("id", ids);
+  return { event: VB_DEMO_SLUG, photos: list.length, deleted: true };
 }
 
 /** Ein Foto endgültig löschen: Datei, Vorschaubild und Eintrag (Herzen/Missionspunkte fallen mit weg). */
