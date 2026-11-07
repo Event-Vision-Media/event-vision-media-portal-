@@ -1,0 +1,309 @@
+/* VisionBooth Gäste-App: edles Schwarz mit Event-Akzentfarbe (--a), Schrift auf Akzent (--ink). */
+.vb {
+  --a: #c4933f;
+  --ink: #0d0d0f;
+  position: relative;
+  min-height: 100dvh;
+  overflow-x: hidden;
+  overflow-x: clip; /* clip statt hidden: sonst klebt die Filterleiste der Galerie nicht */
+  background: #0a0a0c;
+  color: #fff;
+  font-family: var(--vb-font-ui), system-ui, -apple-system, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
+.vb-display { font-family: var(--vb-font-display), Georgia, serif; }
+
+/* weicher, wandernder Lichtschein in der Akzentfarbe */
+.vb-aurora {
+  position: fixed;
+  inset: -25%;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 32% at 28% 18%, color-mix(in srgb, var(--a) 38%, transparent), transparent 70%),
+    radial-gradient(34% 30% at 78% 72%, color-mix(in srgb, var(--a) 24%, transparent), transparent 70%),
+    radial-gradient(30% 26% at 60% 40%, rgba(255, 255, 255, 0.05), transparent 70%);
+  filter: blur(28px);
+  animation: vb-drift 16s ease-in-out infinite alternate;
+}
+@keyframes vb-drift {
+  from { transform: translate3d(-4%, -2%, 0) scale(1); }
+  to { transform: translate3d(4%, 3%, 0) scale(1.1); }
+}
+
+.vb-glass {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  backdrop-filter: blur(18px) saturate(140%);
+}
+
+.vb-gold-text {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--a) 45%, #fff), var(--a) 55%, color-mix(in srgb, var(--a) 70%, #000));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Hauptknopf mit Glanz */
+.vb-btn {
+  position: relative;
+  overflow: hidden;
+  color: var(--ink);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--a) 70%, #fff), var(--a) 45%, color-mix(in srgb, var(--a) 72%, #000));
+  box-shadow: 0 14px 34px -12px color-mix(in srgb, var(--a) 80%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  transition: transform 0.15s ease;
+}
+.vb-btn:active { transform: scale(0.97); }
+.vb-btn::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -60%;
+  width: 40%;
+  height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.6), transparent);
+  transform: skewX(-20deg);
+  animation: vb-shine 3.4s ease-in-out infinite;
+}
+@keyframes vb-shine {
+  0%, 55% { left: -60%; }
+  100% { left: 130%; }
+}
+
+.vb-in { animation: vb-in 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+@keyframes vb-in {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: none; }
+}
+.vb-pop { animation: vb-pop 0.75s cubic-bezier(0.2, 1.25, 0.3, 1) both; }
+@keyframes vb-pop {
+  from { opacity: 0; transform: scale(0.82) rotate(-4deg); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Countdown */
+.vb-count { animation: vb-count 1s ease-out both; }
+@keyframes vb-count {
+  0% { opacity: 0; transform: scale(1.9); }
+  22% { opacity: 1; transform: scale(1); }
+  100% { opacity: 0.1; transform: scale(0.75); }
+}
+.vb-ring { stroke-dasharray: 289; animation: vb-ring 1s linear both; }
+@keyframes vb-ring {
+  from { stroke-dashoffset: 0; }
+  to { stroke-dashoffset: 289; }
+}
+.vb-flash { animation: vb-flash 0.5s ease-out both; }
+@keyframes vb-flash {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+/* Auslöser */
+.vb-shutter {
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--a) 50%, transparent);
+  animation: vb-pulse 2.6s ease-in-out infinite;
+  transition: transform 0.12s ease;
+}
+.vb-shutter:active { transform: scale(0.9); }
+@keyframes vb-pulse {
+  50% { box-shadow: 0 0 0 12px color-mix(in srgb, var(--a) 0%, transparent), 0 0 34px color-mix(in srgb, var(--a) 45%, transparent); }
+}
+
+/* KI rechnet */
+.vb-shimmer {
+  background: linear-gradient(110deg, transparent 30%, rgba(255, 255, 255, 0.22) 50%, transparent 70%);
+  background-size: 250% 100%;
+  animation: vb-shim 1.5s linear infinite;
+}
+@keyframes vb-shim {
+  from { background-position: 150% 0; }
+  to { background-position: -100% 0; }
+}
+.vb-progress > i { display: block; height: 100%; border-radius: inherit; background: var(--a); animation: vb-prog var(--dur, 20s) cubic-bezier(0.15, 0.7, 0.3, 1) forwards; }
+@keyframes vb-prog {
+  from { width: 4%; }
+  to { width: 95%; }
+}
+.vb-fade { animation: vb-fade 0.4s ease both; }
+@keyframes vb-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Konfetti */
+.vb-confetti { position: fixed; inset: 0; pointer-events: none; overflow: hidden; z-index: 50; }
+.vb-confetti i {
+  position: absolute;
+  top: -16px;
+  width: 8px;
+  height: 14px;
+  border-radius: 2px;
+  animation: vb-fall var(--d, 2.4s) cubic-bezier(0.3, 0.1, 0.7, 1) var(--delay, 0s) forwards;
+}
+@keyframes vb-fall {
+  to { transform: translate3d(var(--x, 0), 110vh, 0) rotate(var(--r, 540deg)); }
+}
+
+/* iOS-Schalter */
+.vb-switch { position: relative; width: 48px; height: 28px; flex: none; border-radius: 999px; background: rgba(255, 255, 255, 0.18); transition: background 0.2s; }
+.vb-switch::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35); transition: transform 0.2s cubic-bezier(0.3, 1.3, 0.5, 1); }
+.vb-switch[data-on="true"] { background: var(--a); }
+.vb-switch[data-on="true"]::after { transform: translateX(20px); }
+
+.vb-scroll { scrollbar-width: none; scroll-snap-type: x mandatory; }
+.vb-scroll::-webkit-scrollbar { display: none; }
+.vb-scroll > * { scroll-snap-align: start; }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-aurora, .vb-btn::after, .vb-shutter, .vb-shimmer { animation: none; }
+}
+
+/* Unteres Blatt (Missionen, Bestenliste) */
+.vb-backdrop { animation: vb-fade-bg 0.25s ease both; }
+@keyframes vb-fade-bg { from { opacity: 0; } to { opacity: 1; } }
+.vb-sheet { animation: vb-sheet 0.42s cubic-bezier(0.2, 1, 0.3, 1) both; }
+@keyframes vb-sheet { from { transform: translateY(100%); } to { transform: none; } }
+
+/* Punkte springen rein */
+.vb-points { animation: vb-points 0.9s cubic-bezier(0.2, 1.6, 0.4, 1) 0.15s both; }
+@keyframes vb-points {
+  0% { opacity: 0; transform: scale(0.3) rotate(-8deg); }
+  60% { opacity: 1; transform: scale(1.15) rotate(2deg); }
+  100% { transform: none; }
+}
+
+/* Missions-Chip über der Kamera */
+.vb-chip { animation: vb-in 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Herz-Puls in der Galerie */
+.vb-heart { animation: vb-heart 0.45s cubic-bezier(0.2, 1.8, 0.4, 1) both; }
+@keyframes vb-heart { 0% { transform: scale(0.6); } 60% { transform: scale(1.35); } 100% { transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-sheet, .vb-points, .vb-heart { animation: none; }
+}
+.vb-shake { animation: vb-shake 0.45s ease both; }
+@keyframes vb-shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
+.vb-wall-mission { animation: vb-wall-m 0.8s cubic-bezier(0.2, 1.3, 0.3, 1) both; }
+@keyframes vb-wall-m { from { opacity: 0; transform: translate(-50%, 60%) scale(0.85); } to { opacity: 1; transform: translate(-50%, 0); } }
+.vb-heart-burst { animation: vb-burst 0.8s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+@keyframes vb-burst {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); }
+  35% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); }
+  70% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -60%) scale(1.05); }
+}
+
+/* Foto-Wand */
+.vb-wall-bg { opacity: 0.35; animation: vb-fade-bg 1.2s ease both; }
+.vb-wall-in { animation: vb-wall-in 1s cubic-bezier(0.2, 1, 0.3, 1) both, vb-kenburns 14s ease-in-out 1s both; }
+@keyframes vb-wall-in { from { opacity: 0; transform: scale(0.92) translateY(2%); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes vb-kenburns { to { transform: scale(1.025); } }
+.vb-wall-progress { animation: vb-wall-prog var(--dur, 6s) linear both; }
+@keyframes vb-wall-prog { from { width: 0; } to { width: 100%; } }
+.vb-wall-qr { box-shadow: 0 0 0 0 color-mix(in srgb, var(--a) 55%, transparent); animation: vb-pulse 2.6s ease-in-out infinite; }
+.vb-live { animation: vb-live 1.4s ease-in-out infinite; }
+@keyframes vb-live { 50% { opacity: 0.25; } }
+@media (prefers-reduced-motion: reduce) {
+  .vb-wall-in, .vb-wall-qr, .vb-live { animation: none; }
+}
+
+/* Eingabefelder (Buchung) */
+.vb-input { width: 100%; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.15); background: rgba(255, 255, 255, 0.05); padding: 14px 16px; font-size: 16px; color: #fff; outline: none; color-scheme: dark; }
+.vb-input::placeholder { color: rgba(255, 255, 255, 0.3); }
+.vb-input:focus { border-color: var(--a); }
+
+/* Website: sanftes Einblenden beim Scrollen */
+.vb-reveal { opacity: 0; transform: translateY(28px); transition: opacity 0.7s ease, transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.vb-reveal-in { opacity: 1; transform: none; }
+
+/* Scroll-Geschichte: Scan-Linie und Countdown im Handy */
+.vb-scanline { animation: vb-scan 1.8s ease-in-out infinite alternate; }
+@keyframes vb-scan { from { top: 8%; } to { top: 88%; } }
+.vb-story-count { animation: vb-story-count 2.4s ease-in-out infinite; }
+@keyframes vb-story-count {
+  0%, 100% { opacity: 0; transform: scale(1.6); }
+  20%, 70% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .vb-reveal { opacity: 1; transform: none; transition: none; }
+  .vb-scanline, .vb-story-count { animation: none; }
+}
+
+/* ===== Website: Szenen „So läuft euer Abend“ =====
+   Grundzustand = aussagekräftiges Standbild (auch bei „Bewegung reduzieren“).
+   Animationen laufen nur, solange die Szene im Bild ist ([data-play="true"]). */
+.vb-scene .vb-scene-text { opacity: 0.25; transform: translateY(14px); transition: opacity 0.6s ease, transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+.vb-scene[data-play="true"] .vb-scene-text { opacity: 1; transform: none; }
+.vb-scene .vb-scene-phone { transform: scale(0.94); opacity: 0.6; transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.6s ease; }
+.vb-scene[data-play="true"] .vb-scene-phone { transform: none; opacity: 1; }
+
+/* 1 · Scannen (5 s) */
+.s1-bubble { opacity: 0; transform: translateY(-140%); }
+.s1-app { transform: translateY(100%); }
+.s1-line { opacity: 0; }
+.vb-scene[data-play="true"] .s1-line { animation: s1-line 5s ease-in-out infinite; }
+.vb-scene[data-play="true"] .s1-corner { animation: s1-corner 5s ease-in-out infinite; }
+.vb-scene[data-play="true"] .s1-bubble { animation: s1-bubble 5s cubic-bezier(0.2, 1.2, 0.3, 1) infinite; }
+.vb-scene[data-play="true"] .s1-app { animation: s1-app 5s cubic-bezier(0.2, 0.9, 0.2, 1) infinite; }
+.vb-scene[data-play="true"] .s1-card { animation: s1-card 5s ease-in-out infinite; }
+@keyframes s1-line { 0% { opacity: 0; top: 0; } 6% { opacity: 1; } 20% { top: 96%; } 34% { top: 0; } 42% { opacity: 1; top: 60%; } 46%, 100% { opacity: 0; top: 60%; } }
+@keyframes s1-corner { 0%, 38% { transform: none; } 44% { transform: scale(0.85); } 50%, 100% { transform: none; } }
+@keyframes s1-bubble { 0%, 40% { opacity: 0; transform: translateY(-140%); } 47%, 64% { opacity: 1; transform: none; } 70%, 100% { opacity: 0; transform: translateY(-140%); } }
+@keyframes s1-app { 0%, 64% { transform: translateY(100%); } 74%, 94% { transform: none; } 100% { transform: translateY(100%); } }
+@keyframes s1-card { 0% { transform: translate(-50%, -50%) scale(0.92) rotate(-3deg); } 40%, 100% { transform: translate(-50%, -50%) scale(1) rotate(0); } }
+
+/* 2 · Foto (4,6 s) */
+.s2-num, .s2-flash { opacity: 0; }
+.vb-scene[data-play="true"] .s2-num { animation: s2-num 4.6s ease-out infinite; }
+.vb-scene[data-play="true"] .s2-flash { animation: s2-flash 4.6s ease-out infinite; }
+.vb-scene[data-play="true"] .s2-result { animation: s2-result 4.6s cubic-bezier(0.2, 1.3, 0.3, 1) infinite; }
+@keyframes s2-num { 0% { opacity: 0; transform: scale(1.8); } 4% { opacity: 1; transform: scale(1); } 14% { opacity: 0; transform: scale(0.75); } 100% { opacity: 0; } }
+@keyframes s2-flash { 0%, 54% { opacity: 0; } 56% { opacity: 1; } 66%, 100% { opacity: 0; } }
+@keyframes s2-result { 0%, 57% { opacity: 0; transform: scale(0.8) rotate(-4deg); } 65% { opacity: 1; transform: scale(1.03); } 70%, 96% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+/* 3 · KI-Verwandlung (5,2 s) – der Wow-Moment */
+.s3-edge, .s3-spark, .s3-tap, .s3-shimmer { opacity: 0; }
+.s3-chip { background: var(--a); color: var(--ink, #0d0d0f); }
+.vb-scene[data-play="true"] .s3-tap { animation: s3-tap 5.2s ease-out infinite; }
+.vb-scene[data-play="true"] .s3-chip { animation: s3-chip 5.2s ease infinite; }
+.vb-scene[data-play="true"] .s3-shimmer { animation: s3-shimmer 5.2s ease infinite, vb-shim 1.5s linear infinite; }
+.vb-scene[data-play="true"] .s3-reveal { animation: s3-reveal 5.2s cubic-bezier(0.55, 0, 0.25, 1) infinite; }
+.vb-scene[data-play="true"] .s3-edge { animation: s3-edge 5.2s cubic-bezier(0.55, 0, 0.25, 1) infinite; }
+.vb-scene[data-play="true"] .s3-spark { animation: s3-spark 5.2s ease-out infinite; animation-delay: 0s !important; }
+@keyframes s3-chip { 0%, 14% { background: rgba(255, 255, 255, 0.1); color: #fff; transform: none; } 18% { transform: scale(0.92); } 22%, 100% { background: var(--a); color: #0d0d0f; transform: none; } }
+@keyframes s3-tap { 0%, 12% { opacity: 0; transform: translate(-50%, -50%) scale(0.2); } 16% { opacity: 0.8; } 26%, 100% { opacity: 0; transform: translate(-50%, -50%) scale(2.2); } }
+@keyframes s3-shimmer { 0%, 22% { opacity: 0; } 28%, 48% { opacity: 1; } 54%, 100% { opacity: 0; } }
+@keyframes s3-reveal { 0%, 50% { clip-path: inset(0 100% 0 0); } 70%, 96% { clip-path: inset(0 0 0 0); } 100% { clip-path: inset(0 100% 0 0); } }
+@keyframes s3-edge { 0%, 49% { opacity: 0; left: 0; } 51% { opacity: 1; left: 0; } 69% { opacity: 1; left: calc(100% - 6px); } 73%, 100% { opacity: 0; left: calc(100% - 6px); } }
+@keyframes s3-spark { 0%, 70% { opacity: 0; transform: scale(0.2) rotate(0); } 76% { opacity: 1; transform: scale(1.4) rotate(40deg); } 88%, 100% { opacity: 0; transform: scale(0.6) rotate(90deg); } }
+
+/* 4 · Mission & Bestenliste (4,4 s) */
+.vb-scene[data-play="true"] .s4-badge { animation: s4-badge 4.4s cubic-bezier(0.2, 1.6, 0.4, 1) infinite; }
+.vb-scene[data-play="true"] .s4-me { animation: s4-me 4.4s cubic-bezier(0.3, 1.2, 0.4, 1) infinite; }
+.vb-scene[data-play="true"] .s4-other-1, .vb-scene[data-play="true"] .s4-other-2 { animation: s4-other 4.4s cubic-bezier(0.3, 1.2, 0.4, 1) infinite; }
+.vb-scene[data-play="true"] .s4-medal { animation: s4-medal 4.4s cubic-bezier(0.2, 1.6, 0.4, 1) infinite; display: inline-block; }
+@keyframes s4-badge { 0%, 8% { opacity: 0; transform: scale(0.3) rotate(-12deg); } 20%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; transform: scale(0.9); } }
+@keyframes s4-me { 0%, 34% { transform: translateY(64px); box-shadow: none; } 52%, 100% { transform: none; box-shadow: 0 0 0 2px var(--a), 0 8px 24px -6px var(--a); } }
+@keyframes s4-other { 0%, 34% { transform: translateY(-32px); } 52%, 100% { transform: none; } }
+@keyframes s4-medal { 0%, 52% { opacity: 0; transform: scale(0.2) rotate(-30deg); } 62%, 100% { opacity: 1; transform: none; } }
+
+/* 5 · Galerie & ZIP (5 s) */
+.vb-scene[data-play="true"] .s5-tile { animation: s5-tile 5s cubic-bezier(0.2, 1.2, 0.3, 1) infinite; }
+.vb-scene[data-play="true"] .s5-heart { animation: s5-heart 5s cubic-bezier(0.2, 1.8, 0.4, 1) infinite; }
+.vb-scene[data-play="true"] .s5-bar { animation: s5-bar 5s ease-in-out infinite; }
+.vb-scene[data-play="true"] .s5-label-a { animation: s5-a 5s ease infinite; }
+.vb-scene[data-play="true"] .s5-label-b { animation: s5-b 5s ease infinite; }
+.s5-bar { width: 100%; }
+.s5-label-a { opacity: 0; }
+@keyframes s5-tile { 0% { opacity: 0; transform: translateY(30px) scale(0.85); } 10%, 94% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+@keyframes s5-heart { 0%, 42% { opacity: 0; transform: scale(0.2); } 48% { opacity: 1; transform: scale(1.6); } 54%, 100% { opacity: 1; transform: none; } }
+@keyframes s5-bar { 0%, 58% { width: 0; } 84%, 100% { width: 100%; } }
+@keyframes s5-a { 0%, 82% { opacity: 1; } 86%, 100% { opacity: 0; } }
+@keyframes s5-b { 0%, 84% { opacity: 0; } 88%, 100% { opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .vb-scene [class^="s1-"], .vb-scene [class^="s2-"], .vb-scene [class^="s3-"], .vb-scene [class^="s4-"], .vb-scene [class^="s5-"], .vb-scene [class*=" s1-"], .vb-scene [class*=" s2-"], .vb-scene [class*=" s3-"], .vb-scene [class*=" s4-"], .vb-scene [class*=" s5-"] { animation: none !important; }
+  .vb-scene .vb-scene-text, .vb-scene .vb-scene-phone { opacity: 1; transform: none; }
+}

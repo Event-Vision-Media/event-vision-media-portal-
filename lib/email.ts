@@ -3,6 +3,7 @@ import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { LANDLORD, NO_DEPOSIT_UP_TO, depositFor } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
+import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
 
 /**
  * E-Mail-Versand über die Resend-API (https://resend.com) – ohne zusätzliche
@@ -790,6 +791,170 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.ki
     subject,
     html: layout(`Deine Woche ${range}`, `${daysHtml || empty}${alerts}${todos}${next}${link}`),
     text,
+  };
+}
+
+/** VisionBooth: Verwaltungs-Link für den Kunden (Design, QR-Code, Galerie). */
+/** Online-Buchung: Vertragsbestätigung mit Widerrufsbelehrung (dauerhafter Datenträger, § 312f BGB). */
+export interface VbOrderConfirmation {
+  plan: string;
+  price: number;
+  /** Listenpreis, falls ein Rabattcode eingelöst wurde */
+  listPrice?: number;
+  orderNo: string;
+}
+
+function vbContractBlock(c: VbOrderConfirmation): { html: string; text: string } {
+  const fmt = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  const eur = c.listPrice != null ? `${fmt(c.price)} (statt ${fmt(c.listPrice)} – Gutschein eingelöst)` : fmt(c.price);
+  const para = (t: string) => `<p style="margin:6px 0;line-height:1.5">${esc(t)}</p>`;
+  const sections = VB_WIDERRUF.map((s) => `<p style="margin:14px 0 4px;font-weight:600">${esc(s.title)}</p>${s.blocks.map((b) => (typeof b === "string" ? para(b) : "")).join("")}`).join("");
+  const form = VB_WIDERRUF_FORM.map((l, i) => (i === 0 ? `<p style="margin:14px 0 4px;font-weight:600">${esc(l)}</p>` : para(l))).join("");
+  const html = `<div style="margin-top:26px;padding-top:16px;border-top:1px solid #e4e6e8;font-size:12.5px;color:#4f5761">
+<p style="margin:0 0 6px;font-size:14px;font-weight:600;color:#1f2227">Deine Buchung (Vertragsbestätigung)</p>
+${para(`Paket „${c.plan}“ · ${eur} (Endpreis, gemäß § 19 UStG ohne Umsatzsteuer) · Bestellnummer ${c.orderNo}`)}
+${para("Wie von dir verlangt, haben wir deine VisionBooth sofort nach der Zahlung eingerichtet – also vor Ablauf der Widerrufsfrist. Bei einem Widerruf zahlst du anteiligen Wertersatz; mit vollständiger Vertragserfüllung erlischt das Widerrufsrecht.")}
+${para(`Es gelten unsere AGB (Stand ${VB_LEGAL_VERSION}): visionbooth.de/vb/agb`)}
+${sections}${form}
+</div>`;
+  const text = `
+
+——
+Deine Buchung (Vertragsbestätigung)
+Paket „${c.plan}“ · ${eur} (Endpreis, gemäß § 19 UStG ohne Umsatzsteuer) · Bestellnummer ${c.orderNo}
+Wie von dir verlangt, haben wir deine VisionBooth sofort nach der Zahlung eingerichtet – also vor Ablauf der Widerrufsfrist. Bei einem Widerruf zahlst du anteiligen Wertersatz; mit vollständiger Vertragserfüllung erlischt das Widerrufsrecht.
+AGB (Stand ${VB_LEGAL_VERSION}): visionbooth.de/vb/agb
+
+${legalText(VB_WIDERRUF)}
+
+${VB_WIDERRUF_FORM.join("\n")}`;
+  return { html, text };
+}
+
+export function vbManageMail(o: { name: string | null; title: string; date: string | null; url: string; order?: VbOrderConfirmation }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const when = o.date ? ` am <strong>${esc(formatDateGerman(o.date))}</strong>` : "";
+  const contract = o.order ? vbContractBlock(o.order) : { html: "", text: "" };
+  return {
+    subject: `Deine VisionBooth für „${o.title}“ – ${BRAND}`,
+    html: layout(
+      "Deine VisionBooth ist bereit 📸",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">deine digitale Fotobox für „${esc(o.title)}“${when} ist eingerichtet. In drei kurzen Schritten ist sie startklar:</p>
+<ol style="line-height:1.8;padding-left:20px">
+<li><strong>Design &amp; Text anpassen</strong> – Vorlage, Namen, Farbe und Logo, mit Live-Vorschau</li>
+<li><strong>Spiele auswählen</strong> – Foto-Missionen, Glücksrad &amp; Co.</li>
+<li><strong>QR-Aufsteller drucken</strong> oder den Gäste-Link teilen – fertig!</li>
+</ol>
+<p style="line-height:1.6">Nach dem Event findest du dort alle Fotos und kannst sie als ZIP herunterladen.</p>
+<div style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Meine VisionBooth gestalten</a></div>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Bitte gib diesen Link nicht weiter – wer ihn hat, kann deine VisionBooth bearbeiten. Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>${contract.html}`
+    ),
+    text: `${hello},\n\ndeine digitale Fotobox für „${o.title}“ ist eingerichtet. In drei Schritten startklar:\n1. Design & Text anpassen\n2. Spiele auswählen\n3. QR-Aufsteller drucken oder Link teilen\n\nDein Link:\n${o.url}\n\nBitte gib diesen Link nicht weiter.\nFragen: 0176 22748363 (Telefon/WhatsApp)\n\n${BRAND}${contract.text}`,
+  };
+}
+
+export function vbInvoiceMail(o: { name: string | null; title: string; number: string; amount: number }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const euro = o.amount.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+  return {
+    subject: `Deine Rechnung ${o.number} – VisionBooth – ${BRAND}`,
+    html: layout(
+      "Danke für deine Buchung 🧾",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">vielen Dank für deine Buchung der VisionBooth für „${esc(o.title)}“. Im Anhang findest du deine Rechnung <strong>${esc(o.number)}</strong> über <strong>${esc(euro)}</strong>.</p>
+<p style="line-height:1.6">Der Betrag ist bereits bezahlt – du musst nichts weiter tun.</p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen zur Rechnung? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\nvielen Dank für deine Buchung der VisionBooth für „${o.title}“. Im Anhang findest du deine Rechnung ${o.number} über ${euro}. Der Betrag ist bereits bezahlt.\n\nFragen: 0176 22748363\n\n${BRAND}`,
+  };
+}
+
+// ---------- VisionBooth: Erinnerungen ----------
+
+const vbButton = (url: string, label: string) =>
+  `<div style="margin:22px 0;text-align:center"><a href="${esc(url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${esc(label)}</a></div>`;
+
+/** Eine Woche vorher: gestalten, QR-Aufsteller drucken, Link teilen. */
+export function vbBeforeMail(o: { name: string | null; title: string; date: string; days: number; manageUrl: string; posterUrl: string }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const when = o.days === 1 ? "morgen" : `in ${o.days} Tagen`;
+  return {
+    subject: `${o.days === 1 ? "Morgen" : `In ${o.days} Tagen`} geht's los – eure VisionBooth für „${o.title}“`,
+    html: layout(
+      "Bald ist es so weit 🎉",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">${when} ist euer Event „${esc(o.title)}“ am <strong>${esc(formatDateGerman(o.date))}</strong>. Damit eure Gäste direkt loslegen können, kurz checken:</p>
+<ul style="line-height:1.8;padding-left:20px">
+<li>✅ Design, Text und Logo passen?</li>
+<li>🖨️ QR-Aufsteller ausgedruckt (am besten auf festes Papier)?</li>
+<li>🎯 Missionen oder Spiele gewählt?</li>
+<li>📺 Foto-Wand: Laptop mit Beamer oder TV bereitstellen</li>
+</ul>
+${vbButton(o.manageUrl, "Meine VisionBooth öffnen")}
+<p style="text-align:center;font-size:13px"><a href="${esc(o.posterUrl)}" style="color:#a87731">QR-Aufsteller direkt drucken</a></p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele, Foto-Wand.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
+  };
+}
+
+/** Tag danach: Danke + Galerie-Link zum Teilen mit den Gästen. */
+export interface VbHighlights {
+  aiPhotos: number;
+  guests: number;
+  winner: { name: string; points: number } | null;
+  topPhoto: { url: string; likes: number } | null;
+}
+
+function vbHighlightsHtml(o: { photos: number; h: VbHighlights }) {
+  const tiles = [
+    [String(o.photos), "Fotos"],
+    ...(o.h.aiPhotos ? [[String(o.h.aiPhotos), "KI-Verwandlungen"]] : []),
+    ...(o.h.guests ? [[String(o.h.guests), "Gäste bei den Missionen"]] : []),
+  ];
+  const cells = tiles
+    .map(([n, l]) => `<td style="padding:10px 6px;text-align:center;background:#faf6ef;border-radius:10px"><div style="font-size:24px;font-weight:700;color:#a87731">${esc(n)}</div><div style="font-size:12px;color:#6f7882">${esc(l)}</div></td>`)
+    .join('<td style="width:8px"></td>');
+  const photo = o.h.topPhoto
+    ? `<p style="margin:20px 0 6px;font-weight:600">❤️ Foto des Abends${o.h.topPhoto.likes > 1 ? ` (${o.h.topPhoto.likes} Herzen)` : ""}</p><img src="${esc(o.h.topPhoto.url)}" alt="Foto des Abends" style="display:block;width:100%;max-width:480px;border-radius:12px" />`
+    : "";
+  const winner = o.h.winner ? `<p style="margin:16px 0 0;line-height:1.6">🏆 <strong>Missions-Sieger:</strong> ${esc(o.h.winner.name)} mit ${o.h.winner.points} Punkten – Glückwunsch!</p>` : "";
+  return `<table role="presentation" style="width:100%;border-collapse:separate;margin:18px 0 4px"><tr>${cells}</tr></table>${winner}${photo}`;
+}
+
+export function vbAfterMail(o: { name: string | null; title: string; photos: number; galleryUrl: string; manageUrl: string; deleteDate: string; highlights?: VbHighlights }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  const h = o.highlights;
+  return {
+    subject: h ? `Eure Highlights von „${o.title}“ ✨ ${o.photos} Fotos` : `${o.photos} Fotos von „${o.title}“ warten auf euch 📸`,
+    html: layout(
+      "Danke – was für ein Fest! 💛",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">was für ein Fest! Hier sind eure Highlights auf einen Blick:</p>${h ? vbHighlightsHtml({ photos: o.photos, h }) : ""}
+<p style="line-height:1.6;margin-top:20px">Alle Erinnerungen findet ihr an einem Ort – teilt den Galerie-Link gern mit euren Gästen, dort können sie auch eigene Handy-Fotos dazulegen:</p>
+${vbButton(o.galleryUrl, "Zur Galerie")}
+<p style="line-height:1.6">Tipp: In der Galerie könnt ihr mit „Alle (ZIP)“ alle Fotos auf einmal herunterladen. Die Fotos werden am <strong>${esc(formatDateGerman(o.deleteDate))}</strong> automatisch gelöscht.</p>
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Hat euch die VisionBooth gefallen? Über eine kurze Bewertung freuen wir uns riesig. Fragen: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\neure Gäste haben ${o.photos} Fotos geteilt${h?.aiPhotos ? `, davon ${h.aiPhotos} KI-Verwandlungen` : ""}.${h?.winner ? ` Missions-Sieger: ${h.winner.name} (${h.winner.points} Punkte).` : ""} Galerie (gern an die Gäste weitergeben): ${o.galleryUrl}\n\nAlle Fotos als ZIP: in der Galerie „Alle (ZIP)“. Automatische Löschung am ${formatDateGerman(o.deleteDate)}.\n\n${BRAND}`,
+  };
+}
+
+/** 7 Tage vor der Löschung: jetzt sichern. */
+export function vbDeletionMail(o: { name: string | null; title: string; photos: number; days: number; deleteDate: string; galleryUrl: string }) {
+  const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
+  return {
+    subject: `Nur noch ${o.days} Tage: Fotos von „${o.title}“ jetzt sichern`,
+    html: layout(
+      "Jetzt eure Fotos sichern ⏳",
+      `<p style="line-height:1.6">${esc(hello)},</p>
+<p style="line-height:1.6">aus Datenschutzgründen werden die <strong>${o.photos} Fotos</strong> von „${esc(o.title)}“ am <strong>${esc(formatDateGerman(o.deleteDate))}</strong> automatisch und endgültig gelöscht.</p>
+<p style="line-height:1.6">Ladet sie vorher mit einem Klick als ZIP herunter – in der Galerie oben auf <strong>„Alle (ZIP)“</strong> (am besten am Computer).</p>
+${vbButton(o.galleryUrl, "Fotos jetzt herunterladen")}
+<p style="color:#6f7882;font-size:13px;line-height:1.6">Ihr braucht mehr Zeit? Meldet euch kurz bei uns: 0176 22748363.</p>`
+    ),
+    text: `${hello},\n\ndie ${o.photos} Fotos von „${o.title}“ werden am ${formatDateGerman(o.deleteDate)} automatisch gelöscht. Jetzt als ZIP sichern: ${o.galleryUrl} (oben „Alle (ZIP)“).\n\nMehr Zeit nötig? 0176 22748363\n\n${BRAND}`,
   };
 }
 

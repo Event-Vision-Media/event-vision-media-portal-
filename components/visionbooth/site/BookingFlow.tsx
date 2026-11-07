@@ -1,0 +1,518 @@
+"use client";
+
+import { IconTile, OccasionIcon, type LineIconName } from "./OccasionIcon";
+import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { useFormStatus } from "react-dom";
+import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
+import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, onArtReady, type VbFonts } from "@/components/visionbooth/frame";
+import { defaultGames, getOccasion, getPlan, relevantGames, vbTaxNote, VB_OCCASIONS, type VbGames, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
+import { getTemplate, templatesFor } from "@/components/visionbooth/templates";
+import { VB_CONSENT_START } from "@/components/visionbooth/consent";
+
+const OCC_PLAN: Record<VbOccasionId, VbPlanId> = { hochzeit: "hochzeit", kindergeburtstag: "party", babyparty: "party", geburtstag: "party", party: "party", firma: "business", weihnachtsfeier: "business", messe: "messe", sonstiges: "party" };
+const OCC_PLACEHOLDER: Record<VbOccasionId, string> = {
+  hochzeit: "Anna & Max",
+  babyparty: "Baby Muster 2027",
+  kindergeburtstag: "Paulas 6. Geburtstag",
+  geburtstag: "Lenas 30.",
+  party: "Abiball 2026",
+  firma: "Muster GmbH · Sommerfest",
+  weihnachtsfeier: "Muster GmbH · X-Mas",
+  messe: "Muster GmbH",
+  sonstiges: "Unser Event",
+};
+const SHOP_PLANS: VbPlanId[] = ["party", "hochzeit", "business", "messe"];
+// Je Anlass nur die passenden Pakete (wie auf der Website Privat/Business) – „Sonstiges“ zeigt alle
+const BUSINESS_OCC: VbOccasionId[] = ["firma", "weihnachtsfeier", "messe"];
+const plansFor = (o: VbOccasionId): VbPlanId[] =>
+  o === "sonstiges" ? SHOP_PLANS : BUSINESS_OCC.includes(o) ? ["business", "messe"] : ["party", "hochzeit"];
+const STEPS = ["Anlass", "Paket", "Spiele", "Details", "Bezahlen"];
+const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+
+function PayButton({ price }: { price: number }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="vb-btn w-full rounded-full py-[18px] text-[17px] font-bold disabled:opacity-60">
+      {pending ? "Bezahlseite wird geöffnet …" : `Zahlungspflichtig buchen · ${euro(price)}`}
+    </button>
+  );
+}
+
+export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan: VbPlanId | null; cancelled: boolean; testMode: boolean }) {
+  const [step, setStep] = useState(initialPlan ? 0 : 0);
+  const [occasion, setOccasion] = useState<VbOccasionId | null>(null);
+  const [plan, setPlan] = useState<VbPlanId | null>(initialPlan);
+  const [frameText, setFrameText] = useState("");
+  const [date, setDate] = useState("");
+  const [days, setDays] = useState(1);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [company, setCompany] = useState("");
+  const [games, setGames] = useState<VbGames | null>(null);
+  const [triedDetails, setTriedDetails] = useState(false);
+  const [design, setDesign] = useState<string | null>(null);
+  const [allPlans, setAllPlans] = useState(false);
+  const [state, action] = useActionState<VbShopResult, FormData>(startVbCheckout, {});
+  const top = useRef<HTMLDivElement>(null);
+
+  const go = (n: number) => {
+    setStep(n);
+    top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+  const p = plan ? getPlan(plan) : null;
+  const fitGames = relevantGames(occasion, plan);
+  const firma = Boolean(p?.firma) || occasion === "firma" || occasion === "weihnachtsfeier" || occasion === "messe";
+  const today = new Date().toISOString().slice(0, 10);
+  const missing = [
+    !frameText.trim() && "Text im Rahmen",
+    !(date >= today) && "Datum",
+    name.trim().length < 2 && "Name",
+    !/^[^@\s]+@[^@\s]+\.[a-z]{2,}$/i.test(email) && "E-Mail",
+  ].filter(Boolean) as string[];
+  const detailsOk = missing.length === 0;
+
+  return (
+    <div ref={top} className="mx-auto w-full max-w-xl scroll-mt-4 px-5 pb-16">
+      {/* Fortschritt */}
+      <div className="mb-8 flex items-center gap-2">
+        {STEPS.map((s, i) => (
+          <button key={s} type="button" onClick={() => i < step && go(i)} disabled={i >= step} className="flex-1 text-left">
+            <span className="block h-1.5 rounded-full transition-all" style={{ background: i <= step ? "var(--a)" : "rgba(255,255,255,0.15)" }} />
+            <span className={`mt-1.5 block text-[11px] font-semibold ${i === step ? "text-white" : "text-white/45"}`}>{s}</span>
+          </button>
+        ))}
+      </div>
+
+      {cancelled && step === 0 && <p className="vb-glass mb-6 rounded-2xl px-4 py-3 text-sm text-white/80">Die Bezahlung wurde abgebrochen – kein Problem, es wurde nichts berechnet. Du kannst einfach neu starten.</p>}
+
+      {step === 0 && (
+        <section key="s0" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Was feiert ihr?</h1>
+          <p className="mt-1 text-white/60">Danach richten wir Design und Missionen passend ein.</p>
+          <div className="mt-6 grid grid-cols-2 gap-3">
+            {VB_OCCASIONS.map((o) => (
+              <button
+                key={o.id}
+                type="button"
+                onClick={() => {
+                  setOccasion(o.id);
+                  setDesign(getOccasion(o.id).template);
+                  setAllPlans(false);
+                  // Paket von der Website behalten, wenn es zum Anlass passt – sonst die Empfehlung
+                  if (!initialPlan || !plan || !plansFor(o.id).includes(plan)) setPlan(OCC_PLAN[o.id]);
+                  go(1);
+                }}
+                className={`flex flex-col items-start gap-2 rounded-2xl p-4 text-left transition active:scale-[0.97] ${occasion === o.id ? "ring-2" : "vb-glass"}`}
+                style={occasion === o.id ? { background: "color-mix(in srgb, var(--a) 18%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+              >
+                <IconTile id={o.id} on={occasion === o.id} />
+
+                <span className="text-[15px] font-semibold">{o.label}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {step === 1 && occasion && (
+        <section key="s1" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Welches Paket?</h1>
+          <p className="mt-1 text-white/60">Unsere Empfehlung für {getOccasion(occasion).label}: das Paket „{getPlan(OCC_PLAN[occasion]).label}“.</p>
+          <div className="mt-6 space-y-3">
+            {(allPlans ? SHOP_PLANS : SHOP_PLANS.filter((id) => plansFor(occasion).includes(id) || id === plan)).map((id) => {
+              const pl = getPlan(id);
+              const rec = OCC_PLAN[occasion] === id;
+              const sel = plan === id;
+              return (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPlan(id)}
+                  className={`flex w-full items-center gap-4 rounded-2xl p-4 text-left transition active:scale-[0.99] ${sel ? "ring-2" : "vb-glass"}`}
+                  style={sel ? { background: "color-mix(in srgb, var(--a) 16%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+                >
+                  <span className={`flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 ${sel ? "" : "border-white/30"}`} style={sel ? { borderColor: "var(--a)" } : undefined}>
+                    {sel && <span className="h-3 w-3 rounded-full" style={{ background: "var(--a)" }} />}
+                  </span>
+                  <span className="flex-1">
+                    <span className="flex items-center gap-2 text-[16px] font-bold">
+                      {pl.label}
+                      {rec && <span className="rounded-full px-2 py-0.5 text-[10px] font-bold" style={{ background: "var(--a)", color: "#0d0d0f" }}>Empfohlen</span>}
+                    </span>
+                    <span className="mt-0.5 block text-[13px] text-white/60">{pl.summary}</span>
+                  </span>
+                  <span className="vb-display text-xl font-semibold">{euro(pl.price)}</span>
+                </button>
+              );
+            })}
+          </div>
+          {!allPlans && plansFor(occasion).length < SHOP_PLANS.length && (
+            <button type="button" onClick={() => setAllPlans(true)} className="mt-3 text-sm text-white/55 underline underline-offset-2 hover:text-white">
+              Andere Pakete anzeigen
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={!plan}
+            onClick={() => {
+              setGames(defaultGames(plan!, occasion));
+              go(2);
+            }}
+            className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold disabled:opacity-50"
+          >
+            Weiter
+          </button>
+        </section>
+      )}
+
+      {step === 2 && occasion && p && games && (
+        <section key="sg" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Spiele &amp; Extras</h1>
+          <p className="mt-1 text-white/60">Was zu {getOccasion(occasion).label} passt, ist schon ausgewählt – alles später im Kundenbereich änderbar.</p>
+          <div className="mt-6 space-y-3">
+            {fitGames.missions && (
+              <GameToggle
+                on={games.missions}
+                onChange={(v) => setGames({ ...games, missions: v })}
+                icon="target"
+                title="Foto-Missionen & Bestenliste"
+                text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen in der Bestenliste."
+                how={GAME_HOW.missions}
+              />
+            )}
+            {fitGames.wheel && (
+              <GameToggle
+                on={Boolean(games.wheel)}
+                onChange={(v) => setGames({ ...games, wheel: v })}
+                icon="wheel"
+                title="Foto-Glücksrad"
+                text="Drehen, lustige Foto-Aufgabe bekommen, abdrücken – spontan und ohne Punkte."
+                how={GAME_HOW.wheel}
+              />
+            )}
+            {fitGames.guestbook && (
+              <GameToggle
+                on={Boolean(games.guestbook)}
+                onChange={(v) => setGames({ ...games, guestbook: v })}
+                icon="heart"
+                title="Gästebuch-Grüße"
+                text="Gäste schreiben zum Foto einen Gruß – am Ende euer Gästebuch mit Fotos zum Drucken."
+                how={GAME_HOW.guestbook}
+              />
+            )}
+            {fitGames.reveal && (
+              <GameToggle
+                on={games.reveal}
+                onChange={(v) => setGames({ ...games, reveal: v })}
+                icon="babyparty"
+                title="Gender-Reveal-Tippspiel"
+                text="Gäste tippen Junge oder Mädchen, ihr Foto wird rosa oder blau – und ihr löst live auf."
+                how={GAME_HOW.reveal}
+              />
+            )}
+            {fitGames.leads && p.firma && (
+              <GameToggle
+                on={games.leads}
+                onChange={(v) => setGames({ ...games, leads: v })}
+                icon="gift"
+                title="Gewinnspiel / Kontaktformular"
+                text="Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV."
+                how={GAME_HOW.leads}
+              />
+            )}
+          </div>
+          <details className="vb-glass group mt-4 rounded-2xl p-4 text-[13px] text-white/70">
+            <summary className="flex cursor-pointer list-none items-center gap-3 text-[14px] font-semibold text-white">
+              <OccasionIcon id="tv" className="h-5 w-5 flex-none text-[color:var(--a)]" />
+              {WALL_INFO.title}
+              <span className="ml-auto text-xs font-normal text-white/50 group-open:hidden">Mehr erfahren</span>
+            </summary>
+            <p className="mt-3 leading-relaxed">{WALL_INFO.intro}</p>
+            <ul className="mt-3 space-y-2">
+              {WALL_INFO.ways.map((w) => (
+                <li key={w.title}>
+                  <strong className="text-white">{w.title}:</strong> {w.text}
+                </li>
+              ))}
+            </ul>
+            <p className="mt-3 text-white/50">{WALL_INFO.note}</p>
+          </details>
+          <button type="button" onClick={() => go(3)} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold">
+            Weiter
+          </button>
+        </section>
+      )}
+
+      {step === 3 && occasion && p && (
+        <section key="s2" className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Eure Details</h1>
+          <p className="mt-1 text-white/60">So sieht euer Foto-Rahmen aus – alles später noch änderbar.</p>
+          <DesignChooser occasion={occasion} value={design ?? getOccasion(occasion).template} onChange={setDesign} />
+          <FramePreview occasion={occasion} template={design ?? undefined} text={frameText || OCC_PLACEHOLDER[occasion]} date={date} />
+          {occasion === "kindergeburtstag" && <p className="mt-3 flex items-start gap-1.5 text-xs text-white/50"><OccasionIcon id="lock" className="mt-px h-3.5 w-3.5 flex-none" />Beim Kindergeburtstag ist die KI-Verwandlung aus – Kinderfotos geben wir nicht an KI-Dienste weiter.</p>}
+          <div className="mt-6 space-y-4">
+            <Field label="Text im Foto-Rahmen">
+              <input value={frameText} onChange={(e) => setFrameText(e.target.value)} maxLength={60} placeholder={`z. B. ${OCC_PLACEHOLDER[occasion]}`} className="vb-input" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Datum des Events">
+                <input type="date" min={today} value={date} onChange={(e) => setDate(e.target.value)} className="vb-input" />
+              </Field>
+              {p.id === "messe" ? (
+                <Field label="Anzahl Tage">
+                  <select value={days} onChange={(e) => setDays(Number(e.target.value))} className="vb-input">
+                    {[1, 2, 3, 4, 5].map((d) => (
+                      <option key={d} value={d}>
+                        {d} {d === 1 ? "Tag" : "Tage"}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              ) : (
+                <div />
+              )}
+            </div>
+            <Field label="Dein Name">
+              <input value={name} onChange={(e) => setName(e.target.value)} autoComplete="name" maxLength={120} className="vb-input" />
+            </Field>
+            <Field label="E-Mail – hierhin schicken wir deinen Link">
+              <input type="email" inputMode="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" maxLength={200} className="vb-input" />
+            </Field>
+            {firma && (
+              <Field label="Firma (für die Rechnung, optional)">
+                <input value={company} onChange={(e) => setCompany(e.target.value)} autoComplete="organization" maxLength={120} className="vb-input" />
+              </Field>
+            )}
+          </div>
+          <button type="button" onClick={() => (detailsOk ? go(4) : setTriedDetails(true))} className="vb-btn mt-6 w-full rounded-full py-4 text-[16px] font-bold">
+            Weiter zur Übersicht
+          </button>
+          {triedDetails && !detailsOk && <p className="mt-2 text-center text-[13px] text-amber-200">Fast fertig – es fehlt noch: {missing.join(", ")}.</p>}
+        </section>
+      )}
+
+      {step === 4 && occasion && p && (
+        <form key="s3" action={action} className="vb-in">
+          <h1 className="vb-display text-3xl font-semibold">Fast geschafft!</h1>
+          <p className="mt-1 text-white/60">Prüf kurz alles – nach der Zahlung ist eure VisionBooth sofort startklar.</p>
+          {[
+            ["plan", p.id],
+            ["occasion", occasion],
+            ["frame_text", frameText],
+            ["event_date", date],
+            ["event_days", String(days)],
+            ["name", name],
+            ["email", email],
+            ["company", company],
+            ["games", JSON.stringify(games ?? defaultGames(p.id, occasion))],
+            ["template", design ?? ""],
+          ].map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
+          <div className="vb-glass mt-6 divide-y divide-white/10 rounded-3xl">
+            <Row label="Paket" value={`${p.label} · ${p.summary}`} onEdit={() => go(1)} />
+            <Row label="Anlass" value={`${getOccasion(occasion).label} · Design ${getTemplate(design ?? getOccasion(occasion).template).name}`} onEdit={() => go(0)} />
+            <Row
+              label="Spiele"
+              value={[games?.missions && fitGames.missions && "Missionen", games?.wheel && fitGames.wheel && "Glücksrad", games?.guestbook && fitGames.guestbook && "Gästebuch", games?.reveal && fitGames.reveal && "Tippspiel", games?.leads && fitGames.leads && p.firma && "Gewinnspiel"].filter(Boolean).join(" · ") || "keine"}
+              onEdit={() => go(2)}
+            />
+            <Row label="Rahmen" value={frameText} onEdit={() => go(3)} />
+            <Row label="Datum" value={`${new Date(date).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "long", year: "numeric" })}${p.id === "messe" ? ` · ${days} ${days === 1 ? "Tag" : "Tage"}` : ""}`} onEdit={() => go(3)} />
+            <Row label="Kontakt" value={`${name} · ${email}${company ? ` · ${company}` : ""}`} onEdit={() => go(3)} />
+            <Row label="Laufzeit" value={`einmalig, kein Abo · Gäste machen ab dem Eventtag ${p.days + (p.id === "messe" ? days - 1 : 0)} Tage lang mit · Fotos ${p.retentionDays} Tage gespeichert, danach automatisch gelöscht`} />
+            <div className="flex items-center justify-between px-5 py-4">
+              <span className="font-semibold">Gesamt</span>
+              <span className="text-right">
+                <span className="vb-display block text-2xl font-semibold">{euro(p.price)}</span>
+                <span className="block text-[11px] text-white/45">{vbTaxNote()}</span>
+              </span>
+            </div>
+          </div>
+          <div className="vb-glass mt-5 rounded-2xl p-4">
+            <p className="text-[13px] font-semibold text-white">So geht&apos;s nach dem Bezahlen weiter</p>
+            <ol className="mt-2 space-y-1.5 text-[13px] leading-snug text-white/70">
+              <li><strong className="text-white">1.</strong> Euer persönlicher Link kommt sofort per E-Mail – und ihr landet direkt in eurem Bereich.</li>
+              <li><strong className="text-white">2.</strong> Dort passt ihr Design, Texte und Spiele in Ruhe an – jederzeit änderbar.</li>
+              <li><strong className="text-white">3.</strong> QR-Aufsteller ausdrucken oder Link teilen – fertig für euer Event.</li>
+            </ol>
+          </div>
+          <label className="mt-5 flex items-start gap-3 text-[13px] leading-snug text-white/70">
+            <input type="checkbox" name="agb" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
+            <span>
+              Ich akzeptiere die <a href="/vb/agb" target="_blank" className="underline underline-offset-2">AGB</a> und habe die{" "}
+              <a href="/vb/widerruf" target="_blank" className="underline underline-offset-2">Widerrufsbelehrung</a> und die{" "}
+              <a href="/vb/datenschutz" target="_blank" className="underline underline-offset-2">Datenschutzhinweise</a> gelesen.
+            </span>
+          </label>
+          <label className="mt-3 flex items-start gap-3 text-[13px] leading-snug text-white/70">
+            <input type="checkbox" name="start_now" required className="mt-0.5 h-5 w-5 flex-none accent-[color:var(--a)]" />
+            <span>
+              <strong className="text-white">{VB_CONSENT_START.split(":")[0]}:</strong>
+              {VB_CONSENT_START.slice(VB_CONSENT_START.indexOf(":") + 1)}
+            </span>
+          </label>
+          {state.error && <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.error}</p>}
+          <div className="mt-5">
+            <PayButton price={p.price} />
+          </div>
+          <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-white/45"><OccasionIcon id="lock" className="h-3.5 w-3.5 flex-none" />Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
+          <p className="mt-1 text-center text-xs text-white/45">Gutschein-Code? Den gibst du auf der nächsten Seite unter „Code hinzufügen“ ein.</p>
+          {testMode && <p className="mt-2 text-center text-xs font-semibold text-amber-300">Testmodus – es wird kein echtes Geld abgebucht.</p>}
+        </form>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-semibold text-white/70">{label}</span>
+      {children}
+    </label>
+  );
+}
+
+function Row({ label, value, onEdit }: { label: string; value: string; onEdit?: () => void }) {
+  return (
+    <div className="flex items-start gap-3 px-5 py-3.5">
+      <span className="w-16 flex-none text-[13px] text-white/50">{label}</span>
+      <span className="flex-1 text-[14px] font-medium">{value}</span>
+      {onEdit && (
+        <button type="button" onClick={onEdit} className="text-xs font-semibold text-white/50 underline underline-offset-2">
+          ändern
+        </button>
+      )}
+    </div>
+  );
+}
+
+/** Design-Auswahl als kleine Vorschaubilder (passend zum Anlass). */
+function DesignChooser({ occasion, value, onChange }: { occasion: VbOccasionId; value: string; onChange: (id: string) => void }) {
+  const list = templatesFor(occasion, getOccasion(occasion).template);
+  const refs = useRef<Record<string, HTMLCanvasElement | null>>({});
+  const wrap = useRef<HTMLDivElement>(null);
+  const [tick, setTick] = useState(0);
+  const img = useRef<HTMLImageElement | null>(null);
+  const fonts = useRef<VbFonts | undefined>(undefined);
+
+  useEffect(() => {
+    const i = new Image();
+    i.onload = () => {
+      img.current = i;
+      setTick((n) => n + 1);
+    };
+    i.src = "/visionbooth/stile/original.webp";
+    loadVbFonts(wrap.current).then((f) => {
+      fonts.current = f;
+      setTick((n) => n + 1);
+    });
+    return onArtReady(() => setTick((n) => n + 1));
+  }, []);
+
+  useEffect(() => {
+    if (!img.current) return;
+    for (const t of list) {
+      const c = refs.current[t.id];
+      if (!c) continue;
+      const ctx = c.getContext("2d")!;
+      ctx.setTransform(c.width / FRAME_W, 0, 0, c.height / FRAME_H, 0, 0);
+      drawFrame(ctx, img.current, img.current.naturalWidth, img.current.naturalHeight, { template: t.id, text: OCC_PLACEHOLDER[occasion], accent: t.accent, fonts: fonts.current });
+    }
+  }, [tick, occasion, list]);
+
+  return (
+    <div ref={wrap} className="mt-5">
+      <p className="mb-2 text-[13px] font-semibold text-white/70">Welches Design?</p>
+      <div className="vb-scroll -mx-5 flex gap-3 overflow-x-auto px-6 pb-1 pt-1">
+        {list.map((t) => (
+          <button key={t.id} type="button" onClick={() => onChange(t.id)} aria-pressed={value === t.id} className="flex w-[84px] flex-none flex-col items-center gap-1.5 transition active:scale-95">
+            <canvas
+              ref={(el) => {
+                refs.current[t.id] = el;
+              }}
+              width={168}
+              height={210}
+              className={`w-full rounded-lg ${value === t.id ? "ring-2 ring-offset-2 ring-offset-[#0d0d0f]" : "opacity-80"}`}
+              style={value === t.id ? { ["--tw-ring-color" as string]: "var(--a)" } : undefined}
+            />
+            <span className={`line-clamp-2 text-center text-[11px] font-semibold leading-tight ${value === t.id ? "text-white" : "text-white/55"}`}>{t.name}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Live-Vorschau des Rahmens mit dem Beispielfoto (fiktive Personen). */
+function FramePreview({ occasion, template, text, date }: { occasion: VbOccasionId; template?: string; text: string; date: string }) {
+  const canvas = useRef<HTMLCanvasElement>(null);
+  const img = useRef<HTMLImageElement | null>(null);
+  const fonts = useRef<VbFonts | undefined>(undefined);
+  const [ready, setReady] = useState(0);
+  const t = getTemplate(template ?? getOccasion(occasion).template);
+
+  useEffect(() => {
+    const i = new Image();
+    i.onload = () => {
+      img.current = i;
+      setReady((n) => n + 1);
+    };
+    i.src = "/visionbooth/stile/original.webp";
+    loadVbFonts(canvas.current).then((f) => {
+      fonts.current = f;
+      setReady((n) => n + 1);
+    });
+    return onArtReady(() => setReady((n) => n + 1));
+  }, []);
+
+  useEffect(() => {
+    const c = canvas.current;
+    if (!c || !img.current) return;
+    const sub = date ? new Date(date).toLocaleDateString("de-DE") : "";
+    drawFrame(c.getContext("2d")!, img.current, img.current.naturalWidth, img.current.naturalHeight, { template: t.id, text, subtext: sub, accent: t.accent, fonts: fonts.current });
+  }, [ready, text, date, t.id, t.accent]);
+
+  return (
+    <div className="mt-5 flex items-center gap-4">
+      <canvas ref={canvas} width={FRAME_W} height={FRAME_H} className="w-[44%] max-w-[200px] rounded-xl shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]" />
+      <p className="flex-1 text-[13px] leading-relaxed text-white/60">
+        Vorlage <strong className="text-white">{t.name}</strong>
+        <br />
+        Text, Farbe und Design kannst du auch nach der Buchung noch ändern.
+      </p>
+    </div>
+  );
+}
+
+function GameToggle({ on, onChange, icon, title, text, how }: { on: boolean; onChange: (v: boolean) => void; icon: LineIconName; title: string; text: string; how?: { title: string; steps: string[] } }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={`rounded-2xl transition ${on ? "ring-2" : "vb-glass"}`} style={on ? { background: "color-mix(in srgb, var(--a) 14%, #141417)", ["--tw-ring-color" as string]: "var(--a)" } : undefined}>
+      <button type="button" onClick={() => onChange(!on)} aria-pressed={on} className="flex w-full items-center gap-4 p-4 pb-2 text-left active:scale-[0.99]">
+        <IconTile id={icon} on={on} />
+        <span className="flex-1">
+          <span className="block text-[15px] font-bold">{title}</span>
+          <span className="mt-0.5 block text-[13px] leading-snug text-white/60">{text}</span>
+        </span>
+        <span className="vb-switch" data-on={on} />
+      </button>
+      {how && (
+        <div className="px-4 pb-3 pl-[76px]">
+          <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="text-[12px] font-semibold text-white/55 underline underline-offset-2 hover:text-white">
+            {open ? "Weniger anzeigen" : "So funktioniert's"}
+          </button>
+          {open && (
+            <ol className="mt-2 list-decimal space-y-1.5 pl-4 text-[12.5px] leading-snug text-white/70">
+              {how.steps.map((st) => (
+                <li key={st}>{st}</li>
+              ))}
+            </ol>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

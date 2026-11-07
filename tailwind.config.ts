@@ -59,10 +59,16 @@ const config: Config = {
           "0%": { opacity: "0" },
           "100%": { opacity: "1" },
         },
+        countdown: {
+          "0%": { opacity: "0", transform: "scale(1.6)" },
+          "25%": { opacity: "1", transform: "scale(1)" },
+          "100%": { opacity: "0.15", transform: "scale(0.85)" },
+        },
       },
       animation: {
         "fade-in-up": "fade-in-up 0.5s ease-out both",
         "fade-in": "fade-in 0.3s ease-out both",
+        countdown: "countdown 1s ease-out both",
       },
       backgroundImage: {
         "gold-radial":
