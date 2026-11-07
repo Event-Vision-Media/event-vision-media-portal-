@@ -10,7 +10,7 @@ const SCENES = [
   { time: "19:30", title: "QR-Code scannen", text: "Auf jedem Tisch steht euer Aufsteller. Handy-Kamera drauf – die VisionBooth öffnet sich sofort, ganz ohne App.", Screen: Scan },
   { time: "20:15", title: "3 – 2 – 1 – Foto!", text: "Countdown, Blitz, fertig: jedes Foto im Design eures Events – mit Namen, Datum und Logo.", Screen: Shoot },
   { time: "21:00", title: "Die KI-Verwandlung", text: "Ein Tipp auf „Superheld“ – und Sekunden später steht die ganze Gruppe im Kostüm über der Skyline. Erkennbar bleibt jeder.", Screen: Magic },
-  { time: "22:30", title: "Missionen & Bestenliste", text: "„Selfie mit dem Brautpaar“ bringt +30 Punkte. Die Besten erscheinen live auf der Foto-Wand – plötzlich macht jeder mit.", Screen: Mission },
+  { time: "22:30", title: "Missionen & Bestenliste", text: "„Selfie mit dem Brautpaar“ bringt +30 Punkte. Jeder sieht die Bestenliste auf dem Handy, auf Wunsch auch groß auf der Foto-Wand – plötzlich macht jeder mit.", Screen: Mission },
   { time: "Am Morgen danach", title: "Alle Fotos an einem Ort", text: "Kein Hinterherlaufen in WhatsApp-Gruppen: Die Fotos aller Gäste warten in eurer Galerie – mit einem Klick als ZIP.", Screen: Gallery },
 ];
 

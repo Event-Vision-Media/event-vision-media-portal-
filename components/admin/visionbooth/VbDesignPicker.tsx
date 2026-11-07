@@ -137,7 +137,7 @@ export function VbDesignPicker({
           <div key={title}>
             <p className="text-sm font-semibold text-anthracite-800">{title}</p>
             <p className="mb-2 text-xs text-anthracite-400">{hint}</p>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-3">
               {list.map((t) => (
                 <button
                   key={t.id}

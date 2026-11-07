@@ -177,7 +177,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                 onChange={(v) => setGames({ ...games, missions: v })}
                 icon="target"
                 title="Foto-Missionen & Bestenliste"
-                text="Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen in der Bestenliste."
+                text="Kleine Foto-Aufgaben mit Punkten – Bestenliste direkt auf jedem Handy."
                 how={GAME_HOW.missions}
               />
             )}

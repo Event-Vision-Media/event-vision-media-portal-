@@ -12,7 +12,7 @@ interface Result {
 function Submit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded-full bg-anthracite-900 px-7 py-3.5 text-sm font-semibold text-white transition hover:bg-anthracite-700 disabled:opacity-60">
+    <button type="submit" disabled={pending} className="rounded-full bg-gradient-to-b from-gold-400 to-gold-600 px-7 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:from-gold-500 hover:to-gold-700 disabled:opacity-60">
       {pending ? "Speichert …" : "Missionen speichern"}
     </button>
   );
@@ -48,7 +48,7 @@ export function VbChallengesEditor({
         <input type="checkbox" checked={enabled} onChange={(e) => setEnabled(e.target.checked)} className="mt-1 h-4 w-4" />
         <span className="text-sm text-anthracite-700">
           <strong className="block text-anthracite-800">Foto-Missionen für die Gäste</strong>
-          Kleine Foto-Aufgaben mit Punkten – die Besten erscheinen live auf der Foto-Wand. Bringt Gäste zusammen und sorgt für viel mehr Fotos.
+          Kleine Foto-Aufgaben mit Punkten – jeder Gast sieht seine Punkte und die Bestenliste direkt auf dem Handy, auf Wunsch auch groß auf der Foto-Wand. Bringt Gäste zusammen und sorgt für viel mehr Fotos.
         </span>
       </label>
 

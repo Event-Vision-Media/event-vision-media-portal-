@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { OccasionIcon, type LineIconName } from "@/components/visionbooth/site/OccasionIcon";
 import { VbGuestbookEditor } from "@/components/visionbooth/customer/VbGuestbookEditor";
 import { VbWheelEditor } from "@/components/visionbooth/customer/VbWheelEditor";
 import { parseWheel, wheelDefaultFor } from "@/components/visionbooth/wheel";
@@ -78,6 +79,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   const photos = (photoRows ?? []).map((p) => ({ id: p.id, kind: p.kind, style: p.style, hidden: p.hidden, createdAt: p.created_at, url: url.get(p.thumb_path || p.file_path) ?? "", full: url.get(p.file_path) ?? "" }));
 
   const guestUrl = vbGuestUrl(event.slug);
+  const guestCount = new Set((guests ?? []).map((g) => g.guest_key)).size;
   const probeKey = vbProbeKey(params.token);
   const qrSvg = await QRCode.toString(guestUrl, { type: "svg", margin: 1 });
   const closed = vbClosedReason(event);
@@ -123,27 +125,61 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
             {countdown && <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white">{countdown}</span>}
             {event.opens_at && event.closes_at && <span>· Gäste-Link aktiv {fmtDate(event.opens_at)} – {fmtDate(event.closes_at)}</span>}
           </div>
+          <div className="mt-6 grid grid-cols-3 gap-2.5">
+            {[
+              [photoTotal ?? 0, "Fotos"],
+              [guestCount, "Gäste dabei"],
+              [aiDone ?? 0, "KI-Bilder"],
+            ].map(([v, l]) => (
+              <div key={l as string} className="rounded-2xl border border-white/10 bg-white/[0.06] px-3 py-3 backdrop-blur">
+                <div className="vb-display text-2xl font-semibold text-white">{v}</div>
+                <div className="text-[11px] uppercase tracking-wider text-white/55">{l}</div>
+              </div>
+            ))}
+          </div>
+          {!deleted && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a href={`/vb/${event.slug}?probe=${probeKey}`} target="_blank" className="vb-btn rounded-full px-4 py-2 text-sm font-bold">
+                Probefoto machen
+              </a>
+              <a href={`/vb/verwalten/${params.token}/aufsteller`} target="_blank" className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                QR-Aufsteller
+              </a>
+              {event.wall_enabled && (
+                <a href={`/vb/${event.slug}/wall`} target="_blank" className="rounded-full border border-white/20 bg-white/5 px-4 py-2 text-sm font-semibold text-white/90 hover:bg-white/10">
+                  Foto-Wand
+                </a>
+              )}
+            </div>
+          )}
           {!deleted && <VbAppBar token={params.token} />}
         </div>
       </header>
 
       <div className="mx-auto -mt-4 max-w-4xl space-y-6 px-4">
         {!deleted && (
-          <nav className="rounded-3xl bg-white p-5 shadow-card" aria-label="So wird eure VisionBooth startklar">
-            <p className="font-serif text-lg font-semibold text-anthracite-800">So wird eure VisionBooth startklar</p>
-            <ol className="mt-3 grid gap-2 sm:grid-cols-3">
-              {[
-                ["#gestalten", "Design & Text anpassen", "Vorlage, Namen, Farbe"],
-                ["#spiele", "Spiele auswählen", "Missionen, Glücksrad & Co."],
-                ["#teilen", "QR-Aufsteller drucken", "oder Link an Gäste schicken"],
-              ].map(([href, title, sub], i) => (
+          <nav className="rounded-[28px] border border-gold-100 bg-gradient-to-br from-white via-white to-gold-50/60 p-5 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-6" aria-label="So wird eure VisionBooth startklar">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-700">In 3 Schritten startklar</p>
+            <p className="mt-1 font-serif text-xl font-semibold text-anthracite-800">So wird eure VisionBooth perfekt</p>
+            <ol className="mt-4 grid gap-2.5 sm:grid-cols-3">
+              {(
+                [
+                  ["#gestalten", "image", "Design & Text", "Vorlage, Namen, Farbe"],
+                  ["#spiele", "target", "Spiele auswählen", "Missionen, Glücksrad & Co."],
+                  ["#teilen", "phone", "QR-Aufsteller", "drucken oder Link teilen"],
+                ] as const
+              ).map(([href, icon, title, sub], i) => (
                 <li key={href}>
-                  <a href={href} className="flex items-center gap-3 rounded-2xl border border-anthracite-100 px-3 py-2.5 transition hover:border-gold-400">
-                    <span className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-anthracite-900 text-xs font-bold text-white">{i + 1}</span>
-                    <span className="min-w-0">
+                  <a href={href} className="group flex items-center gap-3 rounded-2xl border border-anthracite-100 bg-white px-3 py-3 transition hover:-translate-y-0.5 hover:border-gold-300 hover:shadow-[0_10px_24px_-16px_rgba(168,119,49,0.8)]">
+                    <span className="relative flex h-10 w-10 flex-none items-center justify-center rounded-xl bg-anthracite-900 text-gold-300">
+                      <OccasionIcon id={icon} className="h-5 w-5" />
+                      <span className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-gold-500 text-[10px] font-bold text-white">{i + 1}</span>
+                    </span>
+                    <span className="min-w-0 flex-1">
                       <span className="block text-sm font-semibold text-anthracite-800">{title}</span>
                       <span className="block text-xs text-anthracite-500">{sub}</span>
                     </span>
+                    <span className="text-anthracite-300 transition group-hover:text-gold-600">›</span>
                   </a>
                 </li>
               ))}
@@ -152,8 +188,8 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
           </nav>
         )}
         {/* 1 · Gestalten */}
-        <section id="gestalten" className="scroll-mt-6 rounded-3xl bg-white p-6 shadow-card">
-          <Step n={1} title="Gestalten" hint={`Aktuell: Vorlage „${t.name}“. Änderungen gelten sofort für alle neuen Fotos.`} />
+        <section id="gestalten" className="scroll-mt-6 rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+          <Step n={1} icon="image" title="Gestalten" hint={`Aktuell: Vorlage „${t.name}“. Änderungen gelten sofort für alle neuen Fotos.`} />
           <div className="mt-5">
             {deleted ? (
               <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
@@ -196,8 +232,8 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
         {/* Spiele: passend zum Anlass oben, der Rest eingeklappt */}
         {(() => {
           const missions = (n: number) => (
-            <section key="m" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten – die Besten erscheinen in der Bestenliste und auf der Foto-Wand." how={GAME_HOW.missions} />
+            <section key="m" className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+              <Step n={n} icon="target" title="Foto-Missionen & Bestenliste" hint="Das Highlight für eure Gäste: Foto-Aufgaben mit Punkten. Jeder sieht seine Punkte und die Bestenliste direkt auf dem Handy – und, wenn ihr möchtet, groß auf der Foto-Wand." how={GAME_HOW.missions} />
               <div className="mt-5">
                 {deleted ? (
                   <p className="text-sm text-anthracite-500">Dieses Event ist abgeschlossen.</p>
@@ -208,32 +244,32 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
             </section>
           );
           const wheel = (n: number) => (
-            <section key="w" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Foto-Glücksrad" hint="Gäste drehen am Rad und bekommen eine lustige Foto-Aufgabe – spontan und ohne Punkte." how={GAME_HOW.wheel} />
+            <section key="w" className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+              <Step n={n} icon="wheel" title="Foto-Glücksrad" hint="Gäste drehen am Rad und bekommen eine lustige Foto-Aufgabe – spontan und ohne Punkte." how={GAME_HOW.wheel} />
               <div className="mt-5">
                 <VbWheelEditor action={updateVbWheel.bind(null, params.token)} initial={parseWheel(event.wheel)} defaults={wheelDefaultFor(event.occasion)} />
               </div>
             </section>
           );
           const guestbook = (n: number) => (
-            <section key="g" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Gästebuch-Grüße" hint="Gäste schreiben zum Foto einen kurzen Gruß – am Ende habt ihr ein Gästebuch mit Fotos zum Drucken." how={GAME_HOW.guestbook} />
+            <section key="g" className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+              <Step n={n} icon="heart" title="Gästebuch-Grüße" hint="Gäste schreiben zum Foto einen kurzen Gruß – am Ende habt ihr ein Gästebuch mit Fotos zum Drucken." how={GAME_HOW.guestbook} />
               <div className="mt-5">
                 <VbGuestbookEditor action={updateVbGuestbook.bind(null, params.token)} enabled={Boolean(event.guestbook)} galleryEnabled={event.gallery_enabled} greetings={greetings} total={greetTotal ?? 0} bookUrl={`/vb/verwalten/${params.token}/gaestebuch`} />
               </div>
             </section>
           );
           const reveal = (n: number) => (
-            <section key="r" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen, die Foto-Wand zeigt den Stand – ihr löst live auf." how={GAME_HOW.reveal} />
+            <section key="r" className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+              <Step n={n} icon="babyparty" title="Tippspiel / Gender Reveal" hint="Junge oder Mädchen? Gäste tippen auf dem Handy, den Stand seht ihr hier und auf der Foto-Wand – ihr löst live auf." how={GAME_HOW.reveal} />
               <div className="mt-5">
                 <VbRevealEditor action={updateVbReveal.bind(null, params.token)} initial={parseReveal(event.reveal)} counts={tips} />
               </div>
             </section>
           );
           const leads = (n: number) => (
-            <section key="l" className="rounded-3xl bg-white p-6 shadow-card">
-              <Step n={n} title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." how={GAME_HOW.leads} />
+            <section key="l" className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+              <Step n={n} icon="gift" title="Kontakte & Gewinnspiel" hint="Für Firmen-Events: Gäste tragen sich freiwillig ein – ihr bekommt die Kontakte als CSV." how={GAME_HOW.leads} />
               <div className="mt-5">
                 <VbLeadsEditor action={updateVbLeads.bind(null, params.token)} initial={parseLeadConfig(event.leads)} count={leadCount} csvUrl={`/api/vb/verwalten/${params.token}/kontakte`} />
               </div>
@@ -253,7 +289,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
             <>
               {top.map((i, n) => <div key={i.key} id={n === 0 ? "spiele" : undefined} className="scroll-mt-6">{i.render(2 + n)}</div>)}
               {more.length > 0 && (
-                <details className="group rounded-3xl bg-white p-6 shadow-card">
+                <details className="group rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
                   <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
                     <span>
                       <span className="block font-serif text-xl font-semibold text-anthracite-800">Weitere Spiele &amp; Extras</span>
@@ -271,8 +307,8 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
         })()}
 
         {/* 3 · Teilen & aufstellen (nach Gestalten und Spielen) */}
-        <section id="teilen" className="relative scroll-mt-6 rounded-3xl bg-white p-6 shadow-card">
-          <Step n={2 + gameCount} title="Teilen & aufstellen" hint="Wenn Design und Spiele passen: Aufsteller ausdrucken oder den Link vorab an eure Gäste schicken." />
+        <section id="teilen" className="relative scroll-mt-6 rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+          <Step n={2 + gameCount} icon="phone" title="Teilen & aufstellen" hint="Wenn Design und Spiele passen: Aufsteller ausdrucken oder den Link vorab an eure Gäste schicken." />
           <div className="mt-5 grid gap-6 sm:grid-cols-[1fr_180px]">
             <div className="space-y-4">
               <div>
@@ -329,11 +365,11 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
         </section>
 
         {/* 4 · Fotos */}
-        <section className="rounded-3xl bg-white p-6 shadow-card">
-          <Step n={3 + gameCount} title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
+        <section className="rounded-[28px] border border-anthracite-100/70 bg-white p-6 shadow-[0_18px_50px_-30px_rgba(31,34,39,0.35)] sm:p-8">
+          <Step n={3 + gameCount} icon="camera" title="Eure Fotos" hint="Hier seht ihr alle Fotos, die Gäste für die Galerie freigegeben haben." />
           <div className="mt-5 grid grid-cols-3 gap-3 text-center">
             <Kpi label="Fotos" value={photoTotal ?? 0} />
-            <Kpi label="Gäste" value={new Set((guests ?? []).map((g) => g.guest_key)).size} />
+            <Kpi label="Gäste" value={guestCount} />
             <Kpi label={event.ai_enabled ? `KI-Bilder (von ${event.ai_limit})` : "KI-Bilder"} value={aiDone ?? 0} />
           </div>
           {!deleted && (
@@ -360,13 +396,16 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
   );
 }
 
-function Step({ n, title, hint, how }: { n: number; title: string; hint: string; how?: { title: string; steps: string[] } }) {
+function Step({ n, title, hint, how, icon = "sonstiges" }: { n: number; title: string; hint: string; how?: { title: string; steps: string[] }; icon?: LineIconName }) {
   return (
-    <div className="flex items-start gap-3">
-      <span className="flex h-8 w-8 flex-none items-center justify-center rounded-full bg-anthracite-900 text-sm font-bold text-white">{n || "★"}</span>
+    <div className="flex items-start gap-4">
+      <span className="flex h-12 w-12 flex-none items-center justify-center rounded-2xl border border-gold-200 bg-gradient-to-b from-gold-50 to-white text-gold-700 shadow-[0_6px_18px_-10px_rgba(168,119,49,0.7)]">
+        <OccasionIcon id={icon} className="h-6 w-6" />
+      </span>
       <div className="min-w-0 flex-1">
+        {n > 0 && <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-gold-700">Schritt {n}</p>}
         <h2 className="font-serif text-xl font-semibold text-anthracite-800">{title}</h2>
-        <p className="mt-0.5 text-sm text-anthracite-500">{hint}</p>
+        <p className="mt-0.5 text-sm leading-relaxed text-anthracite-500">{hint}</p>
         {how && (
           <details className="mt-2 text-sm">
             <summary className="cursor-pointer text-xs font-semibold text-gold-700 underline underline-offset-2">So funktioniert&apos;s</summary>
@@ -384,8 +423,8 @@ function Step({ n, title, hint, how }: { n: number; title: string; hint: string;
 
 function Kpi({ label, value }: { label: string; value: number }) {
   return (
-    <div className="rounded-2xl bg-sand-50 px-3 py-4">
-      <div className="font-serif text-2xl font-semibold text-anthracite-800">{value}</div>
+    <div className="rounded-2xl border border-gold-100 bg-gradient-to-b from-gold-50/70 to-white px-3 py-4">
+      <div className="font-serif text-2xl font-semibold text-gold-800">{value}</div>
       <div className="mt-0.5 text-xs text-anthracite-500">{label}</div>
     </div>
   );

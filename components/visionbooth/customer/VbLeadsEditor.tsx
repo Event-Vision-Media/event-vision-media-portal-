@@ -12,7 +12,7 @@ interface Result {
 function Submit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="rounded-full bg-anthracite-900 px-7 py-3.5 text-sm font-semibold text-white hover:bg-anthracite-700 disabled:opacity-60">
+    <button type="submit" disabled={pending} className="rounded-full bg-gradient-to-b from-gold-400 to-gold-600 px-7 py-3.5 text-sm font-semibold text-white shadow-glow transition hover:from-gold-500 hover:to-gold-700 disabled:opacity-60">
       {pending ? "Speichert …" : "Kontaktformular speichern"}
     </button>
   );

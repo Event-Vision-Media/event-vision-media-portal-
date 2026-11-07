@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { OccasionIcon } from "@/components/visionbooth/site/OccasionIcon";
 
 // Kundenbereich als Web-App: „Als App speichern“ (eigenes Symbol) und Mitteilungen aufs Handy.
 // iPhone: Mitteilungen funktionieren nur, wenn die Seite als App auf dem Home-Bildschirm liegt (ab iOS 16.4).
@@ -98,8 +99,8 @@ export function VbAppBar({ token }: { token: string }) {
         {standalone ? (
           <span className="rounded-full bg-emerald-500/20 px-3 py-2 text-sm font-semibold text-emerald-200">✓ Als App gespeichert</span>
         ) : (
-          <button onClick={install} className="vb-btn rounded-full px-4 py-2.5 text-sm font-bold">
-            📲 Als App speichern
+          <button onClick={install} className="vb-btn inline-flex items-center gap-2 rounded-full px-4 py-2.5 text-sm font-bold">
+            <OccasionIcon id="phone" className="h-4 w-4" /> Als App speichern
           </button>
         )}
         {pushPossible && (

@@ -77,7 +77,7 @@ export function MissionList({
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="vb-display text-2xl font-semibold">Foto-Missionen</p>
-          <p className="mt-0.5 text-[13px] text-white/60">Erfülle Aufgaben, sammle Punkte – die Besten erscheinen auf der Foto-Wand.</p>
+          <p className="mt-0.5 text-[13px] text-white/60">Erfülle Aufgaben, sammle Punkte – die Bestenliste siehst du hier auf deinem Handy.</p>
         </div>
         <button onClick={onBoard} className="vb-glass flex-none rounded-full px-3 py-1.5 text-xs font-semibold text-white/85">
           🏆 Bestenliste
