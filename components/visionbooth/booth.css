@@ -307,3 +307,101 @@
   .vb-scene [class^="s1-"], .vb-scene [class^="s2-"], .vb-scene [class^="s3-"], .vb-scene [class^="s4-"], .vb-scene [class^="s5-"], .vb-scene [class*=" s1-"], .vb-scene [class*=" s2-"], .vb-scene [class*=" s3-"], .vb-scene [class*=" s4-"], .vb-scene [class*=" s5-"] { animation: none !important; }
   .vb-scene .vb-scene-text, .vb-scene .vb-scene-phone { opacity: 1; transform: none; }
 }
+
+/* ---------------------------------------------------------------------------
+   Kundenbereich „Dein Bereich“ im dunklen App-Design (.vbx).
+   Die Formulare nutzen helle Tailwind-Farben – hier zentral auf Dunkel umgestellt,
+   damit jede Einstellung edel und gut lesbar bleibt.
+   --------------------------------------------------------------------------- */
+.vbx {
+  --vbx-text: #f5f1ea;
+  --vbx-soft: rgba(245, 241, 234, 0.78);
+  --vbx-mute: rgba(245, 241, 234, 0.58);
+  --vbx-faint: rgba(245, 241, 234, 0.4);
+  --vbx-line: rgba(255, 255, 255, 0.09);
+  --vbx-line2: rgba(255, 255, 255, 0.15);
+  --vbx-gold: #dcb56a;
+  color: var(--vbx-text);
+}
+.vbx-card {
+  position: relative;
+  border-radius: 28px;
+  border: 1px solid var(--vbx-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02));
+  box-shadow: 0 24px 60px -36px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+}
+.vbx-row {
+  border: 1px solid var(--vbx-line);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.015));
+  transition: border-color 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+.vbx-row:hover { border-color: color-mix(in srgb, var(--a) 55%, transparent); transform: translateY(-1px); }
+.vbx-chip {
+  border: 1px solid var(--vbx-line2);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--vbx-text);
+}
+.vbx-chip:hover { background: rgba(255, 255, 255, 0.09); }
+.vbx-tile {
+  border: 1px solid color-mix(in srgb, var(--a) 28%, transparent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--a) 16%, transparent), rgba(255, 255, 255, 0.02));
+  color: var(--vbx-gold);
+}
+.vbx-eyebrow { color: var(--vbx-gold); }
+
+/* Textfarben */
+.vbx .text-anthracite-800, .vbx .text-anthracite-700, .vbx .hover\:text-anthracite-800:hover, .vbx .hover\:text-anthracite-700:hover { color: var(--vbx-text); }
+.vbx .text-anthracite-600 { color: var(--vbx-soft); }
+.vbx .text-anthracite-500 { color: var(--vbx-mute); }
+.vbx .text-anthracite-400, .vbx .text-anthracite-300 { color: var(--vbx-faint); }
+.vbx .text-gold-700, .vbx .text-gold-800, .vbx .hover\:text-gold-800:hover { color: var(--vbx-gold); }
+.vbx .text-emerald-700 { color: #7ee2b8; }
+.vbx .text-red-600, .vbx .text-red-700, .vbx .hover\:text-red-600:hover { color: #fca5a5; }
+.vbx .text-amber-700, .vbx .text-amber-800 { color: #f6d27a; }
+/* Flächen */
+.vbx .bg-white { background-color: rgba(255, 255, 255, 0.05); }
+.vbx .bg-sand-50, .vbx .bg-sand-50\/60 { background-color: rgba(255, 255, 255, 0.03); }
+.vbx .bg-amber-50 { background-color: rgba(246, 210, 122, 0.1); }
+.vbx .hover\:bg-red-50:hover { background-color: rgba(252, 165, 165, 0.12); }
+.vbx .bg-anthracite-900, .vbx .bg-anthracite-800 { background-color: rgba(255, 255, 255, 0.1); border: 1px solid var(--vbx-line2); }
+.vbx .hover\:bg-anthracite-700:hover { background-color: rgba(255, 255, 255, 0.16); }
+/* Linien */
+.vbx .border-anthracite-100 { border-color: var(--vbx-line); }
+.vbx .border-anthracite-200, .vbx .hover\:border-anthracite-200:hover, .vbx .focus\:border-anthracite-200:focus { border-color: var(--vbx-line2); }
+.vbx .border-anthracite-300 { border-color: rgba(255, 255, 255, 0.22); }
+/* Eingabefelder */
+.vbx input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]):not([type="range"]),
+.vbx textarea,
+.vbx select {
+  background-color: rgba(255, 255, 255, 0.06);
+  border-color: var(--vbx-line2);
+  color: var(--vbx-text);
+}
+.vbx input::placeholder, .vbx textarea::placeholder { color: rgba(245, 241, 234, 0.35); }
+.vbx input:focus, .vbx textarea:focus, .vbx select:focus { border-color: color-mix(in srgb, var(--a) 70%, transparent); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--a) 18%, transparent); }
+.vbx select option { background: #16161a; color: var(--vbx-text); }
+.vbx input[type="checkbox"], .vbx input[type="radio"] { accent-color: var(--a); }
+.vbx details > summary::-webkit-details-marker { display: none; }
+/* QR-Code muss für Kameras hell bleiben */
+.vbx .vbx-keep-light { background: #fff !important; }
+.vbx-badge {
+  color: #1a1408;
+  background: linear-gradient(180deg, #f3d996, #c9a04e);
+  box-shadow: 0 4px 12px -4px rgba(201, 160, 78, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+}
+.vbx input[type="file"] { color: var(--vbx-mute); font-size: 14px; }
+.vbx input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  padding: 8px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--vbx-line2);
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--vbx-text);
+  font-weight: 600;
+  cursor: pointer;
+}
+.vbx input[type="file"]::file-selector-button:hover { background: rgba(255, 255, 255, 0.12); }
+/* Knöpfe auf Fotos bleiben hell mit dunkler Schrift */
+.vbx .bg-white\/90, .vbx .bg-white\/90 * { color: #1f2227; }
