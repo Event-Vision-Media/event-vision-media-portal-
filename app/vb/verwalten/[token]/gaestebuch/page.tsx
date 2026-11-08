@@ -13,6 +13,8 @@ export const metadata: Metadata = { title: "Gästebuch – VisionBooth", robots:
 const DISPLAY = "var(--vb-font-display), Georgia, serif";
 const SCRIPT = "var(--vb-font-script), 'Snell Roundhand', cursive";
 const UI = "var(--vb-font-ui), system-ui, sans-serif";
+/** Ab dieser Länge ist Schreibschrift mühsam zu lesen – dann edle Kursive. */
+const LONG = 90;
 
 /** Gästebuch zum Drucken bzw. „Als PDF sichern“: Titelseite, dann je Seite Foto + Gruß (A5). */
 export default async function VisionBoothGuestbookPage(props: { params: Promise<{ token: string }> }) {
@@ -37,7 +39,9 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
   const accent = /^#[0-9a-f]{6}$/i.test(event.accent_color) ? event.accent_color : t.accent;
   const title = event.frame_text || event.title;
   const date = event.event_date ? new Date(event.event_date + "T12:00:00Z").toLocaleDateString("de-DE", { day: "numeric", month: "long", year: "numeric" }) : "";
-  const page = "mx-auto flex h-[210mm] w-[148mm] flex-col bg-[#fbf8f3] shadow-card print:shadow-none [break-after:page]";
+  // Alle Namen für die Abschlussseite (jeder nur einmal, in Reihenfolge der Grüße)
+  const names = Array.from(new Set(list.map((r) => (r.greeting_name ?? "").trim()).filter(Boolean)));
+  const page = "mx-auto flex h-[210mm] w-[148mm] flex-col bg-[#fbf8f3] shadow-card print:shadow-none [break-after:page] last:[break-after:auto]";
 
   return (
     <div className={`${vbFontVars} min-h-screen bg-anthracite-100 py-6 print:bg-white print:py-0`}>
@@ -76,8 +80,8 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
               {list.length === 1 ? "Ein lieber Gruß eurer Gäste" : `${list.length} liebe Grüße eurer Gäste`}
             </p>
           </div>
-          <div className="opacity-70">
-            <VbLogo height={18} />
+          <div className="opacity-80">
+            <VbLogo light height={20} />
           </div>
         </section>
 
@@ -91,9 +95,15 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={url.get(r.file_path) ?? ""} alt="" className="max-h-[118mm] max-w-full object-contain" />
             </div>
-            <blockquote className="mt-[8mm] text-center text-[15pt] leading-snug text-[#2a2620]" style={{ fontFamily: SCRIPT }}>
-              „{r.greeting}“
-            </blockquote>
+            {(r.greeting ?? "").length > LONG ? (
+              <blockquote className="mt-[7mm] text-center text-[12pt] italic leading-relaxed text-[#2a2620]" style={{ fontFamily: DISPLAY }}>
+                „{r.greeting}“
+              </blockquote>
+            ) : (
+              <blockquote className="mt-[8mm] text-center text-[16pt] leading-snug text-[#2a2620]" style={{ fontFamily: SCRIPT }}>
+                „{r.greeting}“
+              </blockquote>
+            )}
             <p className="mt-[3mm] text-center text-[10pt] font-semibold" style={{ color: accent, fontFamily: UI }}>
               {r.greeting_name ? `– ${r.greeting_name}` : "– ein lieber Gast"}
             </p>
@@ -102,6 +112,29 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
             </p>
           </section>
         ))}
+
+        {list.length > 0 && (
+          <section className={`${page} items-center px-[16mm] py-[16mm] text-center`}>
+            <div className="flex flex-1 flex-col items-center justify-center">
+              <p className="text-[24pt] leading-tight" style={{ color: accent, fontFamily: SCRIPT }}>
+                Danke, dass ihr da wart
+              </p>
+              <div className="mx-auto my-[6mm] h-px w-[30mm]" style={{ background: accent, opacity: 0.5 }} />
+              {names.length > 0 && (
+                <p className="max-w-[110mm] text-[10pt] leading-[1.9] text-[#4a443b]" style={{ fontFamily: UI }}>
+                  {names.join("  ·  ")}
+                </p>
+              )}
+              <p className="mt-[8mm] text-[10pt] text-[#6f675c]" style={{ fontFamily: UI }}>
+                {title}
+                {date ? ` · ${date}` : ""}
+              </p>
+            </div>
+            <div className="opacity-60">
+              <VbLogo light height={16} />
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
