@@ -35,6 +35,8 @@ import { PriceAdjustForm } from "@/components/admin/PriceAdjustForm";
 import { ExtrasEditForm } from "@/components/admin/ExtrasEditForm";
 import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
+import { PersonalMailCard } from "@/components/admin/PersonalMailCard";
+import { personalMailFacts, personalMailHistory } from "@/lib/personal-mail-server";
 import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
 import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
 import type { StaffRequest } from "@/lib/staff-upsell";
@@ -392,6 +394,15 @@ export default async function AdminBookingDetailPage(props: {
 
         {booking.lifecycle === "bestaetigt" && (
           <CustomerReachCard bookingId={booking.id} confirmedAt={booking.confirmed_at} invitePending={Boolean(booking.portal_invite_pending)} email={booking.email} />
+        )}
+
+        {(booking.lifecycle === "bestaetigt" || booking.lifecycle === "reserviert") && (
+          <PersonalMailCard
+            bookingId={booking.id}
+            email={booking.email}
+            facts={await personalMailFacts(booking)}
+            history={await personalMailHistory(booking.id)}
+          />
         )}
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />

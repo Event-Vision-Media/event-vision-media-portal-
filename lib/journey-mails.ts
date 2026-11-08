@@ -62,7 +62,7 @@ function mailLog(b: Booking, subject: string, reason: string): string {
 }
 
 /** Welche Schritte im Kundenportal sind für diese Buchung noch offen? */
-async function openStepsFor(b: Booking): Promise<string[]> {
+export async function openStepsFor(b: Booking): Promise<string[]> {
   const supabase = createAdminClient();
   const sie = b.customer_type === "business";
   const products = new Set([

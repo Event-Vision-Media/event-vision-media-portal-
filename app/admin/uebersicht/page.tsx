@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { daysUntil } from "@/lib/catalog";
 import { formatCurrencyEUR } from "@/lib/format";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
+import { silentCustomers } from "@/lib/personal-mail-server";
 import type { Booking } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -41,7 +42,7 @@ export default async function AdminOverviewPage(props: { searchParams: Promise<{
     supabase.from("bookings").select("id", { count: "exact", head: true }).in("lifecycle", ["anfrage", "reserviert"]),
   ]);
 
-  const infos = await loadBookingInfos((data ?? []) as Booking[]);
+  const [infos, silent] = await Promise.all([loadBookingInfos((data ?? []) as Booking[]), silentCustomers()]);
   const thisWeek = infos.filter((i) => daysUntil(i.booking.event_date) <= 7).length;
   const openPayments = infos.reduce((sum, i) => {
     const p = i.payment;
@@ -68,6 +69,32 @@ export default async function AdminOverviewPage(props: { searchParams: Promise<{
           <Kpi href="/admin/anfragen?view=bestaetigt" label="Vertrag offen" value={String(unsigned)} alert={unsigned > 0} />
           <Kpi href="/admin/lieferung" label="Lieferzeit fehlt" value={String(missingLogistics)} alert={missingLogistics > 0} />
         </div>
+
+        {silent.length > 0 && (
+          <div className="mt-6 rounded-2xl border border-gold-300 bg-gold-50/60 p-5">
+            <p className="font-serif text-lg font-semibold text-anthracite-800">Kunden ohne Rückmeldung</p>
+            <p className="mt-0.5 text-sm text-anthracite-500">Das Event rückt näher, es fehlt noch etwas – und der Kunde hat sich seit Tagen nicht gemeldet. Eine kurze persönliche Nachricht hilft meist.</p>
+            <ul className="mt-4 space-y-2">
+              {silent.map((c) => (
+                <li key={c.bookingId} className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white px-4 py-3 shadow-sm">
+                  <div className="min-w-0">
+                    <p className="font-medium text-anthracite-800">
+                      {c.name} <span className="text-sm font-normal text-anthracite-400">· {c.bookingCode}</span>
+                    </p>
+                    <p className="mt-0.5 text-xs text-anthracite-500">
+                      Event {c.daysLeft === 0 ? "heute" : c.daysLeft === 1 ? "morgen" : `in ${c.daysLeft} Tagen`} · fehlt: {c.missing.join(", ")} ·{" "}
+                      {c.lastSign ? `${c.lastSignKind === "login" ? "zuletzt im Portal" : "bestätigt"} vor ${Math.floor((Date.now() - Date.parse(c.lastSign)) / 86_400_000)} Tagen` : "noch nie im Portal"}
+                      {c.lastPersonalMail ? ` · deine letzte Nachricht vor ${Math.floor((Date.now() - Date.parse(c.lastPersonalMail)) / 86_400_000)} Tagen` : ""}
+                    </p>
+                  </div>
+                  <Link href={`/admin/bookings/${c.bookingId}#nachricht`} className="rounded-full bg-anthracite-900 px-4 py-2 text-sm font-medium text-white hover:bg-anthracite-700">
+                    Nachricht schreiben →
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <div className="mt-6 flex flex-wrap gap-2 text-sm">
           {(Object.keys(RANGES) as RangeKey[]).map((k) => (

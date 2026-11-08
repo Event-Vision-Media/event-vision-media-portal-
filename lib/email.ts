@@ -139,7 +139,7 @@ function layout(title: string, body: string): string {
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e4e6e8;border-radius:16px">
 <tr><td style="background:#16181c;border-radius:16px 16px 0 0;padding:22px 28px;color:#dfc186;font-family:Georgia,serif;font-size:18px;font-weight:600">${BRAND}</td></tr>
 <tr><td style="padding:28px">
-<h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:24px;color:#1f2227">${title}</h1>
+${title ? `<h1 style="margin:0 0 16px;font-family:Georgia,serif;font-size:24px;color:#1f2227">${title}</h1>` : ""}
 ${body}
 <p style="margin:28px 0 0;color:#6f7882;font-size:13px;line-height:1.6">${BRAND} · Mönkhoffs Busch 34 · 45277 Essen<br>Telefon/WhatsApp 0176 22748363 · info@fotobox-essen.com</p>
 </td></tr></table></td></tr></table></body></html>`;
@@ -1061,5 +1061,42 @@ ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/anfragen" style="
     ),
     text: `${head[event]}\n${b.customer_name || b.couple_names} · ${b.email ?? ""} ${b.phone ?? ""}\n${formatDateGerman(b.event_date)}\n${note ? `\n${note}\n` : ""}\n${itemsRows(b).text}`,
     replyTo: b.email ?? undefined,
+  };
+}
+
+/**
+ * Persönliche Nachricht, die du im Admin selbst schreibst. Absätze durch Leerzeilen,
+ * Zeilen mit „– “ oder „- “ werden zur Liste. Optional mit Knopf zum Kundenportal
+ * (Link über /m/… – so siehst du, wann der Kunde ihn geöffnet hat).
+ */
+export function personalMail(b: MailBooking, subject: string, body: string, link: string | null) {
+  const blocks = body.replace(/\r/g, "").trim().split(/\n\s*\n/);
+  const html = blocks
+    .map((block) => {
+      const lines = block.split("\n");
+      const isList = (l: string) => /^\s*[–\-•]\s+/.test(l);
+      if (lines.length > 1 && lines.slice(1).every(isList) && !isList(lines[0])) {
+        return `<p style="margin:0 0 6px;line-height:1.6">${esc(lines[0])}</p><ul style="margin:0 0 14px;padding-left:20px;line-height:1.7">${lines
+          .slice(1)
+          .map((l) => `<li>${esc(l.replace(/^\s*[–\-•]\s+/, ""))}</li>`)
+          .join("")}</ul>`;
+      }
+      if (lines.every(isList)) {
+        return `<ul style="margin:0 0 14px;padding-left:20px;line-height:1.7">${lines.map((l) => `<li>${esc(l.replace(/^\s*[–\-•]\s+/, ""))}</li>`).join("")}</ul>`;
+      }
+      return `<p style="margin:0 0 14px;line-height:1.6">${lines.map(esc).join("<br>")}</p>`;
+    })
+    .join("");
+  const button = link
+    ? `<div style="margin:22px 0;padding:18px;border-radius:12px;background:#fbf8f1;border:1px solid #ebdab3;text-align:center">
+<div style="font-size:13px;color:#6f7882">${isSie(b) ? "Ihr" : "Dein"} Zugangscode fürs Kundenportal</div>
+<div style="margin:6px 0 12px;font-size:22px;font-weight:700;letter-spacing:2px;color:#1f2227">${esc(loginCode(b))}</div>
+<a href="${esc(link)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kundenportal</a>
+</div>`
+    : "";
+  return {
+    subject,
+    html: layout("", html + button),
+    text: `${body.trim()}${link ? `\n\nZum Kundenportal: ${link}\nZugangscode: ${loginCode(b)}` : ""}`,
   };
 }
