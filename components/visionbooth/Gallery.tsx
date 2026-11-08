@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { onAccent } from "./frame";
+import { onAccent, uiAccent } from "./frame";
 import { GuestUpload } from "./GuestUpload";
 
 interface Photo {
@@ -256,7 +256,7 @@ export function Gallery({
     }
   }
 
-  const gold = event.accent;
+  const gold = uiAccent(event.accent);
   const ink = onAccent(gold);
   const current = open !== null ? shown[open] : null;
   const hero = filter === "alle" && shown.length > 2;

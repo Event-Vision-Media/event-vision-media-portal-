@@ -18,7 +18,7 @@ import {
   FRAME_W,
   loadVbFonts,
   preloadArt,
-  onAccent,
+  onAccent, uiAccent,
   STORY_H,
   STORY_W,
   STRIP_H,
@@ -596,7 +596,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     setStep("kamera");
   }
 
-  const gold = accent;
+  const gold = uiAccent(accent);
   const ink = onAccent(gold);
   const busyStyle = event.aiStyles.find((s) => s.key === aiBusy);
   const backToStart = () => {
@@ -657,7 +657,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           <div className="vb-in mt-8 space-y-4" style={{ animationDelay: "320ms" }}>
             {event.reveal && !reveal?.result && <RevealPicker state={reveal} options={event.reveal.options} question={event.reveal.question} onPick={pickTip} />}
             {event.reveal && reveal?.result && (
-              <button onClick={() => setRevealShown(false)} className="w-full rounded-2xl px-4 py-3.5 text-left text-[15px] font-semibold" style={{ background: `color-mix(in srgb, ${accent} 30%, transparent)`, border: `1px solid ${accent}` }}>
+              <button onClick={() => setRevealShown(false)} className="w-full rounded-2xl px-4 py-3.5 text-left text-[15px] font-semibold" style={{ background: `color-mix(in srgb, ${gold} 30%, transparent)`, border: `1px solid ${gold}` }}>
                 {revealOpt(reveal.result)?.emoji} Aufgelöst: Es wird ein {revealOpt(reveal.result)?.label}! 🎉
               </button>
             )}

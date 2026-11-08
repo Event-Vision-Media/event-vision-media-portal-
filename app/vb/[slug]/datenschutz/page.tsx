@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { LANDLORD } from "@/lib/contract";
 import { loadVbEvent, toGuestEvent, vbDeleteAfter } from "@/lib/visionbooth";
+import { uiAccent } from "@/components/visionbooth/frame";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +21,7 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
   const days = event?.retention_days ?? 90;
 
   return (
-    <main className="vb min-h-[100dvh]" style={{ ["--a" as string]: g?.accent ?? "#c4933f" }}>
+    <main className="vb min-h-[100dvh]" style={{ ["--a" as string]: uiAccent(g?.accent ?? "#c4933f") }}>
       <div className="vb-aurora" aria-hidden />
       <article className="relative mx-auto max-w-xl px-5 pb-16 pt-10 text-[15px] leading-relaxed text-white/80">
         <a href={g ? `/vb/${g.slug}` : "#"} className="text-sm text-white/60 underline underline-offset-2">

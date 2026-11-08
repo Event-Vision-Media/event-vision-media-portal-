@@ -2,7 +2,7 @@
 
 import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { useEffect, useRef, useState } from "react";
-import { onAccent } from "./frame";
+import { onAccent, uiAccent } from "./frame";
 import { pct, useRevealState } from "./RevealGame";
 import type { RevealOption } from "./reveal";
 
@@ -155,7 +155,7 @@ export function LiveWall({
     return () => clearInterval(t);
   }, []);
 
-  const gold = event.accent;
+  const gold = uiAccent(event.accent);
   const strip = photos.slice(0, 6);
   const ink = onAccent(gold);
 

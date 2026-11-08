@@ -65,6 +65,46 @@ export async function loadVbFonts(el: Element | null): Promise<VbFonts> {
 }
 
 /** Schriftfarbe auf der Akzentfarbe: dunkel auf hellen, weiß auf dunklen Farben. */
+function luminance(hex: string): number {
+  const [r, g, b] = [1, 3, 5].map((i) => {
+    const c = parseInt(hex.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  });
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+/**
+ * Akzentfarbe für die dunkle App-Oberfläche (Gäste-App, Galerie, Foto-Wand, Kundenbereich).
+ * Sehr dunkle Farben (z. B. Schwarz beim schlichten Design) wären auf dem schwarzen Hintergrund
+ * unsichtbar: Grau-/Schwarztöne werden zu edlem Silber-Champagner, dunkle Farbtöne (Navy,
+ * Dunkelgrün, Bordeaux) werden so weit aufgehellt, dass sie gut lesbar sind. Die Rahmen auf den
+ * Fotos behalten die Originalfarbe.
+ */
+export function uiAccent(hex: string): string {
+  if (!/^#[0-9a-f]{6}$/i.test(hex)) return "#c4933f";
+  if (luminance(hex) >= 0.12) return hex;
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max - min < 0.12) return "#e4ded3";
+  // Farbton behalten, nur heller (und mindestens etwas satt) machen – Navy bleibt Blau, Bordeaux bleibt Rot
+  const d = max - min;
+  const h = max === r ? ((g - b) / d + 6) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  const sat = Math.max(0.45, d / (1 - Math.abs(max + min - 1)));
+  const toHex = (l: number) => {
+    const c = (1 - Math.abs(2 * l - 1)) * sat;
+    const x = c * (1 - Math.abs((h % 2) - 1));
+    const m = l - c / 2;
+    const [rr, gg, bb] = h < 1 ? [c, x, 0] : h < 2 ? [x, c, 0] : h < 3 ? [0, c, x] : h < 4 ? [0, x, c] : h < 5 ? [x, 0, c] : [c, 0, x];
+    return "#" + [rr, gg, bb].map((v) => Math.round((v + m) * 255).toString(16).padStart(2, "0")).join("");
+  };
+  for (let l = 0.45; l <= 0.85; l += 0.03) {
+    const out = toHex(l);
+    if (luminance(out) >= 0.2) return out;
+  }
+  return toHex(0.85);
+}
+
 export function onAccent(hex: string): string {
   const [r, g, b] = [1, 3, 5].map((i) => {
     const c = parseInt(hex.slice(i, i + 2), 16) / 255;

@@ -24,6 +24,7 @@ import { CopyField } from "@/components/admin/CopyField";
 import { LANDLORD } from "@/lib/contract";
 import { relevantGames } from "@/components/visionbooth/packages";
 import { VbAppBar } from "@/components/visionbooth/customer/VbAppBar";
+import { onAccent, uiAccent } from "@/components/visionbooth/frame";
 
 export const dynamic = "force-dynamic";
 
@@ -111,7 +112,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
 
   return (
     <main className="min-h-[100dvh] bg-sand-50 pb-20">
-      <header className="vb relative overflow-hidden" style={{ ["--a" as string]: event.accent_color, minHeight: 0 }}>
+      <header className="vb relative overflow-hidden" style={{ ["--a" as string]: uiAccent(event.accent_color), ["--ink" as string]: onAccent(uiAccent(event.accent_color)), minHeight: 0 }}>
         <div className="vb-aurora" style={{ position: "absolute" }} aria-hidden />
         <div className="relative mx-auto max-w-4xl px-5 pb-12 pt-8" style={{ paddingTop: "max(2rem, calc(env(safe-area-inset-top) + 1rem))" }}>
           <p className="flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.32em] text-white/60">
