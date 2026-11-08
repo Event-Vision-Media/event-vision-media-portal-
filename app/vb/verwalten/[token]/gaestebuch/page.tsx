@@ -81,7 +81,7 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
             </p>
           </div>
           <div className="opacity-80">
-            <VbLogo light height={20} />
+            <VbLogo variant="druck" height={20} />
           </div>
         </section>
 
@@ -131,7 +131,7 @@ export default async function VisionBoothGuestbookPage(props: { params: Promise<
               </p>
             </div>
             <div className="opacity-60">
-              <VbLogo light height={16} />
+              <VbLogo variant="druck" height={16} />
             </div>
           </section>
         )}
