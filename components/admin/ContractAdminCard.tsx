@@ -1,3 +1,4 @@
+import { referenceMedia } from "@/lib/reference-media";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -13,12 +14,15 @@ export function ContractAdminCard({
   required,
   onFile = false,
   digital = false,
+  devices = [],
 }: {
   bookingId: string;
   contract: SignedContract | null;
   required: boolean;
   /** Bestandsbuchung: Vertrag liegt außerhalb des Portals vor. */
   onFile?: boolean;
+  /** Gebuchte Geräte – für „Referenzfotos/-videos erlaubt“ */
+  devices?: string[];
   /** Buchung läuft über den digitalen Ablauf (Website/Admin mit Paket). */
   digital?: boolean;
 }) {
@@ -74,7 +78,7 @@ export function ContractAdminCard({
             <Row k="Version" v={contract.template_version} />
           </dl>
           <div className="flex flex-wrap gap-2 text-xs">
-            {contract.reference_consent ? <Badge tone="success">Referenzfotos erlaubt</Badge> : <Badge tone="neutral">Keine Referenzfotos</Badge>}
+            {contract.reference_consent ? <Badge tone="success">Referenz erlaubt: {referenceMedia(devices).label}</Badge> : <Badge tone="neutral">Keine Referenz-Aufnahmen</Badge>}
             {contract.early_start_requested && <Badge tone="neutral">Vorzeitiger Beginn verlangt</Badge>}
           </div>
           <div className="flex flex-wrap items-center gap-3 border-t border-anthracite-100 pt-4">

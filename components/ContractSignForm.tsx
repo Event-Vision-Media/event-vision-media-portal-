@@ -1,5 +1,6 @@
 "use client";
 
+import { referenceMedia } from "@/lib/reference-media";
 import { useState } from "react";
 import { useFormState, useFormStatus } from "react-dom";
 import { signContract, type ContractActionResult } from "@/app/actions/contract";
@@ -27,6 +28,7 @@ export function ContractSignForm({
   slots,
   noDeposit = false,
   shippedOnly = false,
+  devices = [],
 }: {
   prefill: ContractPrefill;
   sie: boolean;
@@ -39,7 +41,10 @@ export function ContractSignForm({
   noDeposit?: boolean;
   /** Alles wird verschickt – nur Überweisung möglich. */
   shippedOnly?: boolean;
+  /** Gebuchte Geräte – bestimmen, welche Aufnahmen als Referenz gemeint sind. */
+  devices?: string[];
 }) {
+  const ref = referenceMedia(devices);
   const [state, formAction] = useFormState(signContract, initialState);
   const [signed, setSigned] = useState(false);
   const t = (du: string, s: string) => (sie ? s : du);
@@ -189,8 +194,8 @@ export function ContractSignForm({
         <Check name="reference_consent">
           <span className="text-anthracite-500">
             {t(
-              "Optional: Ihr dürft einzelne Fotos unseres Events als Referenz auf eurer Website/Social Media zeigen (jederzeit widerrufbar).",
-              "Optional: Einzelne Fotos unserer Veranstaltung dürfen als Referenz auf Website/Social Media gezeigt werden (jederzeit widerrufbar)."
+              `Optional: Ihr dürft ${ref.phrase} unseres Events als Referenz auf eurer Website/Social Media zeigen (jederzeit widerrufbar).${ref.audioNote ? ` ${ref.audioNote}` : ""}`,
+              `Optional: ${ref.phrase.replace(/^einzelne/, "Einzelne")} unserer Veranstaltung dürfen als Referenz auf Website/Social Media gezeigt werden (jederzeit widerrufbar).${ref.audioNote ? ` ${ref.audioNote}` : ""}`
             )}
           </span>
         </Check>

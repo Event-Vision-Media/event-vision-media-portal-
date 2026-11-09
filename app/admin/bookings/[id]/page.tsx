@@ -1,3 +1,4 @@
+import { bookingDevices } from "@/lib/audience";
 import Link from "next/link";
 import { MediaReadyCard } from "@/components/admin/MediaReadyCard";
 import { mediaStatus } from "@/lib/media-ready";
@@ -405,7 +406,7 @@ export default async function AdminBookingDetailPage(props: {
           />
         )}
 
-        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} />
+        <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} devices={Array.from(bookingDevices(booking))} />
 
         {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} email={booking.email ?? null} />}
 

@@ -9,6 +9,7 @@
 // unterschriebene Verträge bleiben unverändert (Snapshot in
 // public.booking_contracts).
 
+import { referenceMedia } from "@/lib/reference-media";
 import {
   DEVICE_BY_PRODUCT_TYPE,
   EXTRA_NAME_BY_DEVICE,
@@ -28,7 +29,7 @@ import {
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
 
-export const CONTRACT_VERSION = "2026-10.9";
+export const CONTRACT_VERSION = "2026-11.1";
 
 /** Restzahlung per Überweisung: spätestens so viele Tage vor der Veranstaltung. */
 export const REST_DUE_DAYS = 14;
@@ -520,16 +521,17 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     ],
   });
 
-  // Referenz
+  // Referenz – je nach Gerät Fotos, Videos bzw. Fotos vom Aufbau
+  const ref = referenceMedia(deviceList);
   S.push({
     title: "Referenz",
     blocks: [
       {
         p: renter
           ? renter.reference_consent
-            ? "Der Mieter ist einverstanden, dass der Vermieter die Veranstaltung als Referenz nennen und einzelne ausgewählte Aufnahmen auf seiner Website und in seinen Social-Media-Kanälen zeigen darf. Diese Einwilligung ist freiwillig und kann jederzeit mit Wirkung für die Zukunft widerrufen werden."
+            ? `Der Mieter ist einverstanden, dass der Vermieter die Veranstaltung als Referenz nennen und ${ref.phrase} der Veranstaltung auf seiner Website und in seinen Social-Media-Kanälen zeigen darf.${ref.audioNote ? ` ${ref.audioNote}` : ""} Diese Einwilligung ist freiwillig und kann jederzeit mit Wirkung für die Zukunft widerrufen werden.`
             : "Der Vermieter verwendet Aufnahmen der Veranstaltung nicht als Referenz."
-          : "Ob der Vermieter einzelne Aufnahmen als Referenz zeigen darf, entscheidet der Mieter bei der Unterschrift (freiwillig, jederzeit widerrufbar).",
+          : `Ob der Vermieter ${ref.phrase} der Veranstaltung als Referenz zeigen darf, entscheidet der Mieter bei der Unterschrift (freiwillig, jederzeit widerrufbar).`,
       },
     ],
   });

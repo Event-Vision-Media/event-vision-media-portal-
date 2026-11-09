@@ -120,6 +120,7 @@ export default async function ContractPage() {
             hasDelivery={hasDelivery}
             noDeposit={doc.depositAmount === 0}
             shippedOnly={doc.shippedOnly}
+            devices={doc.devices}
             carryHelper={hasDelivery && booking.inquiry_items?.access?.help === "helfer"}
             slots={slots}
             prefill={{
