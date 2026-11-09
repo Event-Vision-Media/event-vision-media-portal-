@@ -16,6 +16,8 @@ export interface ActivityFeedEntry {
   bookingCode: string | null;
   bookingId?: string | null;
   customer?: string | null;
+  /** Eigener Link (z. B. VisionBooth-Bestellungen statt Buchungsseite) */
+  href?: string | null;
 }
 
 export function ActivityFeed({ entries }: { entries: ActivityFeedEntry[] }) {
@@ -74,8 +76,8 @@ export function ActivityFeed({ entries }: { entries: ActivityFeedEntry[] }) {
             <div className="min-w-0">
               <p className="text-anthracite-700">
                 {entry.bookingCode &&
-                  (entry.bookingId ? (
-                    <Link href={`/admin/bookings/${entry.bookingId}`} className="font-medium text-anthracite-800 underline-offset-2 hover:text-gold-700 hover:underline">
+                  (entry.bookingId || entry.href ? (
+                    <Link href={entry.href ?? `/admin/bookings/${entry.bookingId}`} className="font-medium text-anthracite-800 underline-offset-2 hover:text-gold-700 hover:underline">
                       {entry.bookingCode}
                       {entry.customer ? ` · ${entry.customer}` : ""}
                     </Link>

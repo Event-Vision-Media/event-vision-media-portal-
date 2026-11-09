@@ -8,6 +8,8 @@ import { EventUploadedToggle } from "@/components/admin/EventUploadedToggle";
 import { EventCompletedToggle } from "@/components/admin/EventCompletedToggle";
 import { formatDateGerman } from "@/lib/format";
 import type { BookingStatus, LayoutProof } from "@/lib/types";
+import { cookies } from "next/headers";
+import { getOccasion, getPlan } from "@/components/visionbooth/packages";
 
 export const dynamic = "force-dynamic";
 
@@ -58,7 +60,30 @@ export default async function AdminBookingsPage(props: {
     }
   });
 
-  const activityEntries: ActivityFeedEntry[] = (activityData ?? []).map((entry: any) => ({
+  // VisionBooth-Buchungen (online bezahlt) – „neu“, bis du die Bestellliste öffnest oder sie als gelesen markierst
+  const vbSeen = (await cookies()).get("vb_orders_seen")?.value ?? "";
+  const { data: vbOrders } = await supabase
+    .from("vb_orders")
+    .select("id, title, occasion, plan, event_date, paid_at, paid_cents, amount_cents, name")
+    .eq("status", "bezahlt")
+    .gte("paid_at", new Date(Date.now() - 30 * 86_400_000).toISOString())
+    .order("paid_at", { ascending: false })
+    .limit(20);
+  const vbEntries: ActivityFeedEntry[] = (vbOrders ?? []).map((o: any) => {
+    const paid = Number(o.paid_cents ?? o.amount_cents) / 100;
+    const price = paid === 0 ? "Gratis-Code" : paid.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
+    return {
+      id: `vb:${o.id}`,
+      message: `${paid === 0 ? "🎁" : "🎉"} Neue VisionBooth: ${o.title} · ${getOccasion(o.occasion).label} · ${getPlan(o.plan).label} · ${price}${o.event_date ? ` · Event ${formatDateGerman(o.event_date)}` : ""}`,
+      created_at: o.paid_at,
+      read_at: vbSeen && o.paid_at <= vbSeen ? vbSeen : null,
+      bookingCode: "VisionBooth",
+      customer: o.name ?? null,
+      href: "/admin/visionbooth/bestellungen",
+    };
+  });
+
+  const activityEntries: ActivityFeedEntry[] = [...vbEntries, ...(activityData ?? []).map((entry: any) => ({
     id: entry.id,
     message: entry.message,
     created_at: entry.created_at,
@@ -66,7 +91,7 @@ export default async function AdminBookingsPage(props: {
     bookingCode: entry.bookings?.booking_code ?? null,
     bookingId: entry.booking_id ?? null,
     customer: entry.bookings?.customer_name || entry.bookings?.couple_names || null,
-  }));
+  }))].sort((a, b) => b.created_at.localeCompare(a.created_at));
 
   const personalizedScreenBookingIds = new Set<string>();
   (bookingExtras ?? []).forEach((be: any) => {

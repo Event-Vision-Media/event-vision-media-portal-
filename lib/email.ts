@@ -1117,3 +1117,45 @@ export function personalMail(b: MailBooking, subject: string, body: string, link
     text: `${body.trim()}${link ? `\n\nZum Kundenportal: ${link}\nZugangscode: ${loginCode(b)}` : ""}`,
   };
 }
+
+/** Für dich: neue VisionBooth-Buchung (online bezahlt bzw. per Gratis-Code) – nichts zu tun, nur zur Info. */
+export function vbAdminOrderMail(o: {
+  title: string;
+  occasion: string;
+  plan: string;
+  eventDate: string | null;
+  name: string | null;
+  email: string;
+  company: string | null;
+  paidEur: number;
+  listEur: number;
+  adminUrl: string;
+  manageUrl: string | null;
+  /** Lexware-Rechnungen eingeschaltet? */
+  invoice?: boolean;
+}) {
+  const free = o.paidEur === 0;
+  const price = free ? `0 € (Gratis-Code, statt ${formatEuro(o.listEur)})` : o.paidEur < o.listEur ? `${formatEuro(o.paidEur)} (mit Rabattcode, statt ${formatEuro(o.listEur)})` : formatEuro(o.paidEur);
+  const date = o.eventDate ? formatDateGerman(o.eventDate) : "ohne Datum";
+  const rows: [string, string][] = [
+    ["Event", o.title],
+    ["Anlass", o.occasion],
+    ["Datum", date],
+    ["Paket", o.plan],
+    ["Bezahlt", price],
+    ["Kunde", [o.name, o.company].filter(Boolean).join(" · ") || "–"],
+    ["E-Mail", o.email],
+  ];
+  const subject = `${free ? "🎁 Gratis-" : "🎉 Neue "}VisionBooth-Buchung: ${o.title} – ${date}`;
+  return {
+    subject,
+    html: layout(
+      free ? "Neue VisionBooth – Gratis-Code eingelöst" : "Neue VisionBooth-Buchung 🎉",
+      `<p style="line-height:1.6">Gerade wurde eine VisionBooth gebucht und automatisch eingerichtet – du musst nichts tun. ${free ? "Bei 0 € gibt es keine Rechnung." : o.invoice ? "Die Rechnung geht automatisch über Lexware raus." : "Automatische Rechnungen sind ausgeschaltet – bitte selbst eine Rechnung schreiben."}</p>
+<table role="presentation" width="100%" style="font-size:14px;margin:14px 0">${rows.map(([k, v]) => `<tr><td style="color:#6f7882;padding:4px 0;width:90px">${esc(k)}</td><td style="padding:4px 0">${esc(v)}</td></tr>`).join("")}</table>
+<p style="margin:20px 0;text-align:center"><a href="${esc(o.adminUrl)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Bestellung im Admin ansehen</a></p>
+${o.manageUrl ? `<p style="font-size:13px;color:#6f7882;line-height:1.6">Kundenbereich (zum Reinschauen, nicht weitergeben): <a href="${esc(o.manageUrl)}">${esc(o.manageUrl)}</a></p>` : ""}`
+    ),
+    text: `${subject}\n\n${rows.map(([k, v]) => `${k}: ${v}`).join("\n")}\n\nAdmin: ${o.adminUrl}${o.manageUrl ? `\nKundenbereich: ${o.manageUrl}` : ""}`,
+  };
+}

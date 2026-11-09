@@ -5,6 +5,8 @@ import { vbBaseUrl } from "@/lib/visionbooth";
 import { provisionVbEvent } from "@/lib/visionbooth-provision";
 import { getOccasion, getPlan } from "@/components/visionbooth/packages";
 import { issueVbInvoice, type VbBilling } from "@/lib/visionbooth-invoice";
+import { sendEmail, vbAdminOrderMail } from "@/lib/email";
+import { lexwareEnabled } from "@/lib/lexware";
 
 /** Rechnungsadresse aus der Stripe-Zahlung (customer_details) übernehmen. */
 function billingFrom(session: any, order: VbOrder): VbBilling {
@@ -156,6 +158,27 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
   // Rechnung über Lexware (nur wenn aktiviert) – Fehler blockieren die Einrichtung nicht
   // 0 € (100-%-Gutschein): keine Rechnung
   if (paidCents > 0) await issueVbInvoice(order.id).catch((e) => console.error("VisionBooth-Rechnung:", e));
+  // Info an dich (läuft nur hier, nach dem Sperren der Bestellung – also genau einmal)
+  if (process.env.ADMIN_EMAIL) {
+    const portal = (process.env.PORTAL_URL || "").replace(/\/$/, "");
+    await sendEmail({
+      to: process.env.ADMIN_EMAIL,
+      ...vbAdminOrderMail({
+        title: order.title,
+        occasion: getOccasion(order.occasion).label,
+        plan: getPlan(order.plan).label,
+        eventDate: order.event_date,
+        name: order.name,
+        email: order.email,
+        company: order.company,
+        paidEur: paidCents / 100,
+        listEur: order.amount_cents / 100,
+        adminUrl: `${portal}/admin/visionbooth/bestellungen`,
+        manageUrl: res.manageUrl ?? null,
+        invoice: lexwareEnabled(),
+      }),
+    }).catch((e) => console.error("VisionBooth-Info an Admin:", e));
+  }
   return { order: { ...order, status: "bezahlt", vb_event_id: res.id }, manageUrl: res.manageUrl };
 }
 

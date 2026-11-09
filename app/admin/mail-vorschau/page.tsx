@@ -3,7 +3,7 @@ import { AdminHeader } from "@/components/admin/AdminHeader";
 import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, mediaReadyMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
-import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
+import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail, vbAdminOrderMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
 import { applyOffer } from "@/lib/catalog";
 import { SAMPLE_WEEKLY_PLAN } from "@/lib/weekly-plan-sample";
 
@@ -101,6 +101,8 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
     { title: "VB 2 · VisionBooth: Rechnung (nach Online-Zahlung, PDF im Anhang)", mail: vbInvoiceMail({ name: "Anna Beispiel", title: "Anna & Max", number: "RE1042", amount: 129 }) },
     { title: "VB 3 · VisionBooth: Erinnerung vor dem Event (1–7 Tage vorher)", mail: vbBeforeMail({ name: "Anna Beispiel", title: "Anna & Max", date: "2027-06-12", days: 5, manageUrl: "https://visionbooth.de/vb/verwalten/beispiel", posterUrl: "https://visionbooth.de/vb/verwalten/beispiel/aufsteller" }) },
     { title: "VB 4 · VisionBooth: Tag danach – Galerie (nur wenn Fotos)", mail: vbAfterMail({ name: "Anna Beispiel", title: "Anna & Max", photos: 412, galleryUrl: "https://visionbooth.de/vb/beispiel/galerie", manageUrl: "https://visionbooth.de/vb/verwalten/beispiel", deleteDate: "2027-12-12", highlights: { aiPhotos: 87, guests: 23, winner: { name: "Lisa", points: 140 }, topPhoto: { url: "https://visionbooth.de/visionbooth/stile/original.webp", likes: 31 } } }) },
+    { title: "VB 6 · An dich: neue VisionBooth-Buchung (sofort nach Zahlung)", mail: vbAdminOrderMail({ title: "Anna & Max", occasion: "Hochzeit", plan: "Premium mit KI", eventDate: "2027-06-12", name: "Anna Beispiel", email: "anna@beispiel.test", company: null, paidEur: 129, listEur: 129, adminUrl: "https://portal.fotobox-essen.com/admin/visionbooth/bestellungen", manageUrl: "https://visionbooth.de/vb/verwalten/beispiel", invoice: true }) },
+    { title: "VB 6b · An dich: Gratis-Code eingelöst", mail: vbAdminOrderMail({ title: "Geburtstag · Test", occasion: "Geburtstag", plan: "Premium mit KI", eventDate: "2026-11-29", name: "Lena Beispiel", email: "lena@beispiel.test", company: null, paidEur: 0, listEur: 129, adminUrl: "https://portal.fotobox-essen.com/admin/visionbooth/bestellungen", manageUrl: null }) },
     { title: "VB 5 · VisionBooth: Vor der Löschung (1–7 Tage vorher, nur wenn Fotos)", mail: vbDeletionMail({ name: "Anna Beispiel", title: "Anna & Max", photos: 412, days: 7, deleteDate: "2027-12-12", galleryUrl: "https://visionbooth.de/vb/beispiel/galerie" }) },
   ];
 

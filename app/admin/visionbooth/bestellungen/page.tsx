@@ -7,6 +7,7 @@ import { lexwareEnabled, lexwareKeySet } from "@/lib/lexware";
 import { VbLexwareDraftTest } from "@/components/admin/visionbooth/VbLexwareDraftTest";
 import { VbInvoiceRetry } from "@/components/admin/visionbooth/VbInvoiceRetry";
 import { formatDateGerman } from "@/lib/format";
+import { VbOrdersSeen } from "@/components/admin/visionbooth/VbOrdersSeen";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +22,7 @@ export default async function AdminVbOrdersPage() {
   return (
     <div className="min-h-screen bg-sand-50">
       <AdminHeader />
+      <VbOrdersSeen />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
         <Link href="/admin/visionbooth" className="text-sm text-anthracite-500 hover:underline">← VisionBooth</Link>
         <h1 className="mt-2 font-serif text-2xl font-semibold text-anthracite-800">Online-Bestellungen</h1>
