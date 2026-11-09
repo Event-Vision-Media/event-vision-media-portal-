@@ -96,6 +96,9 @@ export async function createCheckout(order: VbOrder): Promise<string> {
  * Bezahlte Bestellung einrichten (idempotent): nur wer den Status von „offen“ auf
  * „wird_eingerichtet“ setzen kann, legt das Event an.
  */
+/** KI-Bilder für Gratis-Testbuchungen (0 € per Code). */
+const FREE_AI_LIMIT = 50;
+
 export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder | null; manageUrl?: string; error?: string }> {
   const supabase = createAdminClient();
   const { data: found } = await supabase.from("vb_orders").select("*").eq("stripe_session_id", sessionId).maybeSingle();
@@ -147,6 +150,8 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
         ? { missions: Boolean(order.games.missions), reveal: Boolean(order.games.reveal), leads: Boolean(order.games.leads), wheel: Boolean(order.games.wheel), guestbook: Boolean(order.games.guestbook) }
         : undefined,
     sendMail: true,
+    // Gratis-Testbuchung (100-%-Code): KI-Kontingent begrenzen – im Admin jederzeit erhöhbar
+    ...(paidCents === 0 ? { aiLimitCap: FREE_AI_LIMIT } : {}),
     order: { plan: getPlan(order.plan).label, price: paidCents / 100, listPrice: paidCents < order.amount_cents ? order.amount_cents / 100 : undefined, orderNo: order.id.slice(0, 8).toUpperCase() },
   });
   if ("error" in res) {

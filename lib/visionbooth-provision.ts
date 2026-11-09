@@ -50,6 +50,8 @@ export interface ProvisionInput {
   company?: string | null;
   /** Vorlage statt der Anlass-Vorlage (z. B. Kinder-Motto aus der Buchung) */
   template?: string | null;
+  /** Kleineres KI-Kontingent als im Paket (z. B. Gratis-Testbuchungen) */
+  aiLimitCap?: number;
 }
 
 export interface ProvisionResult {
@@ -97,7 +99,7 @@ export async function provisionVbEvent(input: ProvisionInput): Promise<Provision
     retention_days: plan.retentionDays,
     ai_enabled: ai,
     ai_styles: occ.aiStyles,
-    ai_limit: plan.aiLimit,
+    ai_limit: input.aiLimitCap != null ? Math.min(plan.aiLimit, input.aiLimitCap) : plan.aiLimit,
     ai_per_guest: Math.max(1, plan.aiPerGuest),
     wall_enabled: true,
     gallery_enabled: true,
