@@ -183,7 +183,7 @@ export default async function AdminInquiriesPage(props: { searchParams: Promise<
                     <InquiryActions
                       bookingId={b.id}
                       hasEmail={Boolean(b.email)}
-                      offer={items.packages?.length ? { baseTotal, isFromPrice: Boolean(items.isFromPrice), lines, question: offer?.status === "aenderung" && offer.customer_note ? `Änderungswunsch: ${offer.customer_note}` : b.inquiry_message ?? null, sent: Boolean(offer) } : null}
+                      offer={items.packages?.length ? { baseTotal, isFromPrice: Boolean(items.isFromPrice), lines, question: offer?.status === "aenderung" && offer.customer_note ? `Änderungswunsch: ${offer.customer_note}` : b.inquiry_message ?? null, sent: Boolean(offer), eventDate: b.event_date } : null}
                     />
                   ) : b.lifecycle === "abgelehnt" || b.lifecycle === "storniert" ? (
                     <BookingRowActions bookingId={b.id} />

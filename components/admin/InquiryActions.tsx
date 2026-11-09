@@ -6,7 +6,7 @@ import { confirmInquiry, declineInquiry } from "@/app/actions/admin-inquiries";
 import { Button } from "@/components/ui/Button";
 import { OfferForm } from "@/components/admin/OfferForm";
 
-type OfferProps = { baseTotal: number; isFromPrice: boolean; lines: { label: string; amount: number }[]; question: string | null; sent: boolean };
+type OfferProps = { baseTotal: number; isFromPrice: boolean; lines: { label: string; amount: number }[]; question: string | null; sent: boolean; eventDate?: string | null };
 
 export function InquiryActions({ bookingId, hasEmail, offer }: { bookingId: string; hasEmail: boolean; offer?: OfferProps | null }) {
   const [offerOpen, setOfferOpen] = useState(false);
@@ -43,26 +43,29 @@ export function InquiryActions({ bookingId, hasEmail, offer }: { bookingId: stri
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
-        <Button type="button" variant="secondary" disabled={isPending} onClick={() => confirm(false)}>
-          {isPending ? "Wird gespeichert…" : "✓ Bestätigen & Auftragsbestätigung senden"}
+        {offer && hasEmail && (
+          <Button type="button" variant="primary" disabled={isPending} onClick={() => { setOfferOpen((o) => !o); setDeclineOpen(false); }}>
+            {offer.sent ? "✉️ Neues Angebot senden" : "✉️ Angebot senden"}
+          </Button>
+        )}
+        <Button type="button" variant={offer && hasEmail ? "ghost" : "secondary"} disabled={isPending} onClick={() => confirm(false)}>
+          {isPending ? "Wird gespeichert…" : offer && hasEmail ? "Ohne Angebot direkt bestätigen" : "✓ Bestätigen & Auftragsbestätigung senden"}
         </Button>
         {needsForce && (
           <Button type="button" variant="primary" disabled={isPending} onClick={() => confirm(true)}>
             Trotzdem bestätigen
           </Button>
         )}
-        {offer && hasEmail && (
-          <Button type="button" variant="secondary" disabled={isPending} onClick={() => { setOfferOpen((o) => !o); setDeclineOpen(false); }}>
-            {offer.sent ? "✉️ Neues Angebot senden" : "✉️ Angebot senden"}
-          </Button>
-        )}
         <Button type="button" variant="ghost" disabled={isPending} onClick={() => { setDeclineOpen((o) => !o); setOfferOpen(false); }}>
           Ablehnen
         </Button>
       </div>
+      {offer && hasEmail && !offer.sent && !offerOpen && (
+        <p className="text-xs text-anthracite-500">Standard: Angebot senden – nimmt der Kunde an, geht die Auftragsbestätigung automatisch raus. „Direkt bestätigen“ z. B. für Stammkunden.</p>
+      )}
 
       {offerOpen && offer && (
-        <OfferForm bookingId={bookingId} baseTotal={offer.baseTotal} isFromPrice={offer.isFromPrice} lines={offer.lines} question={offer.question} onDone={() => setOfferOpen(false)} />
+        <OfferForm bookingId={bookingId} baseTotal={offer.baseTotal} isFromPrice={offer.isFromPrice} lines={offer.lines} question={offer.question} eventDate={offer.eventDate ?? null} onDone={() => setOfferOpen(false)} />
       )}
 
       {declineOpen && (

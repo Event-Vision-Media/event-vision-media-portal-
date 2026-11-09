@@ -51,7 +51,7 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
   const mails = [
     { title: "1 · Termin vorgemerkt (sofort nach der Anfrage, ohne Zugang)", mail: reservationMail(sample) },
     { title: "2 · Eingangsbestätigung (Termin belegt oder kurzfristig – du prüfst persönlich)", mail: inquiryReceivedMail(sample, "belegt") },
-    { title: "2a · Angebot (Knopf „Angebot senden“ – bei Rückfragen oder Anpassungen)", mail: offerMail(offerSample, offerInfo) },
+    { title: "2a · Angebot (Standard nach jeder Anfrage – Knopf „Angebot senden“)", mail: offerMail(offerSample, offerInfo) },
     { title: "2b · Erinnerung Angebot (3 Tage ohne Antwort)", mail: offerMail(offerSample, offerInfo, { reminder: true }) },
     { title: "2c · Angebot abgelaufen (Termin wieder frei)", mail: offerExpiredMail(offerSample) },
     { title: "2d · An dich: Änderungswunsch zum Angebot", mail: offerAdminMail({ ...offerSample, email: "anna@beispiel.de", phone: "0171 2345678" }, "aenderung", "Können wir statt 2 Zusatzstunden nur eine nehmen?") },

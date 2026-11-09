@@ -186,17 +186,17 @@ export function reservationMail(b: MailBooking) {
         subject: `Ihr Termin ist vorgemerkt – ${BRAND}`,
         title: "Vielen Dank – Ihr Termin ist vorgemerkt",
         intro: `vielen Dank für Ihre Anfrage! Ihr Wunschtermin ist <strong>für Sie vorgemerkt</strong> und wird in dieser Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie von uns die Auftragsbestätigung – zusammen mit Ihrem persönlichen Zugang zum Kundenportal. Haben Sie uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei Ihnen. Dort unterschreiben Sie bequem den Mietvertrag und wählen Ihr Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> erhalten Sie Ihr persönliches Angebot – haben Sie uns eine Frage gestellt, beantworten wir sie gleich mit. Sagt Ihnen das Angebot zu, nehmen Sie es mit einem Klick an und erhalten sofort die Auftragsbestätigung mit Ihrem Zugang zum Kundenportal.",
         call: "Fragen oder Wünsche? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
       }
     : {
         subject: `Dein Termin ist vorgemerkt – ${BRAND}`,
         title: "Danke – dein Termin ist vorgemerkt! ✨",
         intro: `vielen Dank für deine Anfrage! Dein Wunschtermin ist <strong>für dich vorgemerkt</strong> und wird in der Zeit niemand anderem angeboten.`,
-        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du von uns die Auftragsbestätigung – zusammen mit deinem persönlichen Zugang zum Kundenportal. Hast du uns eine Frage gestellt oder ist noch etwas zu klären? Dann melden wir uns vorher zeitnah persönlich bei dir. Dort unterschreibst du ganz bequem den Mietvertrag und wählst dein Layout.",
+        next: "Wir prüfen jetzt kurz Location und Details. <strong>Innerhalb von 24 Stunden</strong> bekommst du dein persönliches Angebot – hast du uns eine Frage gestellt, beantworten wir sie gleich mit. Sagt dir das Angebot zu, nimmst du es mit einem Klick an und bekommst sofort die Auftragsbestätigung mit deinem Zugang zum Kundenportal.",
         call: "Fragen oder Wünsche? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
       };
-  const note = "Richtpreis, unverbindlich – verbindlich wird die Buchung mit unserer Auftragsbestätigung und dem Mietvertrag.";
+  const note = "Richtpreis, unverbindlich – verbindlich wird die Buchung erst mit der Zusage zum Angebot und dem Mietvertrag.";
   return {
     subject: t.subject,
     html: layout(
@@ -972,6 +972,22 @@ export interface MailOffer {
 }
 
 /** Angebot an den Kunden – auch als Erinnerung (3 Tage vor Ablauf bzw. nach 3 Tagen ohne Antwort). */
+/** „Darum Event Vision Media“ – Vorteile im Angebot (überzeugt beim Vergleich mit anderen Anbietern). */
+function offerBenefits(b: MailBooking): string {
+  const sie = isSie(b);
+  const items = [
+    ["★★★★★", sie ? "5,0 Sterne bei Google – unsere Kunden empfehlen uns weiter" : "5,0 Sterne bei Google – unsere Kunden empfehlen uns weiter"],
+    ["✓", sie ? "Persönlicher Ansprechpartner von der Anfrage bis zum Event" : "Persönlicher Ansprechpartner von der Anfrage bis zum Event"],
+    ["✓", sie ? "Eigenes Kundenportal: Layout gestalten, Vertrag und Zahlungen bequem online" : "Eigenes Kundenportal: Layout gestalten, Vertrag und Zahlungen bequem online"],
+    ["✓", sie ? "Individuelles Design mit Ihren Namen bzw. Ihrem Logo" : "Individuelles Design mit euren Namen oder eurem Motto"],
+    ["✓", "Faire Endpreise – keine versteckten Kosten"],
+  ];
+  return `<div style="margin:20px 0 4px;padding:16px 18px;border-radius:12px;background:#16181c;color:#f3eee5">
+<div style="font-family:Georgia,serif;font-size:16px;color:#dfc186;margin-bottom:8px">Darum ${BRAND}</div>
+${items.map(([ic, t]) => `<div style="padding:3px 0;font-size:14px;line-height:1.5"><span style="display:inline-block;min-width:22px;color:#dfc186">${ic === "★★★★★" ? "★" : ic}</span>${esc(t)}</div>`).join("")}
+</div>`;
+}
+
 export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boolean } = {}) {
   const sie = isSie(b);
   const until = formatDateGerman(o.validUntil);
@@ -986,8 +1002,8 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
             ? "vielen Dank für Ihre Rückmeldung! Wir haben das Angebot für Sie angepasst."
             : "vielen Dank für Ihre Anfrage! Bevor wir verbindlich bestätigen, haben wir Ihnen ein persönliches Angebot zusammengestellt.",
         reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist Ihr Termin für Sie reserviert" : ""}.`,
-        how: "Mit einem Klick nehmen Sie an – danach erhalten Sie sofort die Auftragsbestätigung mit Ihrem Zugang zum Kundenportal. Passt noch etwas nicht? Dann können Sie dort auch eine Änderung wünschen.",
-        button: "Angebot ansehen & antworten",
+        how: "Der Knopf öffnet zunächst nur Ihr Angebot – dort sehen Sie alles in Ruhe an und entscheiden selbst: <strong>annehmen</strong>, <strong>Änderung wünschen</strong> oder ablehnen. Erst wenn Sie dort auf „Angebot annehmen“ klicken, erhalten Sie die Auftragsbestätigung mit Ihrem Zugang zum Kundenportal.",
+        button: "Angebot ansehen",
         call: "Fragen? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
       }
     : {
@@ -999,8 +1015,8 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
             ? "danke für deine Rückmeldung! Wir haben das Angebot für dich angepasst."
             : "vielen Dank für deine Anfrage! Bevor wir verbindlich bestätigen, haben wir dir ein persönliches Angebot zusammengestellt.",
         reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist dein Termin für dich reserviert" : ""}.`,
-        how: "Mit einem Klick nimmst du an – danach bekommst du sofort die Auftragsbestätigung mit deinem Zugang zum Kundenportal. Passt noch etwas nicht? Dann kannst du dort auch eine Änderung wünschen.",
-        button: "Angebot ansehen & antworten",
+        how: "Der Knopf öffnet zunächst nur dein Angebot – dort schaust du dir alles in Ruhe an und entscheidest selbst: <strong>annehmen</strong>, <strong>Änderung wünschen</strong> oder ablehnen. Erst wenn du dort auf „Angebot annehmen“ klickst, bekommst du die Auftragsbestätigung mit deinem Zugang zum Kundenportal.",
+        button: "Angebot ansehen",
         call: "Fragen? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
       };
   const answer = o.message.trim()
@@ -1014,13 +1030,14 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
 <p style="line-height:1.6">${t.intro}</p>
 ${answer}
 ${details(b)}
+${offerBenefits(b)}
 <p style="margin-top:18px;line-height:1.6">${t.reserved}</p>
 <p style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${t.button}</a></p>
 <p style="line-height:1.6;color:#4f5761">${t.how}</p>
 <p style="margin-top:12px;line-height:1.6">${t.call}</p>
 <p style="margin-top:12px;color:#6f7882;font-size:13px;line-height:1.6">${TAX}</p>`
     ),
-    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim()}\n\nAnfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & antworten: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim()}\n\nAnfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
   };
 }
 

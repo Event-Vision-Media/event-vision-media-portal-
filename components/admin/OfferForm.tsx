@@ -19,6 +19,7 @@ export function OfferForm({
   isFromPrice,
   lines,
   question,
+  eventDate = null,
   onDone,
 }: {
   bookingId: string;
@@ -27,11 +28,15 @@ export function OfferForm({
   isFromPrice: boolean;
   lines: { label: string; amount: number }[];
   question: string | null;
+  /** Für kurzfristige Events kürzere Gültigkeit vorschlagen */
+  eventDate?: string | null;
   onDone: () => void;
 }) {
   const [message, setMessage] = useState("");
   const [rows, setRows] = useState<Row[]>(lines.length ? lines.map((l) => ({ label: l.label, amount: String(l.amount).replace(".", ",") })) : [{ label: "", amount: "" }]);
-  const [days, setDays] = useState(7);
+  // Kurzfristig (Event in weniger als 10 Tagen): 3 Tage Gültigkeit vorschlagen
+  const daysToEvent = eventDate ? Math.round((Date.parse(eventDate) - Date.now()) / 86_400_000) : 99;
+  const [days, setDays] = useState(daysToEvent < 10 ? 3 : 7);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const router = useRouter();
