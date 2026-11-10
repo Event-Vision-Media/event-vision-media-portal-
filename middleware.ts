@@ -6,7 +6,7 @@ import { updateSession } from "@/lib/supabase/middleware";
 // Kundenportal) gehört zum Portal und wird dorthin weitergeleitet.
 const VB_HOSTS = new Set(["visionbooth.de"]);
 const PORTAL = "https://portal.fotobox-essen.com";
-const VB_PATHS = /^\/(vb(\/|$)|api\/vb\/|_next\/|visionbooth\/|vb-sw\.js$|favicon|robots\.txt$)/;
+const VB_PATHS = /^\/(vb(\/|$)|api\/vb\/|_next\/|visionbooth\/|vb-sw\.js$|favicon|robots\.txt$|sitemap\.xml$)/;
 
 export async function middleware(request: NextRequest) {
   const host = (request.headers.get("host") ?? "").split(":")[0].toLowerCase();

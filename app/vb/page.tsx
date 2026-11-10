@@ -8,14 +8,29 @@ import { PhoneDemo } from "@/components/visionbooth/site/PhoneDemo";
 import { StoryScenes } from "@/components/visionbooth/site/StoryScenes";
 import { Reveal } from "@/components/visionbooth/site/Reveal";
 import { vbBaseUrl } from "@/lib/visionbooth";
-import { getPlan } from "@/components/visionbooth/packages";
+import { getPlan, VB_PLANS } from "@/components/visionbooth/packages";
 import { PlanTabs } from "@/components/visionbooth/site/PlanTabs";
 import { LANDLORD } from "@/lib/contract";
 
+const SEO_TITLE = "Digitale Fotobox fürs Handy – ohne App, mit KI | VisionBooth";
+const SEO_DESC =
+  "Die digitale Fotobox für Hochzeit, Geburtstag & Firmenfeier: Gäste scannen einen QR-Code und fotografieren mit dem eigenen Handy – mit eurem Rahmen, KI-Bildern, Foto-Spielen und gemeinsamer Galerie. Deutschlandweit, ganz ohne App. Ab 79 €.";
+
 export const metadata: Metadata = {
-  title: "VisionBooth – die digitale Fotobox mit KI für dein Event",
-  description:
-    "QR-Code scannen, Foto machen, mit KI verwandeln – ganz ohne App. Digitale Fotobox mit Foto-Missionen, Live-Foto-Wand und Galerie für Hochzeit, Geburtstag und Firmenevents. Ab 79 €.",
+  metadataBase: new URL("https://visionbooth.de"),
+  title: SEO_TITLE,
+  description: SEO_DESC,
+  alternates: { canonical: "https://visionbooth.de/" },
+  openGraph: {
+    type: "website",
+    url: "https://visionbooth.de/",
+    siteName: "VisionBooth",
+    locale: "de_DE",
+    title: "VisionBooth – die digitale Fotobox fürs Handy",
+    description: "QR-Code scannen, Foto mit eurem Rahmen, KI-Bilder & gemeinsame Galerie – ganz ohne App. Für Hochzeit, Geburtstag und Firmenfeier.",
+    images: [{ url: "https://visionbooth.de/vb/og-bild", width: 1200, height: 630, alt: "VisionBooth – die digitale Fotobox fürs Handy" }],
+  },
+  twitter: { card: "summary_large_image", title: "VisionBooth – die digitale Fotobox fürs Handy", description: "Ganz ohne App: Fotos mit Rahmen, KI-Bilder, Foto-Spiele und gemeinsame Galerie.", images: ["https://visionbooth.de/vb/og-bild"] },
 };
 
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#0a0a0c" };
@@ -45,9 +60,52 @@ const FAQ = [
   { q: "Kann ich Design und Texte später ändern?", a: "Ja, jederzeit in deinem persönlichen Bereich – Änderungen sind sofort für alle Gäste sichtbar." },
   { q: "Gibt es etwas für Kindergeburtstage?", a: "Ja! Mit Motto-Rahmen wie Prinzessin, Dino, Feuerwehr, Piraten, Einhorn, Weltraum oder Fußball und lustigen Kinder-Missionen. Die KI-Verwandlung ist dabei bewusst aus – Kinderfotos geben wir nicht an KI-Dienste weiter." },
   { q: "Gibt es das auch zusätzlich zu einer Fotobox?", a: "Ja! Wenn du bei uns eine Fotobox oder einen Fotospiegel mietest, gibt es die VisionBooth als günstiges Add-on dazu." },
+  { q: "Was ist eine digitale Fotobox?", a: "Eine digitale Fotobox ist eine Fotobox ohne Gerät: Statt einer Kamera-Box vor Ort fotografieren eure Gäste mit dem eigenen Handy – mit eurem Foto-Rahmen, Spielen und KI-Effekten. Alle Bilder landen automatisch in einer gemeinsamen Online-Galerie." },
+  { q: "Funktioniert die digitale Fotobox deutschlandweit?", a: "Ja. Da nichts geliefert oder aufgebaut werden muss, könnt ihr die VisionBooth überall in Deutschland nutzen – egal ob in Berlin, Hamburg, München oder auf dem Land. Nötig ist nur mobiles Internet oder WLAN in der Location." },
+  { q: "Was kostet eine digitale Fotobox?", a: "Die VisionBooth gibt es ab 79 € (Classic) bzw. 129 € mit KI-Bildern – als Einmalzahlung, ohne Abo. Für Firmen gibt es das Business-Paket mit Logo ab 299 €." },
 ];
 
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+
+/** Strukturierte Daten für Google: Organisation, Produkt mit Preisen, häufige Fragen. */
+function jsonLd() {
+  const plans = VB_PLANS.filter((p) => p.kind !== "addon");
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "Organization",
+        "@id": "https://visionbooth.de/#org",
+        name: "VisionBooth",
+        url: "https://visionbooth.de/",
+        logo: "https://visionbooth.de/visionbooth/icon-512.png",
+        email: LANDLORD.email,
+        telephone: "+4917622748363",
+        parentOrganization: { "@type": "Organization", name: "Event Vision Media", url: "https://fotobox-essen.com/" },
+      },
+      {
+        "@type": "Product",
+        name: "VisionBooth – digitale Fotobox",
+        description: SEO_DESC,
+        brand: { "@type": "Brand", name: "VisionBooth" },
+        image: "https://visionbooth.de/visionbooth/stile/original.webp",
+        offers: plans.map((p) => ({
+          "@type": "Offer",
+          name: p.label,
+          price: String(p.price),
+          priceCurrency: "EUR",
+          availability: "https://schema.org/InStock",
+          url: "https://visionbooth.de/vb/buchen",
+          areaServed: "DE",
+        })),
+      },
+      {
+        "@type": "FAQPage",
+        mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+      },
+    ],
+  };
+}
 
 /** Website visionbooth.de (läuft im Portal unter /vb, später eigene Domain). */
 export default async function VisionBoothHome() {
@@ -55,6 +113,7 @@ export default async function VisionBoothHome() {
   const demoQr = await QRCode.toString(demoUrl, { type: "svg", margin: 1, color: { dark: "#0d0d0f", light: "#ffffff" } });
   return (
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }} />
       <div className="vb-aurora" aria-hidden />
 
       <nav className="relative z-20 mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
@@ -72,12 +131,12 @@ export default async function VisionBoothHome() {
       {/* Hero */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-6 md:grid-cols-[1.1fr_1fr] md:pt-12">
         <div className="text-center md:text-left">
-          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">Die Fotobox im Handy deiner Gäste</span>
+          <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">Die digitale Fotobox fürs Handy · ohne App</span>
           <h1 className="vb-in vb-display mt-5 text-[2.6rem] font-semibold leading-[1.05] sm:text-6xl" style={{ animationDelay: "80ms" }}>
             Jedes Handy wird zur <span className="vb-gold-text">Fotobox</span> – mit KI-Magie.
           </h1>
           <p className="vb-in mx-auto mt-5 max-w-lg text-[17px] leading-relaxed text-white/70 md:mx-0" style={{ animationDelay: "160ms" }}>
-            QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und sofort teilen. Ganz ohne App, ohne Aufbau – für Hochzeit, Geburtstag, Kindergeburtstag, Babyparty und Firmenevent.
+            Die digitale Fotobox für eure Gäste: QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und sofort teilen. Ganz ohne App, ohne Aufbau – für Hochzeit, Geburtstag, Kindergeburtstag, Babyparty und Firmenfeier, überall in Deutschland.
           </p>
           <div className="vb-in mt-8 flex flex-col items-center gap-3 sm:flex-row md:justify-start" style={{ animationDelay: "240ms" }}>
             <Link href="/vb/buchen" className="vb-btn w-full rounded-full px-8 py-4 text-center text-[17px] font-bold sm:w-auto">
@@ -224,6 +283,25 @@ export default async function VisionBoothHome() {
             </div>
           </div>
         </Reveal>
+      </section>
+
+      {/* Erklärung für Suchende: Was ist eine digitale Fotobox? */}
+      <section className="relative mx-auto max-w-4xl px-5 py-16">
+        <h2 className="vb-display text-center text-3xl font-semibold sm:text-4xl">
+          Was ist eine <span className="vb-gold-text">digitale Fotobox</span>?
+        </h2>
+        <div className="mt-8 grid gap-6 text-[15.5px] leading-relaxed text-white/70 md:grid-cols-2">
+          <p>
+            Eine digitale Fotobox funktioniert wie eine klassische Fotobox – nur ohne Gerät. Statt einer Kamera-Box, die geliefert und aufgebaut werden muss,
+            fotografieren eure Gäste mit dem eigenen Handy. Ein QR-Code auf dem Tisch genügt: scannen, Foto machen, fertig. Jedes Bild bekommt automatisch
+            euren Rahmen mit Namen und Datum.
+          </p>
+          <p>
+            Der Vorteil: Es entstehen Fotos an jedem Tisch und zu jeder Uhrzeit – nicht nur vor einer einzelnen Box. Alle Bilder landen in einer gemeinsamen
+            Online-Galerie, auf Wunsch live auf einer Foto-Wand. Und weil nichts geliefert wird, funktioniert die VisionBooth deutschlandweit – als Fotobox-App-Alternative
+            ganz ohne Download, für Hochzeit, Geburtstag oder Firmenfeier.
+          </p>
+        </div>
       </section>
 
       {/* Pakete */}
