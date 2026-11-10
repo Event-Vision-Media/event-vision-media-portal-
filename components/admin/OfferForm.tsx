@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { sendOffer } from "@/app/actions/admin-offers";
+import { previewOffer, sendOffer } from "@/app/actions/admin-offers";
 import { Button } from "@/components/ui/Button";
 
 const eur = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
@@ -39,6 +39,8 @@ export function OfferForm({
   const [days, setDays] = useState(daysToEvent < 10 ? 3 : 7);
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [preview, setPreview] = useState<{ subject: string; html: string; to?: string } | null>(null);
+  const [loadingPreview, startPreview] = useTransition();
   const router = useRouter();
 
   const valid = rows.filter((r) => r.label.trim() && Number.isFinite(toNum(r.amount)) && toNum(r.amount) !== 0);
@@ -55,8 +57,49 @@ export function OfferForm({
     });
   }
 
+  function showPreview() {
+    setError(null);
+    startPreview(async () => {
+      const r = await previewOffer(bookingId, { message, lines: valid, days });
+      if (r.error || !r.html) return setError(r.error ?? "Vorschau konnte nicht erstellt werden.");
+      setPreview({ subject: r.subject ?? "", html: r.html, to: r.to });
+    });
+  }
+
   return (
     <div className="space-y-4 rounded-xl border border-gold-200 bg-gold-50/50 p-4">
+      {preview && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-6" role="dialog" aria-modal="true" aria-label="Vorschau der Angebots-Mail" onClick={() => setPreview(null)}>
+          <div className="flex h-[92vh] w-full max-w-2xl flex-col overflow-hidden rounded-t-2xl bg-white shadow-2xl sm:h-[88vh] sm:rounded-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b border-anthracite-100 px-5 py-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-gold-700">Vorschau – noch nicht gesendet</p>
+              <p className="mt-1 text-sm text-anthracite-500">
+                An: <span className="text-anthracite-800">{preview.to ?? "–"}</span>
+              </p>
+              <p className="text-sm text-anthracite-500">
+                Betreff: <span className="font-medium text-anthracite-800">{preview.subject}</span>
+              </p>
+            </div>
+            <iframe title="Angebots-Mail" srcDoc={preview.html} sandbox="" className="w-full flex-1 bg-white" />
+            <div className="flex flex-wrap gap-2 border-t border-anthracite-100 px-5 py-4">
+              <Button
+                type="button"
+                disabled={pending || !message.trim()}
+                onClick={() => {
+                  setPreview(null);
+                  submit();
+                }}
+              >
+                ✉️ So senden
+              </Button>
+              <Button type="button" variant="ghost" onClick={() => setPreview(null)}>
+                Zurück zum Bearbeiten
+              </Button>
+              {!message.trim() && <p className="w-full text-xs text-red-600">Zum Senden fehlt noch deine Nachricht an den Kunden.</p>}
+            </div>
+          </div>
+        </div>
+      )}
       {question && (
         <div className="rounded-lg bg-white p-3 text-sm text-anthracite-600">
           <p className="mb-1 text-xs font-semibold text-anthracite-400">💬 Frage / Notiz des Kunden</p>
@@ -126,9 +169,12 @@ export function OfferForm({
       </p>
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={pending || !message.trim()} onClick={submit}>
           {pending ? "Wird gesendet…" : "✉️ Angebot senden"}
+        </Button>
+        <Button type="button" variant="secondary" disabled={pending || loadingPreview} onClick={showPreview}>
+          {loadingPreview ? "Lädt…" : "👁 Vorschau"}
         </Button>
         <Button type="button" variant="ghost" disabled={pending} onClick={onDone}>
           Abbrechen

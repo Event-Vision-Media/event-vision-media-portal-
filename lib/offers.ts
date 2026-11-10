@@ -139,6 +139,33 @@ export async function createOffer(
   return { mailSent: r.sent, url };
 }
 
+/** Admin: Vorschau der Angebots-Mail – berechnet wie createOffer, speichert und sendet aber nichts. */
+export async function previewOfferMail(
+  bookingId: string,
+  input: { message: string; lines: OfferLineInput[]; days: number }
+): Promise<{ error?: string; subject?: string; html?: string; to?: string }> {
+  const supabase = createAdminClient();
+  const [{ data: b }, { data: prev }] = await Promise.all([
+    supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle(),
+    supabase.from("booking_offers").select("version").eq("booking_id", bookingId).order("version", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (!b) return { error: "Buchung nicht gefunden." };
+  if (!b.inquiry_items?.packages?.length) return { error: "Nur für Anfragen mit Paketen." };
+  const days = (OFFER_VALID_DAYS as readonly number[]).includes(input.days) ? input.days : OFFER_DEFAULT_DAYS;
+  const offerTerms = { ...(b.inquiry_items.offer ?? {}), lines: input.lines };
+  const priced = applyOffer(b.inquiry_items, offerTerms);
+  const items = { ...priced, offer: offerTerms };
+  const mb = { ...toMailBooking(b), inquiry_items: items, total_price: priced.total ?? null };
+  const mail = offerMail(mb, {
+    message: input.message.trim().slice(0, 3000),
+    validUntil: addDays(todayBerlin(), days),
+    url: "#vorschau",
+    version: (prev?.version ?? 0) + 1,
+    reserved: b.lifecycle === "reserviert",
+  });
+  return { subject: mail.subject, html: mail.html, to: b.email ?? undefined };
+}
+
 /** Angebot über den Link laden (Kundenseite). */
 export async function offerByToken(token: string): Promise<{ offer: Offer; booking: any } | null> {
   if (!/^[\w-]{20,64}$/.test(token)) return null;
