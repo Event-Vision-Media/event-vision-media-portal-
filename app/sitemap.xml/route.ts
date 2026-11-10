@@ -7,6 +7,10 @@ const VB_HOSTS = new Set(["visionbooth.de", "www.visionbooth.de"]);
 /** Öffentliche Seiten von visionbooth.de für Suchmaschinen (Gäste-Events und Kundenbereiche bewusst nicht). */
 const VB_SITEMAP: { path: string; priority: string; changefreq: string }[] = [
   { path: "/", priority: "1.0", changefreq: "weekly" },
+  { path: "/hochzeit", priority: "0.9", changefreq: "monthly" },
+  { path: "/geburtstag", priority: "0.9", changefreq: "monthly" },
+  { path: "/firmenfeier", priority: "0.9", changefreq: "monthly" },
+  { path: "/kindergeburtstag", priority: "0.9", changefreq: "monthly" },
 ];
 
 export async function GET() {

@@ -39,8 +39,8 @@ const GROUPS = {
   },
 } as const;
 
-export function PlanTabs() {
-  const [tab, setTab] = useState<"privat" | "business">("privat");
+export function PlanTabs({ initial = "privat" }: { initial?: "privat" | "business" } = {}) {
+  const [tab, setTab] = useState<"privat" | "business">(initial);
   const g = GROUPS[tab];
   return (
     <div>

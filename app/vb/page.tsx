@@ -11,6 +11,7 @@ import { vbBaseUrl } from "@/lib/visionbooth";
 import { getPlan, VB_PLANS } from "@/components/visionbooth/packages";
 import { PlanTabs } from "@/components/visionbooth/site/PlanTabs";
 import { LANDLORD } from "@/lib/contract";
+import { ANLASS_ORDER, ANLASS_PAGES } from "@/components/visionbooth/site/anlass-pages";
 
 const SEO_TITLE = "Digitale Fotobox fürs Handy – ohne App, mit KI | VisionBooth";
 const SEO_DESC =
@@ -301,6 +302,18 @@ export default async function VisionBoothHome() {
             Online-Galerie, auf Wunsch live auf einer Foto-Wand. Und weil nichts geliefert wird, funktioniert die VisionBooth deutschlandweit – als Fotobox-App-Alternative
             ganz ohne Download, für Hochzeit, Geburtstag oder Firmenfeier.
           </p>
+        </div>
+      </section>
+
+      {/* Anlass-Seiten */}
+      <section className="relative mx-auto max-w-5xl px-5 pb-8">
+        <p className="text-center text-sm font-semibold uppercase tracking-[0.2em] text-white/45">Digitale Fotobox für jeden Anlass</p>
+        <div className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4">
+          {ANLASS_ORDER.map((s) => (
+            <Link key={s} href={`/${s}`} className="vb-glass rounded-2xl px-4 py-4 text-center text-[15px] font-semibold hover:text-white">
+              {ANLASS_PAGES[s].name} →
+            </Link>
+          ))}
         </div>
       </section>
 
