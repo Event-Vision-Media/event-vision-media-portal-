@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/Footer";
@@ -8,6 +7,7 @@ import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { offerByToken, offerIsOpen } from "@/lib/offers";
 import { usesSie } from "@/lib/address";
+import { BrandMark, BrandName } from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Angebot · Event Vision Media", robots: { index: false, follow: false } };
@@ -121,8 +121,8 @@ function Shell({ children }: { children: React.ReactNode }) {
       <main className="relative flex flex-1 justify-center overflow-hidden px-4 py-10">
         <div className="pointer-events-none absolute -top-24 left-1/2 h-72 w-72 -translate-x-1/2 rounded-full bg-gold-300/30 blur-3xl" />
         <div className="relative w-full max-w-lg animate-fade-in-up">
-          <div className="relative mx-auto mb-6 flex h-16 w-16 overflow-hidden rounded-2xl bg-black shadow-glow">
-            <Image src="/logo-tile-lg.png" alt="Event Vision Media" fill sizes="64px" className="object-cover" priority />
+          <div className="mx-auto mb-6 flex justify-center">
+            <BrandMark size={60} priority />
           </div>
           {children}
         </div>

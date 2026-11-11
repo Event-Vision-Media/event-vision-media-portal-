@@ -1,24 +1,16 @@
-import Image from "next/image";
 import Link from "next/link";
 import { logoutAction } from "@/app/actions/auth";
+import { BrandMark, BrandName } from "@/components/BrandMark";
 
 export function GuestHeader({ bookingCode }: { bookingCode: string }) {
   return (
     <header className="sticky top-0 z-40 border-b border-anthracite-100/80 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-3xl items-center justify-between px-4 py-4 sm:px-6">
         <Link href="/dashboard" className="flex items-center gap-3 leading-tight">
-          <span className="relative flex h-11 w-11 flex-none overflow-hidden rounded-xl bg-black shadow-sm">
-            <Image
-              src="/logo-tile.png"
-              alt="Event Vision Media"
-              fill
-              sizes="44px"
-              className="object-cover"
-            />
-          </span>
+          <BrandMark size={44} />
           <span className="flex flex-col">
             <span className="font-serif text-lg font-semibold text-anthracite-800">
-              Event Vision Media
+              <BrandName />
             </span>
             <span className="text-xs tracking-wide text-anthracite-400">
               Buchung {bookingCode}

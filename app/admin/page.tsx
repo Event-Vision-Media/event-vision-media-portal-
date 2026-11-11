@@ -1,8 +1,8 @@
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AdminLoginForm } from "@/components/admin/AdminLoginForm";
 import { Card } from "@/components/ui/Card";
+import { BrandMark, BrandName } from "@/components/BrandMark";
 
 export const dynamic = "force-dynamic";
 
@@ -20,18 +20,11 @@ export default async function AdminLoginPage() {
     <main className="flex min-h-screen items-center justify-center bg-anthracite-900 px-4 py-12">
       <div className="w-full max-w-sm">
         <div className="mb-8 text-center">
-          <div className="relative mx-auto mb-3 h-20 w-20 overflow-hidden rounded-2xl bg-black ring-1 ring-white/10">
-            <Image
-              src="/logo-tile-lg.png"
-              alt="Event Vision Media"
-              fill
-              sizes="80px"
-              className="object-cover"
-              priority
-            />
+          <div className="mx-auto mb-3 flex justify-center">
+            <BrandMark size={76} tone="dark" priority />
           </div>
           <h1 className="font-serif text-2xl font-semibold text-white">
-            Event Vision Media
+            <BrandName tone="dark" />
           </h1>
           <p className="mt-1 text-sm text-anthracite-300">Admin-Bereich</p>
         </div>

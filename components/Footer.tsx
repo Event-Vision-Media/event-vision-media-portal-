@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { BrandMark, BrandName } from "@/components/BrandMark";
 
 // Rechtstexte liegen auf der Website (fotobox-essen.com)
 const WEBSITE = (process.env.NEXT_PUBLIC_WEBSITE_URL || "https://fotobox-essen.com").replace(/\/$/, "");
@@ -7,17 +7,9 @@ export function Footer() {
   return (
     <footer className="mt-16 border-t border-anthracite-100 bg-white/60">
       <div className="mx-auto flex max-w-3xl flex-col items-center gap-3 px-4 py-10 text-center sm:px-6">
-        <span className="relative flex h-11 w-11 flex-none overflow-hidden rounded-xl bg-black shadow-sm">
-          <Image
-            src="/logo-tile.png"
-            alt="Event Vision Media"
-            fill
-            sizes="44px"
-            className="object-cover"
-          />
-        </span>
+        <BrandMark size={44} />
         <p className="font-serif text-base font-semibold text-anthracite-800">
-          Event Vision Media
+          <BrandName />
         </p>
         <p className="max-w-sm text-sm text-anthracite-500">
           Unvergessliche Erinnerungen für jedes Event – mit Herz und Liebe zum Detail.

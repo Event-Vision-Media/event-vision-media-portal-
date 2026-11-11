@@ -1,9 +1,9 @@
-import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentBooking } from "@/lib/booking-session";
 import { LoginForm } from "@/components/LoginForm";
 import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/Footer";
+import { BrandMark, BrandName } from "@/components/BrandMark";
 
 export default async function LoginPage() {
   const booking = await getCurrentBooking();
@@ -18,18 +18,11 @@ export default async function LoginPage() {
 
         <div className="relative w-full max-w-md animate-fade-in-up">
           <div className="mb-8 text-center">
-            <div className="relative mx-auto mb-4 flex h-28 w-28 overflow-hidden rounded-3xl bg-black shadow-glow">
-              <Image
-                src="/logo-tile-lg.png"
-                alt="Event Vision Media"
-                fill
-                sizes="112px"
-                className="object-cover"
-                priority
-              />
+            <div className="mx-auto mb-4 flex justify-center">
+              <BrandMark size={96} priority />
             </div>
             <h1 className="font-serif text-3xl font-semibold tracking-tight text-anthracite-800">
-              Event Vision Media
+              <BrandName />
             </h1>
             <div className="mx-auto mt-3 h-px w-12 bg-gradient-to-r from-transparent via-gold-400 to-transparent" />
             <p className="mt-4 text-anthracite-500">
