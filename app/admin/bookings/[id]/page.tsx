@@ -38,6 +38,8 @@ import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { PersonalMailCard } from "@/components/admin/PersonalMailCard";
 import { MailHistoryCard } from "@/components/admin/MailHistoryCard";
+import { ReleaseBookingCard } from "@/components/admin/ReleaseBookingCard";
+import { buildPersonalMail } from "@/lib/personal-mail";
 import { personalMailFacts, personalMailHistory } from "@/lib/personal-mail-server";
 import { BookingEmailCell } from "@/components/admin/BookingEmailCell";
 import { bookingHandover, HANDOVER_LABELS } from "@/lib/catalog";
@@ -408,6 +410,15 @@ export default async function AdminBookingDetailPage(props: {
         )}
 
         {booking.email && <MailHistoryCard bookingId={booking.id} email={booking.email} />}
+
+        {booking.lifecycle === "bestaetigt" && !contract && !booking.contract_on_file && !booking.deposit_paid_at && !booking.rest_paid_at && (
+          <ReleaseBookingCard
+            bookingId={booking.id}
+            email={booking.email}
+            eventDateLabel={formatDateGerman(booking.event_date)}
+            template={buildPersonalMail("freigeben", await personalMailFacts(booking))}
+          />
+        )}
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} devices={Array.from(bookingDevices(booking))} />
 
