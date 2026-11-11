@@ -84,7 +84,7 @@ export function OfferForm({
             <div className="flex flex-wrap gap-2 border-t border-anthracite-100 px-5 py-4">
               <Button
                 type="button"
-                disabled={pending || !message.trim()}
+                disabled={pending}
                 onClick={() => {
                   setPreview(null);
                   submit();
@@ -95,7 +95,6 @@ export function OfferForm({
               <Button type="button" variant="ghost" onClick={() => setPreview(null)}>
                 Zurück zum Bearbeiten
               </Button>
-              {!message.trim() && <p className="w-full text-xs text-red-600">Zum Senden fehlt noch deine Nachricht an den Kunden.</p>}
             </div>
           </div>
         </div>
@@ -109,7 +108,7 @@ export function OfferForm({
 
       <div>
         <label htmlFor={`offer-msg-${bookingId}`} className="mb-1 block text-sm font-medium text-anthracite-700">
-          Deine Antwort an den Kunden
+          Persönliche Nachricht <span className="font-normal text-anthracite-400">(optional – ohne Text steht ein Standardsatz in der Mail)</span>
         </label>
         <textarea
           id={`offer-msg-${bookingId}`}
@@ -170,7 +169,7 @@ export function OfferForm({
 
       {error && <p className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">{error}</p>}
       <div className="flex flex-wrap gap-2">
-        <Button type="button" disabled={pending || !message.trim()} onClick={submit}>
+        <Button type="button" disabled={pending} onClick={submit}>
           {pending ? "Wird gesendet…" : "✉️ Angebot senden"}
         </Button>
         <Button type="button" variant="secondary" disabled={pending || loadingPreview} onClick={showPreview}>

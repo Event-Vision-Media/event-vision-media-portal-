@@ -100,7 +100,7 @@ export async function createOffer(
   if (signed) return { error: "Der Vertrag ist schon unterschrieben – Änderungen bitte separat abrechnen." };
   if (!b.email) return { error: "Für diese Anfrage ist keine E-Mail-Adresse hinterlegt." };
   const message = input.message.trim().slice(0, 3000);
-  if (!message) return { error: "Bitte eine Antwort bzw. kurze Nachricht an den Kunden schreiben." };
+  // Nachricht ist freiwillig – ohne Text erscheint in der Mail ein Standardsatz
   const days = (OFFER_VALID_DAYS as readonly number[]).includes(input.days) ? input.days : OFFER_DEFAULT_DAYS;
 
   // Positionen in die Buchung übernehmen – wie eine Preisanpassung, bleibt bei Neuberechnungen erhalten
