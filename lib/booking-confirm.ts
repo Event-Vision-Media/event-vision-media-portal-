@@ -14,6 +14,8 @@ export function toMailBooking(b: any): MailBooking {
   return {
     booking_code: b.booking_code,
     confirmed_at: b.confirmed_at ?? null,
+    address_form: b.address_form ?? null,
+    salutation: b.salutation ?? null,
     customer_type: b.customer_type ?? null,
     access_code: b.access_code ?? null,
     custom_login_code: b.custom_login_code,

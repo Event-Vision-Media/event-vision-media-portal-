@@ -7,6 +7,7 @@ import { OfferResponse } from "@/components/OfferResponse";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { offerByToken, offerIsOpen } from "@/lib/offers";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Angebot · Event Vision Media", robots: { index: false, follow: false } };
@@ -28,7 +29,7 @@ export default async function OfferPage(props: { params: Promise<{ token: string
   }
 
   const { offer, booking: b } = found;
-  const sie = b.customer_type === "business";
+  const sie = usesSie(b);
   const items = offer.items ?? b.inquiry_items ?? {};
   const follow = followupLine(items);
   const open = offerIsOpen(offer, b);

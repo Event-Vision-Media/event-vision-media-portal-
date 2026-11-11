@@ -8,6 +8,7 @@ import { TemplatesBoothCard } from "@/components/TemplatesBoothCard";
 import { TB_LAYOUT_NAME, templatesboothLink } from "@/lib/templatesbooth";
 import { SUBMISSION_COLUMNS, type TemplateSubmission } from "@/lib/templatesbooth-server";
 import type { Layout } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
@@ -27,7 +28,7 @@ export default async function LayoutSelectionPage(props: { searchParams: Promise
 
   // Das Platzhalter-Layout für TemplatesBooth-Designs ist kein auswählbares Layout.
   const allLayouts = ((layouts ?? []) as Layout[]).filter((l) => l.name !== TB_LAYOUT_NAME);
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const inclusiveLayouts = allLayouts.filter((l) => !l.is_premium);
   const premiumLayouts = allLayouts.filter((l) => l.is_premium);
 
@@ -45,10 +46,10 @@ export default async function LayoutSelectionPage(props: { searchParams: Promise
 
         <div className="mt-3 animate-fade-in-up">
           <h1 className="font-serif text-2xl font-semibold tracking-tight text-anthracite-800 sm:text-3xl">
-            {booking.customer_type === "business" ? "Wählen Sie Ihr Foto-Layout" : "Wählt euer Foto-Layout"}
+            {usesSie(booking) ? "Wählen Sie Ihr Foto-Layout" : "Wählt euer Foto-Layout"}
           </h1>
           <p className="mt-1 mb-6 text-anthracite-500">
-            {booking.customer_type === "business"
+            {usesSie(booking)
               ? "Tippen Sie auf ein Layout für eine größere Vorschau und wählen Sie dann Ihren Favoriten. Farben, Logo und Texte passen wir an Ihr Corporate Design an."
               : "Tippt auf ein Layout für eine größere Vorschau und wählt dann euren Favoriten aus."}
           </p>
@@ -77,7 +78,7 @@ export default async function LayoutSelectionPage(props: { searchParams: Promise
           initialExtraWishes={booking.extra_wishes}
           hasConsentedBefore={Boolean(booking.personalization_name)}
           premiumIncluded={booking.premium_layout_included}
-          sie={booking.customer_type === "business"}
+          sie={usesSie(booking)}
         />
       </main>
 

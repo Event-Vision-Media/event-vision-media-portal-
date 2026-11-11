@@ -13,12 +13,13 @@ import { ContractDocument } from "@/components/ContractDocument";
 import { ContractSignForm } from "@/components/ContractSignForm";
 import { PrintButton } from "@/components/PrintButton";
 import { SignatureBlock } from "@/components/ContractSignatureBlock";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
 export default async function ContractPage() {
   const booking = await requireBooking();
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const t = (du: string, s: string) => (sie ? s : du);
   const signed = await getLatestContract(booking.id);
   if (!signed && !contractRequired(booking)) redirect("/dashboard");

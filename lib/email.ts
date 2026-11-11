@@ -2,6 +2,7 @@ import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { logMail } from "@/lib/mail-log";
+import { greetingLine, usesSie } from "@/lib/address";
 import { LANDLORD, NO_DEPOSIT_UP_TO, depositForBooking, isShortNotice, shortNoticeLastDay } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
 import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
@@ -96,6 +97,9 @@ export interface MailBooking {
   booking_code: string;
   /** Bestätigt am (für „kurzfristige Buchung“; fehlt = noch nicht bestätigt) */
   confirmed_at?: string | null;
+  /** Ansprache „du“ | „sie“ (leer = automatisch) und Anrede „frau“ | „herr“ */
+  address_form?: string | null;
+  salutation?: string | null;
   customer_type?: "business" | "privat" | null;
   access_code: string | null;
   custom_login_code: string | null;
@@ -168,12 +172,11 @@ ${url ? `<a href="${esc(url)}" style="display:inline-block;padding:12px 22px;bor
 
 /** Businesskunden werden gesiezt, Privatkunden geduzt – wie auf der Website. */
 function isSie(b: MailBooking): boolean {
-  return b.customer_type === "business";
+  return usesSie(b);
 }
 
 function greeting(b: MailBooking): string {
-  const name = b.customer_name || b.couple_names;
-  return isSie(b) ? `Guten Tag ${name}` : `Hallo ${name}`;
+  return greetingLine(b);
 }
 
 function details(b: MailBooking): string {
@@ -327,12 +330,15 @@ export function declineMail(b: MailBooking, reason: string | null) {
   };
 }
 
-/** Erinnerung ca. 4 Wochen vor dem Event: offene Schritte + passende Extras. */
+/** Erinnerung ca. 4 Wochen vor dem Event (bei kurzfristigen Buchungen später): offene Schritte + passende Extras. */
 export function reminderMail(b: MailBooking, openSteps: string[], recs: { name: string; priceLabel: string }[]) {
   const sie = isSie(b);
   const url = portalUrl();
   const date = formatDateGerman(b.event_date);
-  const title = sie ? `Noch 4 Wochen bis zu Ihrem Event` : `Noch 4 Wochen bis zu deinem Event 🎉`;
+  // Abstand zum Event: „4 Wochen“, „3 Wochen“ … bzw. „10 Tage“ (bei kurzfristigen Buchungen)
+  const left = Math.max(1, Math.round((Date.parse(b.event_date) - Date.parse(new Date().toISOString().slice(0, 10))) / 86_400_000));
+  const span = left >= 14 ? `${Math.round(left / 7)} Wochen` : left === 1 ? "1 Tag" : `${left} Tage`;
+  const title = sie ? `Noch ${span} bis zu Ihrem Event` : `Noch ${span} bis zu deinem Event 🎉`;
   const intro = sie
     ? `am <strong>${esc(date)}</strong> ist es so weit – wir freuen uns schon! Damit alles perfekt vorbereitet ist, fehlen noch ein paar Angaben im Kundenportal:`
     : `am <strong>${esc(date)}</strong> ist es so weit – wir freuen uns schon riesig! Damit alles perfekt vorbereitet ist, fehlen noch ein paar Kleinigkeiten in deinem Kundenportal:`;
@@ -346,7 +352,7 @@ ${recs.map((r) => `<p style="margin:4px 0">${esc(r.name)} – <strong>${esc(r.pr
 <p style="margin:8px 0 0;font-size:13px;color:#6f7882">${sie ? "Mit einem Klick im Kundenportal hinzubuchbar." : "Mit einem Klick im Kundenportal dazubuchbar."}</p></div>`
     : "";
   return {
-    subject: sie ? `Noch 4 Wochen bis zu Ihrem Event – ${b.booking_code}` : `Noch 4 Wochen bis zu deinem Event! – ${b.booking_code}`,
+    subject: sie ? `Noch ${span} bis zu Ihrem Event – ${b.booking_code}` : `Noch ${span} bis zu deinem Event! – ${b.booking_code}`,
     html: layout(title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${steps}${codeBox(b)}${recHtml}`),
     text: `${greeting(b)},\n\n${stripTags(intro)}\n${openSteps.map((s) => `- ${s}`).join("\n")}\n\nZugangscode: ${loginCode(b)}${url ? `\n${url}` : ""}${recs.length ? `\n\nNoch verfügbar:\n${recs.map((r) => `- ${r.name}: ${r.priceLabel}`).join("\n")}` : ""}\n\n${BRAND}`,
   };

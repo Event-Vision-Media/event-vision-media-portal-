@@ -5,6 +5,7 @@ import { GuestHeader } from "@/components/GuestHeader";
 import { Footer } from "@/components/Footer";
 import { LayoutProofsSection } from "@/components/LayoutProofsSection";
 import type { LayoutProof } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
@@ -47,13 +48,13 @@ export default async function LayoutFreigabePage() {
             Layout-Freigabe
           </h1>
           <p className="mt-1 text-anthracite-500">
-            {booking.customer_type === "business"
+            {usesSie(booking)
               ? "Prüfen Sie Ihre individuell erstellten Layouts und geben Sie sie frei – oder fordern Sie Änderungen an."
               : "Prüft eure individuell erstellten Layouts und gebt sie frei — oder fordert Änderungen an."}
           </p>
         </div>
 
-        <LayoutProofsSection groupedProofs={groupedProofs} sie={booking.customer_type === "business"} />
+        <LayoutProofsSection groupedProofs={groupedProofs} sie={usesSie(booking)} />
       </main>
 
       <Footer />

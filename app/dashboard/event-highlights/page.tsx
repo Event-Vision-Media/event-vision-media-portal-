@@ -8,6 +8,7 @@ import { ExtrasSection } from "@/components/ExtrasSection";
 import { getAvailabilityBoard } from "@/lib/availability-server";
 import type { BookingExtra, Extra, ExtraVariant } from "@/lib/types";
 import { extraNamesCoveredByPackages } from "@/lib/catalog";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export default async function EventHighlightsPage(props: { searchParams: Promise
   ]);
 
   const coveredByPackages = new Set(extraNamesCoveredByPackages(booking.inquiry_items));
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   // Reihenfolge je Kundentyp; nur Extras, die zum gebuchten Gerät passen
   const devices = bookingDevices(booking);
   const allExtras = sortExtrasForAudience(

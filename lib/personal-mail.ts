@@ -9,6 +9,8 @@ export interface PersonalMailFacts {
   sie: boolean;
   /** Vorname bzw. Name für die Anrede. */
   name: string;
+  /** Fertige Begrüßung ohne Komma, z. B. „Guten Tag Frau Muster“ (sonst aus sie/name gebildet). */
+  greeting?: string;
   bookingCode: string;
   /** z. B. „Sonntag, 15.11.“ */
   eventDateLabel: string;
@@ -38,7 +40,7 @@ export function templateWantsPortal(id: PersonalTemplateId): boolean {
 
 export function buildPersonalMail(id: PersonalTemplateId, f: PersonalMailFacts): { subject: string; body: string } {
   const du = !f.sie;
-  const hello = du ? `Hallo ${f.name},` : `Guten Tag ${f.name},`;
+  const hello = f.greeting ? `${f.greeting},` : du ? `Hallo ${f.name},` : `Guten Tag ${f.name},`;
   const bye = `${du ? "Liebe Grüße" : "Viele Grüße"}\n${f.signer}`;
   const list = (items: string[]) => items.map((i) => `– ${i}`).join("\n");
 

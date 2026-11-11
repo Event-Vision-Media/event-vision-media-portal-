@@ -5,6 +5,7 @@ import { openStepsFor } from "@/lib/journey-mails";
 import { daysUntil, hasDelivery, type DeviceKey } from "@/lib/catalog";
 import type { PersonalMailFacts } from "@/lib/personal-mail";
 import type { Booking } from "@/lib/types";
+import { greetingLine, usesSie } from "@/lib/address";
 
 /** Technische Einträge im Aktivitätsprotokoll – nicht im Feed anzeigen. */
 export const PERSONAL_MAIL_META = "mail_persoenlich_id";
@@ -37,7 +38,7 @@ function deadlineFor(eventDate: string): string {
 
 /** Alles, was die Vorlagen brauchen – inkl. der offenen Punkte dieser Buchung. */
 export async function personalMailFacts(b: Booking): Promise<PersonalMailFacts> {
-  const sie = b.customer_type === "business";
+  const sie = usesSie(b);
   const steps = await openStepsFor(b);
   const items = steps.map((s) => (/Mietvertrag/.test(s) ? `${s} (im Kundenportal, dauert keine Minute)` : s));
   const pk = (b.inquiry_items?.packages ?? []) as { id: string; product: DeviceKey }[];
@@ -62,6 +63,7 @@ export async function personalMailFacts(b: Booking): Promise<PersonalMailFacts> 
   return {
     sie,
     name: sie ? rawName : rawName.split(/\s+/)[0] || rawName,
+    greeting: sie ? greetingLine(b) : `Hallo ${rawName.split(/\s+/)[0] || rawName}`.trim(),
     bookingCode: b.booking_code,
     eventDateLabel: dateLabel(b.event_date),
     occasion: b.occasion,

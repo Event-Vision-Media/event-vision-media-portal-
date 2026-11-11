@@ -21,6 +21,7 @@ import { StaffTimeCard } from "@/components/StaffTimeCard";
 import { UpgradeCard } from "@/components/UpgradeCard";
 import { DeliveryUpsellList } from "@/components/DeliveryUpsellCard";
 import { StaffUpsellCard } from "@/components/StaffUpsellCard";
+import { usesSie } from "@/lib/address";
 import { STAFF_360_PERKS, STAFF_360_PERKS_SIE, staffUpsellFor } from "@/lib/staff-upsell";
 import { DELIVERY_UPSELL_MIN_DAYS, deliveryUpsells, isDeliverySwitch } from "@/lib/delivery-upsell";
 import { UpsellSection } from "@/components/UpsellSection";
@@ -37,7 +38,7 @@ export default async function DashboardPage() {
   const booking = await requireBooking();
   const supabase = createAdminClient();
   // Firmen werden gesiezt, Privatkunden (meist Paare/Familien) mit "ihr" angesprochen
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const t = (ihr: string, s: string) => (sie ? s : ihr);
   const { count: includedLayoutCount } = await supabase
     .from("layouts")
@@ -238,10 +239,10 @@ export default async function DashboardPage() {
               </span>
               <div>
                 <p className="font-medium text-anthracite-800">
-                  {booking.customer_type === "business" ? "Bitte unterschreiben Sie Ihren Mietvertrag" : "Bitte unterschreib deinen Mietvertrag"}
+                  {usesSie(booking) ? "Bitte unterschreiben Sie Ihren Mietvertrag" : "Bitte unterschreib deinen Mietvertrag"}
                 </p>
                 <p className="mt-0.5 text-sm text-anthracite-600">
-                  {booking.customer_type === "business"
+                  {usesSie(booking)
                     ? "Bereits vorausgefüllt – digital in ca. 2 Minuten erledigt."
                     : "Schon vorausgefüllt – digital in ca. 2 Minuten erledigt."}
                 </p>
@@ -346,7 +347,7 @@ export default async function DashboardPage() {
 
         {booking.lifecycle === "reserviert" && (
           <div className="animate-fade-in-up rounded-2xl border border-gold-300 bg-gold-50 p-5">
-            {booking.customer_type === "business" ? (
+            {usesSie(booking) ? (
               <>
                 <p className="font-serif text-lg font-semibold text-anthracite-800">Ihr Termin ist reserviert</p>
                 <p className="mt-1 text-sm text-anthracite-600">
@@ -375,7 +376,7 @@ export default async function DashboardPage() {
         {payment && (
           <PaymentCard
             p={payment}
-            sie={booking.customer_type === "business"}
+            sie={usesSie(booking)}
             confirmed={booking.lifecycle === "bestaetigt"}
             bookingCode={booking.booking_code}
             hasContract={Boolean(contract) || Boolean(booking.contract_on_file)}
@@ -385,7 +386,7 @@ export default async function DashboardPage() {
 
         <DeliveryUpsellList
           items={deliveryOffers.map((d) => ({ key: d.key, deviceName: d.deviceName, targetName: d.targetName, price: d.price, perks: d.perks }))}
-          sie={booking.customer_type === "business"}
+          sie={usesSie(booking)}
           mode={deliveryMode}
         />
 
@@ -401,7 +402,7 @@ export default async function DashboardPage() {
           />
         )}
 
-        {upgrade && <UpgradeCard offer={upgrade} sie={booking.customer_type === "business"} />}
+        {upgrade && <UpgradeCard offer={upgrade} sie={usesSie(booking)} />}
 
         {crossSell.length > 0 && <DeviceCrossSell offers={crossSell} dateLabel={formatDateGerman(booking.event_date)} sie={sie} />}
 
@@ -755,7 +756,7 @@ function BookedItemsCard({
   return (
     <Card className="animate-fade-in-up" style={{ animationDelay: "110ms" }}>
       <h2 className="font-serif text-lg font-semibold text-anthracite-800">
-        {booking.customer_type === "business" ? "Ihre Buchung" : "Eure Buchung"}
+        {usesSie(booking) ? "Ihre Buchung" : "Eure Buchung"}
       </h2>
       <div className="mt-4 space-y-2 text-sm">
         {(items.packages ?? []).map((p) => (

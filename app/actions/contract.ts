@@ -12,6 +12,7 @@ import { contractRequired, contractToHtml, type ContractDoc, type RenterDetails 
 import { contractAdminMail, contractSignedMail, sendEmail, type MailBooking } from "@/lib/email";
 import { formatDateTimeGerman } from "@/lib/format";
 import type { Booking } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 export interface ContractActionResult {
   success?: boolean;
@@ -53,7 +54,7 @@ function contractToText(doc: ContractDoc): string {
 export async function signContract(_prev: ContractActionResult, formData: FormData): Promise<ContractActionResult> {
   const booking = await getCurrentBooking();
   if (!booking) return { error: "Bitte melde dich erneut an." };
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
 
   if (!contractRequired(booking)) return { error: "Für diese Buchung ist kein digitaler Vertrag vorgesehen." };
   if (await getLatestContract(booking.id)) {

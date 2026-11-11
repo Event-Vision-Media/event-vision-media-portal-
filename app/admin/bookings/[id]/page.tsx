@@ -38,6 +38,7 @@ import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { PersonalMailCard } from "@/components/admin/PersonalMailCard";
 import { MailHistoryCard } from "@/components/admin/MailHistoryCard";
+import { AddressingCard } from "@/components/admin/AddressingCard";
 import { ReleaseBookingCard } from "@/components/admin/ReleaseBookingCard";
 import { buildPersonalMail } from "@/lib/personal-mail";
 import { personalMailFacts, personalMailHistory } from "@/lib/personal-mail-server";
@@ -408,6 +409,14 @@ export default async function AdminBookingDetailPage(props: {
             history={await personalMailHistory(booking.id)}
           />
         )}
+
+        <AddressingCard
+          bookingId={booking.id}
+          customerType={booking.customer_type ?? null}
+          name={booking.customer_name || booking.couple_names || ""}
+          addressForm={booking.address_form ?? null}
+          salutation={booking.salutation ?? null}
+        />
 
         {booking.email && <MailHistoryCard bookingId={booking.id} email={booking.email} />}
 

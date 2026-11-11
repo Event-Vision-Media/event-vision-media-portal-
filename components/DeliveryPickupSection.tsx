@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { formatDateGerman, formatTimeGerman } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { bookingHandover, HANDOVER_LABELS, TRAVEL } from "@/lib/catalog";
+import { usesSie } from "@/lib/address";
 
 function DetailRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -98,7 +99,7 @@ export function DeliveryPickupSection({ booking }: { booking: Booking }) {
 
   const handover = bookingHandover(booking.inquiry_items);
   const labels = HANDOVER_LABELS[handover];
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const intro = {
     lieferung: sie ? "Hier sehen Sie, wann und von wem die Technik geliefert und wieder abgeholt wird." : "Hier seht ihr, wann und von wem die Technik geliefert und wieder abgeholt wird.",
     abholung: sie

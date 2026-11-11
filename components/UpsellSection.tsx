@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { getRecommendations } from "@/lib/recommendations";
 import type { Booking } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 /**
  * Empfehlungen im Dashboard ("Macht euer Event komplett"): bis zu drei
@@ -12,7 +13,7 @@ export async function UpsellSection({ booking }: { booking: Booking }) {
   const recommendations = await getRecommendations(booking, 3);
   if (recommendations.length === 0) return null;
 
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const done = Boolean(booking.extras_confirmed_at);
 
   return (

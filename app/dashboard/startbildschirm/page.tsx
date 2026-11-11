@@ -15,6 +15,7 @@ import type {
   PersonalizedScreenProof,
   PersonalizedScreenRequest,
 } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
@@ -66,7 +67,7 @@ export default async function StartbildschirmPage() {
   const personalizedSelection = personalizedExtra
     ? (bookingExtras ?? []).find((be) => be.extra_id === personalizedExtra.id)
     : undefined;
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const t = (ihr: string, s: string) => (sie ? s : ihr);
   // Firmen: Startbildschirm mit Logo ist Teil von "Corporate Branding"
   const hasBranding =

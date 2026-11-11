@@ -8,6 +8,7 @@ import { Footer } from "@/components/Footer";
 import { AudioGreetingUploader } from "@/components/AudioGreetingUploader";
 import { AudioRecordingsList } from "@/components/AudioRecordingsList";
 import { GALLERY_UNLOCK_DAYS, type AudioGuestbookGreeting, type AudioGuestbookRecording } from "@/lib/types";
+import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
 
@@ -21,7 +22,7 @@ function formatDateLocal(date: Date) {
 
 export default async function AudioGuestbookPage() {
   const booking = await requireBooking();
-  const sie = booking.customer_type === "business";
+  const sie = usesSie(booking);
   const supabase = createAdminClient();
 
   const { data: bookedExtras } = await supabase

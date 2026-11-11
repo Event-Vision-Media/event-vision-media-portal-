@@ -99,6 +99,10 @@ export interface Booking {
   total_price: number | null;
   inquiry_message: string | null;
   confirmed_at: string | null;
+  /** Ansprache: „du“ | „sie“ (leer = automatisch nach Kundentyp) */
+  address_form?: "du" | "sie" | null;
+  /** Anrede: „frau“ | „herr“ */
+  salutation?: "frau" | "herr" | null;
   rest_payment_method?: "ueberweisung" | "bar" | null;
   /** Gesamtbetrag, der beim Abhaken „Rest erhalten“ bezahlt war (für Nachzahlungen). */
   rest_paid_amount?: number | null;

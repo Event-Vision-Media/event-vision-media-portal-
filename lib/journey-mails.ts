@@ -12,6 +12,7 @@ import { rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMa
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
+import { usesSie } from "@/lib/address";
 
 /** Erinnerung geht raus, sobald das Event höchstens so viele Tage entfernt ist … */
 const REMINDER_DAYS_BEFORE = 28;
@@ -64,7 +65,7 @@ function mailLog(b: Booking, subject: string, reason: string): string {
 /** Welche Schritte im Kundenportal sind für diese Buchung noch offen? */
 export async function openStepsFor(b: Booking): Promise<string[]> {
   const supabase = createAdminClient();
-  const sie = b.customer_type === "business";
+  const sie = usesSie(b);
   const products = new Set([
     ...(b.inquiry_items?.packages ?? []).map((p) => p.product),
     ...(b.product_type === "Fotospiegel" ? ["spiegel"] : b.product_type === "Fotobox" ? ["fotobox"] : []),
