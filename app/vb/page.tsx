@@ -98,6 +98,26 @@ function jsonLd() {
           availability: "https://schema.org/InStock",
           url: "https://visionbooth.de/vb/buchen",
           areaServed: "DE",
+          // Digitale Lieferung: Link sofort nach Buchung, kostenlos, deutschlandweit
+          shippingDetails: {
+            "@type": "OfferShippingDetails",
+            shippingRate: { "@type": "MonetaryAmount", value: "0", currency: "EUR" },
+            shippingDestination: { "@type": "DefinedRegion", addressCountry: "DE" },
+            deliveryTime: {
+              "@type": "ShippingDeliveryTime",
+              handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 0, unitCode: "DAY" },
+              transitTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: 0, unitCode: "DAY" },
+            },
+          },
+          // Gesetzliches Widerrufsrecht (14 Tage) laut /vb/widerruf
+          hasMerchantReturnPolicy: {
+            "@type": "MerchantReturnPolicy",
+            applicableCountry: "DE",
+            returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow",
+            merchantReturnDays: 14,
+            returnFees: "https://schema.org/FreeReturn",
+            merchantReturnLink: "https://visionbooth.de/vb/widerruf",
+          },
         })),
       },
       {
