@@ -1,6 +1,7 @@
 import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
+import { logMail } from "@/lib/mail-log";
 import { LANDLORD, NO_DEPOSIT_UP_TO, depositFor } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
 import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
@@ -22,9 +23,18 @@ interface MailInput {
   replyTo?: string;
   /** Dateianhänge, Inhalt base64-kodiert (z. B. Rechnungs-PDF). */
   attachments?: { filename: string; content: string }[];
+  /** Optional: Buchung für den Mail-Verlauf (sonst Zuordnung über die E-Mail-Adresse). */
+  bookingId?: string;
 }
 
 export async function sendEmail(mail: MailInput): Promise<{ sent: boolean; error?: string; id?: string }> {
+  const r = await deliverEmail(mail);
+  const status = r.sent ? "gesendet" : r.error === "test_address" ? "test" : r.error === "not_configured" ? "aus" : "fehler";
+  await logMail({ to: mail.to, subject: mail.subject, html: mail.html, status, resendId: r.id, bookingId: mail.bookingId });
+  return r;
+}
+
+async function deliverEmail(mail: MailInput): Promise<{ sent: boolean; error?: string; id?: string }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.MAIL_FROM || `${BRAND} <info@fotobox-essen.com>`;
   // Reservierte Test-Domains (RFC 2606) nie anschreiben – schützt die Absender-Reputation
