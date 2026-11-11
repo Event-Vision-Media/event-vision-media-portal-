@@ -169,7 +169,7 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
     await sendEmail({ to: booking.email, ...contractSignedMail(mb, html, contractToText(doc), doc.depositAmount === 0) });
   }
   if (process.env.ADMIN_EMAIL) {
-    await sendEmail({ to: process.env.ADMIN_EMAIL, ...contractAdminMail(mb, signerName, doc.depositAmount === 0), replyTo: booking.email ?? undefined });
+    await sendEmail({ to: process.env.ADMIN_EMAIL, ...contractAdminMail(mb, signerName, doc.depositAmount === 0, Boolean(doc.shortNotice)), replyTo: booking.email ?? undefined });
   }
 
   revalidatePath("/dashboard");

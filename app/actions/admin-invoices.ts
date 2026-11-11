@@ -8,6 +8,7 @@ import { sendEmail, invoiceMail, type MailBooking } from "@/lib/email";
 import { logActivity } from "@/lib/activity-log";
 import { getPaymentSummary } from "@/lib/payments";
 import { formatDateGerman } from "@/lib/format";
+import { shortNoticeInvoiceDue } from "@/lib/contract";
 import { INVOICE_BUCKET, INVOICE_MAX_BYTES, invoiceTitle, type InvoiceKind } from "@/lib/invoices";
 import type { AdminActionResult } from "@/app/actions/admin";
 import type { Booking } from "@/lib/types";
@@ -96,7 +97,7 @@ export async function uploadInvoice(bookingId: string, _prev: AdminActionResult,
         : "ueberweisung";
       const dueText =
         kind === "anzahlung" ? "innerhalb von 7 Tagen"
-        : kind === "rest" || kind === "gesamt" ? `bis zum ${formatDateGerman(p.restDueDate)}`
+        : kind === "rest" || kind === "gesamt" ? `bis zum ${formatDateGerman(p.shortNotice ? shortNoticeInvoiceDue(b.event_date) : p.restDueDate)}`
         : null;
       const mail = invoiceMail(toMailBooking(b), { title, amount, pay, dueText, bank: p.bank });
       const res = await sendEmail({ to: b.email, ...mail, attachments: [{ filename: fileName, content: bytes.toString("base64") }] });

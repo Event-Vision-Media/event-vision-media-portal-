@@ -29,7 +29,7 @@ import {
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
 
-export const CONTRACT_VERSION = "2026-11.1";
+export const CONTRACT_VERSION = "2026-11.2";
 
 /** Restzahlung per Überweisung: spätestens so viele Tage vor der Veranstaltung. */
 export const REST_DUE_DAYS = 14;
@@ -72,6 +72,50 @@ export const NO_DEPOSIT_UP_TO = 250;
 export function depositFor(total: number): number {
   if (total <= NO_DEPOSIT_UP_TO) return 0;
   return Math.min(total, Math.max(50, Math.round((total * DEPOSIT_RATE) / 50) * 50));
+}
+
+/**
+ * Kurzfristige Buchung: Zwischen Bestätigung und Veranstaltung liegen weniger als SHORT_NOTICE_DAYS Tage.
+ * Dann gibt es keine Anzahlung – der Gesamtbetrag ist auf einmal fällig: per Überweisung innerhalb von
+ * SHORT_PAY_DAYS Tagen nach Rechnung, spätestens SHORT_LAST_DAYS Tage vor der Veranstaltung, oder bar.
+ * Gilt nur für Bestätigungen ab SHORT_NOTICE_SINCE (ältere Buchungen behalten ihre Bedingungen).
+ */
+export const SHORT_NOTICE_DAYS = 14;
+export const SHORT_PAY_DAYS = 3;
+export const SHORT_LAST_DAYS = 2;
+export const SHORT_NOTICE_SINCE = "2026-11-11";
+
+const berlinDate = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+const shiftDays = (iso: string, days: number) => {
+  const d = new Date(iso + "T00:00:00Z");
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().slice(0, 10);
+};
+const daysFromTo = (from: string, to: string) => Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86_400_000);
+
+/** Kurzfristig? Maßgeblich ist der Tag der Bestätigung (noch nicht bestätigt: heute). */
+export function isShortNotice(b: { event_date: string; confirmed_at?: string | null }): boolean {
+  if (!b.event_date) return false;
+  const anchor = b.confirmed_at ? berlinDate(new Date(b.confirmed_at)) : berlinDate(new Date());
+  if (anchor < SHORT_NOTICE_SINCE) return false;
+  return daysFromTo(anchor, b.event_date.slice(0, 10)) < SHORT_NOTICE_DAYS;
+}
+
+/** Anzahlung für eine Buchung – bei kurzfristigen Buchungen keine. */
+export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null }): number {
+  return isShortNotice(b) ? 0 : depositFor(total);
+}
+
+/** Spätester Zahltag bei kurzfristigen Buchungen (2 Tage vor der Veranstaltung). */
+export function shortNoticeLastDay(eventDate: string): string {
+  return shiftDays(eventDate.slice(0, 10), -SHORT_LAST_DAYS);
+}
+
+/** Fälligkeit einer Rechnung bei kurzfristigen Buchungen: 3 Tage nach Rechnung, aber spätestens 2 Tage vor der Veranstaltung. */
+export function shortNoticeInvoiceDue(eventDate: string, invoiceDay: string = berlinDate(new Date())): string {
+  const due = shiftDays(invoiceDay, SHORT_PAY_DAYS);
+  const last = shortNoticeLastDay(eventDate);
+  return due < last ? due : last < invoiceDay ? invoiceDay : last;
 }
 
 export const LANDLORD = {
@@ -149,6 +193,8 @@ export interface ContractDoc {
   /** Zahlen für die Zahlungsübersicht (null, wenn kein Preis hinterlegt ist). */
   totalAmount: number | null;
   depositAmount: number | null;
+  /** Kurzfristige Buchung: keine Anzahlung, Gesamtbetrag 3 Tage nach Rechnung (spätestens 2 Tage vorher) oder bar. */
+  shortNotice: boolean;
   taxNote: string;
   sections: ContractSection[];
   /** Rechnungsangaben (Firmenkunden), falls angegeben. */
@@ -238,7 +284,8 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const totalNum = booking.total_price != null ? Number(booking.total_price) + extraSum : null;
   const from = items?.isFromPrice ? "ab " : "";
   const total = totalNum != null ? from + formatEuro(totalNum) : "laut Auftragsbestätigung";
-  const depositNum = totalNum != null ? depositFor(totalNum) : null;
+  const shortNotice = isShortNotice(booking);
+  const depositNum = totalNum != null ? depositForBooking(totalNum, booking) : null;
   const deposit = depositNum === 0 ? "keine" : depositNum != null ? formatEuro(depositNum) : "ca. 20 % des Gesamtpreises (auf volle 50 € gerundet)";
   const rest = totalNum != null && depositNum != null ? from + formatEuro(totalNum - depositNum) : "80 % des Gesamtpreises";
 
@@ -319,7 +366,18 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     title: "Zahlungsbedingungen",
     blocks: [
       {
-        ul: depositNum === 0 ? [
+        ul: shortNotice ? [
+          `Kurzfristige Buchung (weniger als ${SHORT_NOTICE_DAYS} Tage vor der Veranstaltung): keine Anzahlung. Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
+          shippedOnly
+            ? `per Überweisung vor dem Versand, innerhalb von ${SHORT_PAY_DAYS} Tagen nach Erhalt der Rechnung, spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung.`
+            : renter?.rest_payment_method === "bar"
+              ? `in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe der Mietsache (vom Mieter so gewählt). Der Mieter erhält hierüber eine Rechnung mit Zahlungsvermerk.`
+              : renter?.rest_payment_method === "ueberweisung"
+                ? `per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Erhalt der Rechnung, spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung (vom Mieter so gewählt).`
+                : `per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Erhalt der Rechnung, spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung, oder in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe.`,
+          "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
+          `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
+        ] : depositNum === 0 ? [
           `Keine Anzahlung (Gesamtpreis bis ${NO_DEPOSIT_UP_TO} €). Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
           shippedOnly
             ? `per Überweisung vor dem Versand, spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung. Hierzu erhält der Mieter eine Rechnung.`
@@ -351,7 +409,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     title: "Zustandekommen des Vertrags und Terminreservierung",
     blocks: [
       { p: "Der Vermieter hat die Buchung nach Prüfung in Textform bestätigt (Auftragsbestätigung) und stellt dem Mieter diesen Vertrag im Kundenportal zur Unterschrift bereit. Mit der Unterschrift des Mieters im Kundenportal kommt der Vertrag zustande; einer gesonderten Gegenzeichnung bedarf es nicht." },
-      { p: "Der Termin ist ab der Auftragsbestätigung für den Mieter reserviert und wird mit Eingang der Anzahlung verbindlich geblockt." },
+      { p: shortNotice ? "Der Termin ist ab der Auftragsbestätigung für den Mieter reserviert und wird mit der Unterschrift dieses Vertrags verbindlich geblockt." : "Der Termin ist ab der Auftragsbestätigung für den Mieter reserviert und wird mit Eingang der Anzahlung verbindlich geblockt." },
       { p: "Abweichungen von der vereinbarten Leistung sind nur zulässig, wenn sie zur Durchführung des Vertrags erforderlich oder zweckmäßig sind und keine wesentliche Leistungsminderung bewirken. Eine Erhöhung der vereinbarten Preise während der Vertragslaufzeit ist ausgeschlossen." },
     ],
   });
@@ -605,6 +663,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     rest,
     totalAmount: totalNum,
     depositAmount: depositNum,
+    shortNotice,
     shippedOnly,
     taxNote: "Alle Preise sind Endpreise. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
     sections: S,

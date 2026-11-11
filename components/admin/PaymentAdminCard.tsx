@@ -37,7 +37,7 @@ export function PaymentAdminCard({
       ) : (
         <dl className="mb-4 space-y-1 text-sm">
           {p.deposit === 0 ? (
-            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">keine (bis {NO_DEPOSIT_UP_TO} €)</dd></div>
+            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">{p.shortNotice ? "keine (kurzfristige Buchung)" : `keine (bis ${NO_DEPOSIT_UP_TO} €)`}</dd></div>
           ) : (
             <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium">{formatCurrencyEUR(p.deposit!)}</dd></div>
           )}

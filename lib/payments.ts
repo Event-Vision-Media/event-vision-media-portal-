@@ -1,6 +1,6 @@
 import "server-only";
 import { buildContractFor, getBankDetails, getLatestContract } from "@/lib/contract-server";
-import { depositFor, restDueDaysFor, type BankDetails } from "@/lib/contract";
+import { depositForBooking, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS, shortNoticeLastDay, type BankDetails } from "@/lib/contract";
 import type { Booking } from "@/lib/types";
 
 
@@ -17,6 +17,8 @@ export interface PaymentSummary {
   /** Fälligkeit der Restzahlung per Überweisung (YYYY-MM-DD), 14 Tage vor dem Event (ältere Verträge: 7). */
   restDueDate: string;
   restDueDays: number;
+  /** Kurzfristige Buchung: keine Anzahlung, Gesamtbetrag 3 Tage nach Rechnung (spätestens 2 Tage vorher) oder bar. */
+  shortNotice: boolean;
   isFromPrice: boolean;
   bank: BankDetails | null;
   /** Nach vollständiger Zahlung später zugebucht: offene Differenz (rest = Nachzahlung, method = deren Zahlungsart). */
@@ -47,10 +49,11 @@ function minusDays(date: string, days: number): string {
  */
 export async function getPaymentSummary(booking: Booking): Promise<PaymentSummary> {
   const [doc, bank, signed] = await Promise.all([buildContractFor(booking), getBankDetails(), getLatestContract(booking.id)]);
-  const restDueDays = restDueDaysFor(signed?.template_version);
+  const shortNotice = isShortNotice(booking);
+  const restDueDays = shortNotice ? SHORT_LAST_DAYS : restDueDaysFor(signed?.template_version);
   const total = doc.totalAmount;
   const deposit =
-    booking.deposit_amount != null ? Number(booking.deposit_amount) : total != null ? depositFor(total) : null;
+    booking.deposit_amount != null ? Number(booking.deposit_amount) : total != null ? depositForBooking(total, booking) : null;
   // Nachzahlung: Rest war schon bezahlt (mit gemerktem Betrag), der Preis ist danach gestiegen
   const paidTotal = booking.rest_paid_amount != null ? Number(booking.rest_paid_amount) : null;
   const followUp = Boolean(booking.rest_paid_at) && paidTotal != null && total != null && total - paidTotal > 0.009;
@@ -69,8 +72,9 @@ export async function getPaymentSummary(booking: Booking): Promise<PaymentSummar
     // Ohne Anzahlung (Gesamtpreis bis NO_DEPOSIT_UP_TO) gibt es nichts anzuzahlen
     depositPaid: Boolean(booking.deposit_paid_at) || deposit === 0,
     restPaid: Boolean(booking.rest_paid_at) && !followUp,
-    restDueDate: minusDays(booking.event_date, restDueDays),
+    restDueDate: shortNotice ? shortNoticeLastDay(booking.event_date) : minusDays(booking.event_date, restDueDays),
     restDueDays,
+    shortNotice,
     isFromPrice: Boolean(booking.inquiry_items?.isFromPrice),
     bank,
   };

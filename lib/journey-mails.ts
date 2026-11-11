@@ -6,7 +6,7 @@ import { getRecommendations } from "@/lib/recommendations";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } from "@/lib/catalog";
 import { dateFromText } from "@/lib/calendar";
-import { contractRequired, depositFor, restDueDaysFor } from "@/lib/contract";
+import { contractRequired, depositForBooking, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
 import { rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
@@ -332,10 +332,12 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     // Restbetrag per Überweisung: Erinnerung 3 Tage vor bis zur Fälligkeit (14 bzw. bei alten Verträgen 7 Tage vorher)
     let kind: "anzahlung" | "rest_ueberweisung" | "rest_bar" | null = null;
     // Ohne Anzahlung (Gesamtpreis bis NO_DEPOSIT_UP_TO) entfällt die Anzahlungs-Erinnerung
-    const noDeposit = b.deposit_amount != null ? Number(b.deposit_amount) === 0 : b.total_price != null && depositFor(Number(b.total_price)) === 0;
+    const noDeposit = b.deposit_amount != null ? Number(b.deposit_amount) === 0 : b.total_price != null && depositForBooking(Number(b.total_price), b) === 0;
+    // Kurzfristige Buchung: Gesamtbetrag spätestens 2 Tage vorher – Erinnerung 2–5 Tage vor dem Event
+    const dueDays = isShortNotice(b) ? SHORT_LAST_DAYS : dueDaysBy.get(b.id)!;
     // Anzahlungsrechnung geht nach der Vertragsunterschrift raus – Erinnerung 7 Tage danach
     if (!noDeposit && !b.deposit_paid_at && !b.deposit_reminder_sent_at && signedAt && signedAt <= confirmedCutoff) kind = "anzahlung";
-    else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "ueberweisung" && signedAt && days >= dueDaysBy.get(b.id)! && days <= dueDaysBy.get(b.id)! + 3) kind = "rest_ueberweisung";
+    else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "ueberweisung" && signedAt && days >= dueDays && days <= dueDays + 3) kind = "rest_ueberweisung";
     else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "bar" && days >= 1 && days <= 2) kind = "rest_bar";
     if (!kind) continue;
 

@@ -2,7 +2,7 @@ import "server-only";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { logMail } from "@/lib/mail-log";
-import { LANDLORD, NO_DEPOSIT_UP_TO, depositFor } from "@/lib/contract";
+import { LANDLORD, NO_DEPOSIT_UP_TO, depositForBooking, isShortNotice, shortNoticeLastDay } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
 import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
 
@@ -94,6 +94,8 @@ export async function mailDeliveryStatus(id: string): Promise<{ status: string; 
 
 export interface MailBooking {
   booking_code: string;
+  /** Bestätigt am (für „kurzfristige Buchung“; fehlt = noch nicht bestätigt) */
+  confirmed_at?: string | null;
   customer_type?: "business" | "privat" | null;
   access_code: string | null;
   custom_login_code: string | null;
@@ -224,17 +226,18 @@ ${details(b)}
 
 export function confirmationMail(b: MailBooking) {
   const url = portalUrl();
-  const noDeposit = b.total_price != null && depositFor(Number(b.total_price)) === 0;
+  const short = isShortNotice(b);
+  const noDeposit = b.total_price != null && depositForBooking(Number(b.total_price), b) === 0;
   const t = isSie(b)
     ? {
         title: "Ihre Buchung ist bestätigt",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen Ihnen Ihren Termin. Wir freuen uns auf Ihr Event!",
-        next: `<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. ${noDeposit ? "Eine Anzahlung ist nicht nötig." : "Danach erhalten Sie die Rechnung über die Anzahlung."} Im Portal wählen Sie außerdem Ihr Layout und sehen jederzeit den Stand Ihrer Buchung.`,
+        next: `<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da Ihr Event schon bald ist, ist keine Anzahlung nötig: Sie zahlen den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung ist nicht nötig." : "Danach erhalten Sie die Rechnung über die Anzahlung."} Im Portal wählen Sie außerdem Ihr Layout und sehen jederzeit den Stand Ihrer Buchung.`,
       }
     : {
         title: "Deine Buchung ist bestätigt 🎉",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen dir deinen Termin. Wir freuen uns riesig auf dein Event!",
-        next: `<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. ${noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal." : "Danach bekommst du die Rechnung über die Anzahlung."} Im Portal wählst du außerdem dein Layout und siehst jederzeit den Stand deiner Buchung.`,
+        next: `<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da dein Event schon bald ist, brauchst du keine Anzahlung: Du zahlst den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal." : "Danach bekommst du die Rechnung über die Anzahlung."} Im Portal wählst du außerdem dein Layout und siehst jederzeit den Stand deiner Buchung.`,
       };
   return {
     subject: `Auftragsbestätigung ${b.booking_code} – ${BRAND}`,
@@ -470,7 +473,7 @@ ${url ? `<p style="margin:16px 0"><a href="${esc(url)}/dashboard/vertrag" style=
   };
 }
 
-export function contractAdminMail(b: MailBooking, signer: string, noDeposit = false) {
+export function contractAdminMail(b: MailBooking, signer: string, noDeposit = false, shortNotice = false) {
   const url = portalUrl();
   return {
     subject: `Mietvertrag unterschrieben: ${b.booking_code} · ${formatDateGerman(b.event_date)}`,
@@ -478,7 +481,7 @@ export function contractAdminMail(b: MailBooking, signer: string, noDeposit = fa
       "Mietvertrag unterschrieben",
       `<p style="line-height:1.6"><strong>${esc(signer)}</strong> hat den Mietvertrag für <strong>${esc(b.booking_code)}</strong> (${esc(formatDateGerman(b.event_date))}) digital unterschrieben.</p>
 ${details(b)}
-<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${noDeposit ? `Keine Anzahlung (bis ${NO_DEPOSIT_UP_TO} €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben` : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
+<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${shortNotice ? `Kurzfristige Buchung, keine Anzahlung – Rechnung über den Gesamtbetrag in Lexware Office schreiben, zahlbar innerhalb von 3 Tagen (spätestens ${esc(formatDateGerman(shortNoticeLastDay(b.event_date)))})` : noDeposit ? `Keine Anzahlung (bis ${NO_DEPOSIT_UP_TO} €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben` : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
 ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/zahlungen" style="color:#a87731;font-weight:600">Zu den Zahlungen →</a></p>` : ""}`
     ),
     text: `${signer} hat den Mietvertrag für ${b.booking_code} (${formatDateGerman(b.event_date)}) unterschrieben.${url ? `\n${url}/admin/anfragen` : ""}`,

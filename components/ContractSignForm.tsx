@@ -27,6 +27,7 @@ export function ContractSignForm({
   carryHelper,
   slots,
   noDeposit = false,
+  shortNotice = false,
   shippedOnly = false,
   devices = [],
 }: {
@@ -39,6 +40,8 @@ export function ContractSignForm({
   slots: SlotPlan;
   /** Gesamtpreis bis NO_DEPOSIT_UP_TO (250 €): keine Anzahlung, alles auf einmal. */
   noDeposit?: boolean;
+  /** Kurzfristige Buchung: Überweisung innerhalb von 3 Tagen nach Rechnung (spätestens 2 Tage vorher) statt 14 Tage vorher. */
+  shortNotice?: boolean;
   /** Alles wird verschickt – nur Überweisung möglich. */
   shippedOnly?: boolean;
   /** Gebuchte Geräte – bestimmen, welche Aufnahmen als Referenz gemeint sind. */
@@ -50,6 +53,7 @@ export function ContractSignForm({
   const t = (du: string, s: string) => (sie ? s : du);
   // Kleiner Betrag zur Selbstabholung: Barzahlung bei Abholung vorausgewählt, Überweisung bleibt möglich.
   const cashFirst = noDeposit && !hasDelivery;
+  const transferText = shortNotice ? "innerhalb von 3 Tagen nach Rechnung" : "bis 14 Tage vor dem Event";
   const pickupHoursHint = `Täglich (Mo–So) zwischen ${Number(SELF_PICKUP_HOURS[0].slice(0, 2))} und ${Number(SELF_PICKUP_HOURS[1].slice(0, 2))} Uhr.`;
 
   return (
@@ -138,6 +142,8 @@ export function ContractSignForm({
             <p className="mt-0.5 text-xs text-anthracite-500">
               {cashFirst
                 ? "Keine Anzahlung nötig – am einfachsten zahlt ihr alles bar, wenn ihr abholt."
+                : shortNotice
+                ? t("Euer Event ist schon bald – deshalb keine Anzahlung: ihr zahlt den Gesamtbetrag auf einmal, per Überweisung spätestens 2 Tage vor dem Event oder bar.", "Ihr Event ist schon bald – deshalb keine Anzahlung: Sie zahlen den Gesamtbetrag auf einmal, per Überweisung spätestens 2 Tage vor dem Event oder bar.")
                 : noDeposit
                 ? "Keine Anzahlung nötig – ihr zahlt alles auf einmal."
                 : "Die Anzahlung überweist ihr nach der Unterschrift – die Rechnung kommt per E-Mail."}
@@ -146,11 +152,11 @@ export function ContractSignForm({
               {cashFirst ? (
                 <>
                   <Radio name="rest_payment_method" value="bar" title="Bar bei Abholung" text="einfach bei der Abholung bei uns" defaultChecked />
-                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
+                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text={transferText} />
                 </>
               ) : (
                 <>
-                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text="bis 14 Tage vor dem Event" />
+                  <Radio name="rest_payment_method" value="ueberweisung" title="Per Überweisung" text={transferText} />
                   <Radio
                     name="rest_payment_method"
                     value="bar"

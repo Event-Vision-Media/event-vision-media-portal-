@@ -119,6 +119,7 @@ export default async function ContractPage() {
             isBusiness={doc.isBusiness}
             hasDelivery={hasDelivery}
             noDeposit={doc.depositAmount === 0}
+            shortNotice={Boolean(doc.shortNotice)}
             shippedOnly={doc.shippedOnly}
             devices={doc.devices}
             carryHelper={hasDelivery && booking.inquiry_items?.access?.help === "helfer"}

@@ -37,7 +37,7 @@ export function PaymentCard({
     : p.method === "bar"
       ? { label: p.pickupOnly ? "Bar bei Abholung" : "Bar bei Lieferung", tone: "text-anthracite-600" }
       : p.method === "ueberweisung"
-        ? { label: `Überweisung bis ${formatDateGerman(p.restDueDate)}`, tone: "text-anthracite-600" }
+        ? { label: p.shortNotice ? `Überweisung innerhalb von 3 Tagen nach Rechnung, spätestens ${formatDateGerman(p.restDueDate)}` : `Überweisung bis ${formatDateGerman(p.restDueDate)}`, tone: "text-anthracite-600" }
         : hasContract
           ? { label: t("Zahlungsart wie mit uns vereinbart", "Zahlungsart wie mit uns vereinbart"), tone: "text-anthracite-500" }
           : { label: t("Zahlungsart wählt ihr beim Vertrag", "Zahlungsart wählen Sie beim Vertrag"), tone: "text-anthracite-500" };
