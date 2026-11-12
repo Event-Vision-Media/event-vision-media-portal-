@@ -5,7 +5,7 @@ import { Footer } from "@/components/Footer";
 import { OfferResponse } from "@/components/OfferResponse";
 import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
-import { offerByToken, offerIsOpen } from "@/lib/offers";
+import { customerAskedChange, offerByToken, offerIsOpen } from "@/lib/offers";
 import { usesSie } from "@/lib/address";
 import { BrandMark, BrandName } from "@/components/BrandMark";
 
@@ -34,6 +34,7 @@ export default async function OfferPage(props: { params: Promise<{ token: string
   const follow = followupLine(items);
   const open = offerIsOpen(offer, b);
   const name = b.customer_name || b.couple_names;
+  const changed = await customerAskedChange(b.id);
 
   const state = open
     ? null
@@ -54,7 +55,7 @@ export default async function OfferPage(props: { params: Promise<{ token: string
       <div className="mb-6 text-center">
         <p className="text-sm text-anthracite-500">{sie ? `Guten Tag ${name}` : `Hallo ${name}`}</p>
         <h1 className="mt-1 font-serif text-3xl font-semibold tracking-tight text-anthracite-800">
-          {sie ? "Ihr" : "Dein"} {offer.version > 1 ? "angepasstes" : "persönliches"} Angebot
+          {sie ? "Ihr" : "Dein"} {changed ? "angepasstes" : "persönliches"} Angebot
         </h1>
         <p className="mt-2 text-sm text-anthracite-500">
           {b.booking_code} · {formatDateGerman(b.event_date)}
@@ -109,6 +110,18 @@ export default async function OfferPage(props: { params: Promise<{ token: string
           </div>
         )}
       </Card>
+
+      {offer.status !== "ersetzt" && (
+        <div className="mt-4 text-center">
+          <Link
+            href={`/angebot/${token}/pdf`}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-full border border-anthracite-200 bg-white px-5 py-2.5 text-sm font-medium text-anthracite-700 hover:border-anthracite-300 hover:bg-sand-50"
+          >
+            📄 Als PDF speichern
+          </Link>
+        </div>
+      )}
 
       <p className="mt-6 text-center text-sm text-anthracite-400">Fragen? {sie ? "Rufen Sie uns an oder schreiben Sie uns" : "Ruf uns an oder schreib uns"} per WhatsApp: 0176 22748363.</p>
     </Shell>

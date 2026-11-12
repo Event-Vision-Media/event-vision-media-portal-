@@ -76,6 +76,13 @@
     opacity: 1 !important;
     transform: none !important;
   }
+  /* Angebots-PDF: Logo-Gold behalten (globales filter:none oben würde es blass machen) */
+  .offer-doc header img {
+    filter: saturate(2.2) brightness(0.62) contrast(1.25) !important;
+  }
+  .offer-doc {
+    font-size: 10.5pt;
+  }
   .contract-doc {
     font-size: 11pt;
     color: #000;

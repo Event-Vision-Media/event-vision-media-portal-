@@ -140,7 +140,7 @@ export async function createOffer(
 }
 
 /** Hat der Kunde zu dieser Anfrage schon einmal „Änderung wünschen“ genutzt? Dann heißt das neue Angebot „angepasst“. */
-async function customerAskedChange(bookingId: string): Promise<boolean> {
+export async function customerAskedChange(bookingId: string): Promise<boolean> {
   const { count } = await createAdminClient().from("activity_log").select("id", { count: "exact", head: true }).eq("booking_id", bookingId).eq("event_type", "angebot_aenderung");
   return Boolean(count);
 }
