@@ -988,6 +988,8 @@ export interface MailOffer {
   version: number;
   /** Termin ist für den Kunden reserviert (lifecycle reserviert). */
   reserved: boolean;
+  /** Kunde hat eine Änderung gewünscht – dann „angepasstes Angebot“ (sonst normales Angebot, auch bei Version 2+). */
+  changed?: boolean;
 }
 
 /** Angebot an den Kunden – auch als Erinnerung (3 Tage vor Ablauf bzw. nach 3 Tagen ohne Antwort). */
@@ -1010,7 +1012,7 @@ ${items.map(([ic, t]) => `<div style="padding:3px 0;font-size:14px;line-height:1
 export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boolean } = {}) {
   const sie = isSie(b);
   const until = formatDateGerman(o.validUntil);
-  const updated = o.version > 1;
+  const updated = o.changed ?? false;
   const t = sie
     ? {
         subject: opts.reminder ? `Erinnerung: Ihr Angebot ${b.booking_code} – gültig bis ${until}` : `${updated ? "Ihr angepasstes" : "Ihr persönliches"} Angebot ${b.booking_code} – ${BRAND}`,

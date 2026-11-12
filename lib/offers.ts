@@ -129,7 +129,7 @@ export async function createOffer(
 
   const url = offerUrl(token);
   const mb = { ...toMailBooking(b), inquiry_items: items, total_price: priced.total ?? null };
-  const r = await sendEmail({ to: b.email, ...offerMail(mb, { message, validUntil, url, version, reserved: b.lifecycle === "reserviert" }) });
+  const r = await sendEmail({ to: b.email, ...offerMail(mb, { message, validUntil, url, version, reserved: b.lifecycle === "reserviert", changed: await customerAskedChange(bookingId) }) });
   await logActivity(
     bookingId,
     "angebot_gesendet",
@@ -137,6 +137,12 @@ export async function createOffer(
   );
   revalidate();
   return { mailSent: r.sent, url };
+}
+
+/** Hat der Kunde zu dieser Anfrage schon einmal „Änderung wünschen“ genutzt? Dann heißt das neue Angebot „angepasst“. */
+async function customerAskedChange(bookingId: string): Promise<boolean> {
+  const { count } = await createAdminClient().from("activity_log").select("id", { count: "exact", head: true }).eq("booking_id", bookingId).eq("event_type", "angebot_aenderung");
+  return Boolean(count);
 }
 
 /** Admin: offenes Angebot unverändert noch einmal schicken (z. B. nach korrigierter E-Mail-Adresse). Gleicher Link, gleiche Gültigkeit. */
@@ -154,7 +160,7 @@ export async function resendOffer(bookingId: string): Promise<{ error?: string; 
   const r = await sendEmail({
     to: b.email,
     bookingId,
-    ...offerMail(mb, { message: offer.message ?? "", validUntil: offer.valid_until, url: offerUrl(offer.token), version: offer.version, reserved: b.lifecycle === "reserviert" }),
+    ...offerMail(mb, { message: offer.message ?? "", validUntil: offer.valid_until, url: offerUrl(offer.token), version: offer.version, reserved: b.lifecycle === "reserviert", changed: await customerAskedChange(bookingId) }),
   });
   await logActivity(bookingId, "angebot_erneut", `Angebot${offer.version > 1 ? ` (Version ${offer.version})` : ""} erneut gesendet${r.sent ? ` – 📧 an ${b.email}` : " (keine E-Mail verschickt)"}`);
   revalidate();
@@ -184,6 +190,7 @@ export async function previewOfferMail(
     url: "#vorschau",
     version: (prev?.version ?? 0) + 1,
     reserved: b.lifecycle === "reserviert",
+    changed: await customerAskedChange(bookingId),
   });
   return { subject: mail.subject, html: mail.html, to: b.email ?? undefined };
 }
@@ -289,7 +296,7 @@ export async function runOfferJobs(dryRun: boolean): Promise<{ offerReminders: s
       result.offerReminders.push(b.booking_code);
       if (dryRun) continue;
       const mb = { ...toMailBooking(b), inquiry_items: o.items ?? b.inquiry_items, total_price: o.total ?? b.total_price };
-      const r = await sendEmail({ to: b.email, ...offerMail(mb, { message: o.message, validUntil: o.valid_until, url: offerUrl(o.token), version: o.version, reserved: b.lifecycle === "reserviert" }, { reminder: true }) });
+      const r = await sendEmail({ to: b.email, ...offerMail(mb, { message: o.message, validUntil: o.valid_until, url: offerUrl(o.token), version: o.version, reserved: b.lifecycle === "reserviert", changed: await customerAskedChange(b.id) }, { reminder: true }) });
       await supabase.from("booking_offers").update({ reminder_sent_at: new Date().toISOString() }).eq("id", o.id);
       await logActivity(b.id, "angebot_erinnerung", `Erinnerung zum Angebot${r.sent ? ` – 📧 an ${b.email}` : " (keine E-Mail verschickt)"}`);
     }
