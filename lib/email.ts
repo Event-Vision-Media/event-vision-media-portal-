@@ -1021,11 +1021,11 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
           ? `kurze Erinnerung: Ihr Angebot ist noch <strong>bis ${esc(until)}</strong> gültig.`
           : updated
             ? "vielen Dank für Ihre Rückmeldung! Wir haben das Angebot für Sie angepasst."
-            : "vielen Dank für Ihre Anfrage! Bevor wir verbindlich bestätigen, haben wir Ihnen ein persönliches Angebot zusammengestellt.",
+            : "vielen Dank für Ihre Anfrage. In Ihrem Angebot finden Sie alle Leistungen, die Sie angefragt haben. Wenn alles für Sie passt, können Sie das Angebot mit einem Klick annehmen.",
         reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist Ihr Termin für Sie reserviert" : ""}.`,
         how: "Der Knopf öffnet zunächst nur Ihr Angebot – dort sehen Sie alles in Ruhe an und entscheiden selbst: <strong>annehmen</strong>, <strong>Änderung wünschen</strong> oder ablehnen. Erst wenn Sie dort auf „Angebot annehmen“ klicken, erhalten Sie die Auftragsbestätigung mit Ihrem Zugang zum Kundenportal.",
         button: "Angebot ansehen & annehmen",
-        standard: "Unten finden Sie alle Leistungen so zusammengestellt, wie Sie sie angefragt haben. Passt alles, nehmen Sie das Angebot mit einem Klick an – und Ihre Buchung ist sofort bestätigt.",
+        standard: "Wenn alles für Sie passt, können Sie das Angebot mit einem Klick annehmen. Damit ist Ihre Buchung sofort bestätigt.",
         call: "Fragen? Antworten Sie einfach auf diese E-Mail oder rufen Sie uns an: 0176 22748363.",
       }
     : {
@@ -1035,17 +1035,19 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
           ? `kurze Erinnerung: Dein Angebot ist noch <strong>bis ${esc(until)}</strong> gültig.`
           : updated
             ? "danke für deine Rückmeldung! Wir haben das Angebot für dich angepasst."
-            : "vielen Dank für deine Anfrage! Bevor wir verbindlich bestätigen, haben wir dir ein persönliches Angebot zusammengestellt.",
+            : "vielen Dank für deine Anfrage. In deinem Angebot findest du alle Leistungen, die du angefragt hast. Wenn alles für dich passt, kannst du das Angebot mit einem Klick annehmen.",
         reserved: `Das Angebot gilt bis <strong>${esc(until)}</strong>${o.reserved ? " – bis dahin ist dein Termin für dich reserviert" : ""}.`,
         how: "Der Knopf öffnet zunächst nur dein Angebot – dort schaust du dir alles in Ruhe an und entscheidest selbst: <strong>annehmen</strong>, <strong>Änderung wünschen</strong> oder ablehnen. Erst wenn du dort auf „Angebot annehmen“ klickst, bekommst du die Auftragsbestätigung mit deinem Zugang zum Kundenportal.",
         button: "Angebot ansehen & annehmen",
-        standard: "Unten findest du alle Leistungen so zusammengestellt, wie du sie angefragt hast. Passt alles, nimmst du das Angebot mit einem Klick an – und deine Buchung ist sofort bestätigt.",
+        standard: "Wenn alles für dich passt, kannst du das Angebot mit einem Klick annehmen. Damit ist deine Buchung sofort bestätigt.",
         call: "Fragen? Antworte einfach auf diese E-Mail oder ruf uns an: 0176 22748363.",
       };
-  // Ohne persönliche Nachricht steht ein kurzer Standardsatz da
+  // Ohne persönliche Nachricht reicht die Einleitung – nur ein angepasstes Angebot bekommt den Standardsatz
   const answer = o.message.trim()
     ? `<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#fbf8f1;border:1px solid #ebdab3;line-height:1.6;white-space:pre-wrap">${esc(o.message.trim())}</div>`
-    : `<p style="line-height:1.6">${t.standard}</p>`;
+    : updated || opts.reminder
+      ? `<p style="line-height:1.6">${t.standard}</p>`
+      : "";
   return {
     subject: t.subject,
     html: layout(
@@ -1061,7 +1063,7 @@ ${offerBenefits(b)}
 <p style="margin-top:12px;line-height:1.6">${t.call}</p>
 <p style="margin-top:12px;color:#6f7882;font-size:13px;line-height:1.6">${TAX}</p>`
     ),
-    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim() || t.standard}\n\nAnfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & annehmen: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim() ? `${o.message.trim()}\n\n` : updated || opts.reminder ? `${t.standard}\n\n` : ""}Anfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & annehmen: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
   };
 }
 
