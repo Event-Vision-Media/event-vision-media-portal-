@@ -139,6 +139,28 @@ export async function createOffer(
   return { mailSent: r.sent, url };
 }
 
+/** Admin: offenes Angebot unverändert noch einmal schicken (z. B. nach korrigierter E-Mail-Adresse). Gleicher Link, gleiche Gültigkeit. */
+export async function resendOffer(bookingId: string): Promise<{ error?: string; mailSent?: boolean; to?: string }> {
+  const supabase = createAdminClient();
+  const [{ data: b }, { data: offer }] = await Promise.all([
+    supabase.from("bookings").select("*").eq("id", bookingId).maybeSingle(),
+    supabase.from("booking_offers").select("*").eq("booking_id", bookingId).order("version", { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  if (!b) return { error: "Buchung nicht gefunden." };
+  if (!b.email) return { error: "Für diese Anfrage ist keine E-Mail-Adresse hinterlegt." };
+  if (!offer) return { error: "Es gibt noch kein Angebot – bitte zuerst eins senden." };
+  if (!offerIsOpen(offer as Offer, b)) return { error: "Das Angebot ist nicht mehr offen (abgelaufen oder beantwortet) – bitte ein neues senden." };
+  const mb = { ...toMailBooking(b), inquiry_items: offer.items ?? b.inquiry_items, total_price: offer.total ?? b.total_price };
+  const r = await sendEmail({
+    to: b.email,
+    bookingId,
+    ...offerMail(mb, { message: offer.message ?? "", validUntil: offer.valid_until, url: offerUrl(offer.token), version: offer.version, reserved: b.lifecycle === "reserviert" }),
+  });
+  await logActivity(bookingId, "angebot_erneut", `Angebot${offer.version > 1 ? ` (Version ${offer.version})` : ""} erneut gesendet${r.sent ? ` – 📧 an ${b.email}` : " (keine E-Mail verschickt)"}`);
+  revalidate();
+  return { mailSent: r.sent, to: b.email };
+}
+
 /** Admin: Vorschau der Angebots-Mail – berechnet wie createOffer, speichert und sendet aber nichts. */
 export async function previewOfferMail(
   bookingId: string,

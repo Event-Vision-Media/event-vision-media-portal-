@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { confirmInquiry, declineInquiry } from "@/app/actions/admin-inquiries";
 import { Button } from "@/components/ui/Button";
 import { OfferForm } from "@/components/admin/OfferForm";
+import { resendOfferAction } from "@/app/actions/admin-offers";
 
 type OfferProps = { baseTotal: number; isFromPrice: boolean; lines: { label: string; amount: number }[]; question: string | null; sent: boolean; eventDate?: string | null };
 
@@ -31,6 +32,16 @@ export function InquiryActions({ bookingId, hasEmail, offer }: { bookingId: stri
     });
   }
 
+  function resend() {
+    if (!window.confirm("Das offene Angebot unverändert noch einmal an die aktuelle E-Mail-Adresse schicken?")) return;
+    startTransition(async () => {
+      const res = await resendOfferAction(bookingId);
+      if (res.error) return setMessage({ tone: "error", text: res.error });
+      setMessage({ tone: "ok", text: res.mailSent ? `Angebot erneut gesendet an ${res.to}.` : "Angebot erneut ausgelöst (keine E-Mail verschickt)." });
+      router.refresh();
+    });
+  }
+
   function decline() {
     startTransition(async () => {
       const res = await declineInquiry(bookingId, sendDeclineMail, reason);
@@ -46,6 +57,11 @@ export function InquiryActions({ bookingId, hasEmail, offer }: { bookingId: stri
         {offer && hasEmail && (
           <Button type="button" variant="primary" disabled={isPending} onClick={() => { setOfferOpen((o) => !o); setDeclineOpen(false); }}>
             {offer.sent ? "✉️ Neues Angebot senden" : "✉️ Angebot senden"}
+          </Button>
+        )}
+        {offer?.sent && hasEmail && (
+          <Button type="button" variant="secondary" disabled={isPending} onClick={resend}>
+            ↻ Angebot erneut senden
           </Button>
         )}
         <Button type="button" variant={offer && hasEmail ? "ghost" : "secondary"} disabled={isPending} onClick={() => confirm(false)}>
