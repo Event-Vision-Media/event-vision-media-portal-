@@ -6,7 +6,7 @@ import { formatCurrencyEUR } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { getAdSpend, isPaidGoogle } from "@/lib/ads";
 import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
-import { FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
+import { FUNNEL_EXTRAS, FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 import { DIRECT_CHANNELS, directChannelLabel, isDirectBooking } from "@/lib/direct-channels";
 
@@ -169,7 +169,7 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
     const f = funnel.get(r.step);
     if (f) f[r.channel === "ads" ? "ads" : "sonst"]++;
   }
-  const mainSteps = FUNNEL_STEPS.filter((k) => k !== "whatsapp" && k !== "telefon");
+  const mainSteps = FUNNEL_STEPS.filter((k) => !(FUNNEL_EXTRAS as readonly string[]).includes(k));
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -316,7 +316,7 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
                     </tr>
                   );
                 })}
-                {(["whatsapp", "telefon"] as const).map((k) => (
+                {FUNNEL_EXTRAS.map((k) => (
                   <tr key={k} className="text-anthracite-500">
                     <td className="py-1.5">{FUNNEL_LABELS[k]}</td>
                     <td className="py-1.5 text-right">{funnel.get(k)!.ads}</td>

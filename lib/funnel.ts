@@ -11,6 +11,8 @@ export const FUNNEL_STEPS = [
   "abgeschickt",
   "whatsapp",
   "telefon",
+  "cookie_ok",
+  "cookie_nein",
 ] as const;
 
 export type FunnelStep = (typeof FUNNEL_STEPS)[number];
@@ -27,4 +29,9 @@ export const FUNNEL_LABELS: Record<FunnelStep, string> = {
   abgeschickt: "Anfrage angekommen",
   whatsapp: "WhatsApp geklickt",
   telefon: "Telefon geklickt",
+  cookie_ok: "Cookie-Banner: „OK“",
+  cookie_nein: "Cookie-Banner: „Nein“",
 };
+
+/** Zusatzzeilen unter dem Trichter (keine Trichter-Schritte). */
+export const FUNNEL_EXTRAS = ["whatsapp", "telefon", "cookie_ok", "cookie_nein"] as const;
