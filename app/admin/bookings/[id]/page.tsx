@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/Card";
 import { VbBookingCard } from "@/components/admin/visionbooth/VbBookingCard";
 import { ContractAdminCard } from "@/components/admin/ContractAdminCard";
 import { getLatestContract } from "@/lib/contract-server";
-import { contractRequired } from "@/lib/contract";
+import { contractRequired, fullPaymentTerms } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
 import { listInvoices } from "@/lib/invoices";
@@ -39,6 +39,7 @@ import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { PersonalMailCard } from "@/components/admin/PersonalMailCard";
 import { MailHistoryCard } from "@/components/admin/MailHistoryCard";
 import { AddressingCard } from "@/components/admin/AddressingCard";
+import { PaymentTermsCard } from "@/components/admin/PaymentTermsCard";
 import { ReleaseBookingCard } from "@/components/admin/ReleaseBookingCard";
 import { buildPersonalMail } from "@/lib/personal-mail";
 import { personalMailFacts, personalMailHistory } from "@/lib/personal-mail-server";
@@ -430,6 +431,15 @@ export default async function AdminBookingDetailPage(props: {
         )}
 
         <ContractAdminCard bookingId={booking.id} contract={contract} required={contractRequired(booking)} onFile={Boolean(booking.contract_on_file)} digital={booking.source === "website"} devices={Array.from(bookingDevices(booking))} />
+
+        {payment && (
+          <PaymentTermsCard
+            bookingId={booking.id}
+            current={booking.inquiry_items?.payment?.full ? `full${fullPaymentTerms(booking)!.dueDays}` : "standard"}
+            locked={contract ? "Der Mietvertrag ist schon unterschrieben – die Zahlungsbedingungen stehen darin fest." : booking.deposit_paid_at || booking.rest_paid_at ? "Es ist schon eine Zahlung abgehakt." : null}
+            shortNotice={payment.shortNotice}
+          />
+        )}
 
         {payment && <PaymentAdminCard bookingId={booking.id} p={payment} invoices={invoices} hasEmail={Boolean(booking.email)} email={booking.email ?? null} />}
 

@@ -1,6 +1,6 @@
 import "server-only";
 import { buildContractFor, getBankDetails, getLatestContract } from "@/lib/contract-server";
-import { depositForBooking, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS, shortNoticeLastDay, type BankDetails } from "@/lib/contract";
+import { depositForBooking, fullPaymentTerms, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS, shortNoticeLastDay, type BankDetails } from "@/lib/contract";
 import type { Booking } from "@/lib/types";
 
 
@@ -50,7 +50,7 @@ function minusDays(date: string, days: number): string {
 export async function getPaymentSummary(booking: Booking): Promise<PaymentSummary> {
   const [doc, bank, signed] = await Promise.all([buildContractFor(booking), getBankDetails(), getLatestContract(booking.id)]);
   const shortNotice = isShortNotice(booking);
-  const restDueDays = shortNotice ? SHORT_LAST_DAYS : restDueDaysFor(signed?.template_version);
+  const restDueDays = shortNotice ? SHORT_LAST_DAYS : fullPaymentTerms(booking)?.dueDays ?? restDueDaysFor(signed?.template_version);
   const total = doc.totalAmount;
   const deposit =
     booking.deposit_amount != null ? Number(booking.deposit_amount) : total != null ? depositForBooking(total, booking) : null;

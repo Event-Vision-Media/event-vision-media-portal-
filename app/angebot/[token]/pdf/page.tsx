@@ -8,7 +8,7 @@ import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { customerAskedChange, offerByToken, offerUrl } from "@/lib/offers";
 import { greetingLine, usesSie } from "@/lib/address";
-import { LANDLORD, REST_DUE_DAYS, SHORT_LAST_DAYS, SHORT_PAY_DAYS, depositForBooking, isShortNotice } from "@/lib/contract";
+import { LANDLORD, REST_DUE_DAYS, SHORT_LAST_DAYS, SHORT_PAY_DAYS, depositForBooking, fullPaymentTerms, isShortNotice } from "@/lib/contract";
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Angebot (PDF) · Event Vision Media", robots: { index: false, follow: false } };
@@ -39,14 +39,15 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
 
   const short = isShortNotice(b);
   const deposit = total != null ? depositForBooking(total, b) : 0;
+  const dueDays = fullPaymentTerms(b)?.dueDays ?? REST_DUE_DAYS;
   const payment = short
     ? t(
         `Da dein Event schon bald ist, entfällt die Anzahlung: Der Gesamtbetrag ist per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Rechnung (spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung) oder bar bei der Übergabe zu zahlen.`,
         `Da Ihre Veranstaltung kurzfristig stattfindet, entfällt die Anzahlung: Der Gesamtbetrag ist per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Rechnung (spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung) oder bar bei der Übergabe zu zahlen.`
       )
     : deposit > 0
-      ? `Anzahlung ${formatEuro(deposit)} nach Vertragsabschluss (Rechnung per E-Mail). Restbetrag per Überweisung bis ${REST_DUE_DAYS} Tage vor der Veranstaltung oder bar bei der Übergabe.`
-      : `Keine Anzahlung. Der Gesamtbetrag ist per Überweisung bis ${REST_DUE_DAYS} Tage vor der Veranstaltung oder bar bei der Übergabe zu zahlen.`;
+      ? `Anzahlung ${formatEuro(deposit)} nach Vertragsabschluss (Rechnung per E-Mail). Restbetrag per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe.`
+      : `Keine Anzahlung. Der Gesamtbetrag ist per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe zu zahlen.`;
 
   const rows: { name: string; price: string; strong?: boolean }[] = [
     ...(items.packages ?? []).map((p: any) => ({ name: p.name, price: formatEuro(p.price), strong: true })),

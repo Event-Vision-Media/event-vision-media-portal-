@@ -101,9 +101,22 @@ export function isShortNotice(b: { event_date: string; confirmed_at?: string | n
   return daysFromTo(anchor, b.event_date.slice(0, 10)) < SHORT_NOTICE_DAYS;
 }
 
-/** Anzahlung für eine Buchung – bei kurzfristigen Buchungen keine. */
-export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null }): number {
-  return isShortNotice(b) ? 0 : depositFor(total);
+/** Mögliche Fristen für „Gesamtbetrag auf einmal“ (Tage vor der Veranstaltung). */
+export const FULL_PAYMENT_DAYS = [7, 14] as const;
+
+/**
+ * Mit dem Kunden individuell vereinbart (im Admin pro Buchung): keine Anzahlung,
+ * der Gesamtbetrag ist dueDays Tage vor der Veranstaltung fällig (oder bar bei Übergabe).
+ */
+export function fullPaymentTerms(b: { inquiry_items?: { payment?: { full?: boolean; dueDays?: number } | null } | null } | null | undefined): { dueDays: number } | null {
+  const p = b?.inquiry_items?.payment;
+  if (!p?.full) return null;
+  return { dueDays: (FULL_PAYMENT_DAYS as readonly number[]).includes(Number(p.dueDays)) ? Number(p.dueDays) : REST_DUE_DAYS };
+}
+
+/** Anzahlung für eine Buchung – bei kurzfristigen Buchungen und vereinbarter Gesamtzahlung keine. */
+export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null; inquiry_items?: { payment?: { full?: boolean; dueDays?: number } | null } | null }): number {
+  return isShortNotice(b) || fullPaymentTerms(b) ? 0 : depositFor(total);
 }
 
 /** Spätester Zahltag bei kurzfristigen Buchungen (2 Tage vor der Veranstaltung). */
@@ -286,6 +299,8 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   const total = totalNum != null ? from + formatEuro(totalNum) : "laut Auftragsbestätigung";
   const shortNotice = isShortNotice(booking);
   const depositNum = totalNum != null ? depositForBooking(totalNum, booking) : null;
+  const agreed = fullPaymentTerms(booking);
+  const dueDays = agreed?.dueDays ?? REST_DUE_DAYS;
   const deposit = depositNum === 0 ? "keine" : depositNum != null ? formatEuro(depositNum) : "ca. 20 % des Gesamtpreises (auf volle 50 € gerundet)";
   const rest = totalNum != null && depositNum != null ? from + formatEuro(totalNum - depositNum) : "80 % des Gesamtpreises";
 
@@ -378,14 +393,14 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
           "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
           `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
         ] : depositNum === 0 ? [
-          `Keine Anzahlung (Gesamtpreis bis ${NO_DEPOSIT_UP_TO} €). Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
+          `${agreed ? "Keine Anzahlung (so vereinbart)." : `Keine Anzahlung (Gesamtpreis bis ${NO_DEPOSIT_UP_TO} €).`} Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
           shippedOnly
-            ? `per Überweisung vor dem Versand, spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung. Hierzu erhält der Mieter eine Rechnung.`
+            ? `per Überweisung vor dem Versand, spätestens ${dueDays} Tage vor der Veranstaltung. Hierzu erhält der Mieter eine Rechnung.`
             : renter?.rest_payment_method === "bar"
               ? `in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe der Mietsache (vom Mieter so gewählt). Der Mieter erhält hierüber eine Rechnung mit Zahlungsvermerk.`
               : renter?.rest_payment_method === "ueberweisung"
-                ? `per Überweisung spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung (vom Mieter so gewählt). Hierzu erhält der Mieter eine Rechnung.`
-                : `per Überweisung spätestens ${REST_DUE_DAYS} Tage vor der Veranstaltung oder in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe. Hierzu erhält der Mieter eine Rechnung.`,
+                ? `per Überweisung spätestens ${dueDays} Tage vor der Veranstaltung (vom Mieter so gewählt). Hierzu erhält der Mieter eine Rechnung.`
+                : `per Überweisung spätestens ${dueDays} Tage vor der Veranstaltung oder in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe. Hierzu erhält der Mieter eine Rechnung.`,
           "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
           `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
         ] : [

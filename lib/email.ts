@@ -3,7 +3,7 @@ import { followupLine, formatEuro } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { logMail } from "@/lib/mail-log";
 import { greetingLine, usesSie } from "@/lib/address";
-import { LANDLORD, NO_DEPOSIT_UP_TO, depositForBooking, isShortNotice, shortNoticeLastDay } from "@/lib/contract";
+import { LANDLORD, NO_DEPOSIT_UP_TO, depositForBooking, fullPaymentTerms, isShortNotice, shortNoticeLastDay } from "@/lib/contract";
 import type { WeeklyPlan, WeeklyPlanItem } from "@/lib/weekly-plan";
 import { VB_LEGAL_VERSION, VB_WIDERRUF, VB_WIDERRUF_FORM, legalText } from "@/lib/vb-legal";
 
@@ -116,6 +116,7 @@ export interface MailBooking {
     isFromPrice?: boolean;
     days?: number;
     packagesTotal?: number;
+    payment?: { full?: boolean; dueDays?: number } | null;
   } | null;
 }
 
@@ -487,7 +488,7 @@ export function contractAdminMail(b: MailBooking, signer: string, noDeposit = fa
       "Mietvertrag unterschrieben",
       `<p style="line-height:1.6"><strong>${esc(signer)}</strong> hat den Mietvertrag für <strong>${esc(b.booking_code)}</strong> (${esc(formatDateGerman(b.event_date))}) digital unterschrieben.</p>
 ${details(b)}
-<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${shortNotice ? `Kurzfristige Buchung, keine Anzahlung – Rechnung über den Gesamtbetrag in Lexware Office schreiben, zahlbar innerhalb von 3 Tagen (spätestens ${esc(formatDateGerman(shortNoticeLastDay(b.event_date)))})` : noDeposit ? `Keine Anzahlung (bis ${NO_DEPOSIT_UP_TO} €) – Rechnung über den Gesamtbetrag in Lexware Office schreiben` : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
+<p style="line-height:1.6"><strong>Nächster Schritt für dich:</strong> ${shortNotice ? `Kurzfristige Buchung, keine Anzahlung – Rechnung über den Gesamtbetrag in Lexware Office schreiben, zahlbar innerhalb von 3 Tagen (spätestens ${esc(formatDateGerman(shortNoticeLastDay(b.event_date)))})` : noDeposit ? `Keine Anzahlung${fullPaymentTerms(b) ? ` (so vereinbart, fällig ${fullPaymentTerms(b)!.dueDays} Tage vorher)` : ` (bis ${NO_DEPOSIT_UP_TO} €)`} – Rechnung über den Gesamtbetrag in Lexware Office schreiben` : "Anzahlungsrechnung in Lexware Office schreiben"} – Verwendungszweck ${esc(b.booking_code)}.</p>
 ${url ? `<p style="margin-top:18px"><a href="${esc(url)}/admin/zahlungen" style="color:#a87731;font-weight:600">Zu den Zahlungen →</a></p>` : ""}`
     ),
     text: `${signer} hat den Mietvertrag für ${b.booking_code} (${formatDateGerman(b.event_date)}) unterschrieben.${url ? `\n${url}/admin/anfragen` : ""}`,

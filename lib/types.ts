@@ -95,6 +95,8 @@ export interface Booking {
     staff?: { start?: string | null; hours?: number; requestedExtra?: number } | null;
     /** Abweichungen laut schriftlichem Angebot (z. B. aus der Zeit vor dem Portal). */
     offer?: OfferTerms | null;
+    /** Individuell vereinbarte Zahlung (Admin): keine Anzahlung, Gesamtbetrag dueDays Tage vor der Veranstaltung. */
+    payment?: { full?: boolean; dueDays?: number } | null;
   } | null;
   total_price: number | null;
   inquiry_message: string | null;
