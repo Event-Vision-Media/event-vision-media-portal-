@@ -35,7 +35,7 @@ export function ContractDocument({ doc, children }: { doc: ContractDoc; children
           </div>
           {doc.depositAmount === 0 ? (
             <p className="text-anthracite-500">
-              {doc.shortNotice ? "Kurzfristige Buchung: keine Anzahlung – der Gesamtbetrag wird auf einmal gezahlt (siehe Zahlungsbedingungen)." : "Keine Anzahlung – der Gesamtbetrag wird auf einmal gezahlt (siehe Zahlungsbedingungen)."}
+              {doc.shortNotice ? "Kurzfristige Buchung: keine Anzahlung – der Gesamtbetrag wird auf einmal gezahlt (siehe Zahlungsbedingungen)." : doc.afterEventDays ? "Keine Anzahlung – Rechnung über den Gesamtbetrag nach der Veranstaltung (siehe Zahlungsbedingungen)." : "Keine Anzahlung – der Gesamtbetrag wird auf einmal gezahlt (siehe Zahlungsbedingungen)."}
             </p>
           ) : (
             <>

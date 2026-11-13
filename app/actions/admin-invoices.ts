@@ -97,6 +97,7 @@ export async function uploadInvoice(bookingId: string, _prev: AdminActionResult,
         : "ueberweisung";
       const dueText =
         kind === "anzahlung" ? "innerhalb von 7 Tagen"
+        : (kind === "rest" || kind === "gesamt") && p.afterEvent != null ? `innerhalb von ${p.afterEvent} Tagen`
         : kind === "rest" || kind === "gesamt" ? `bis zum ${formatDateGerman(p.shortNotice ? shortNoticeInvoiceDue(b.event_date) : p.restDueDate)}`
         : null;
       const mail = invoiceMail(toMailBooking(b), { title, amount, pay, dueText, bank: p.bank });

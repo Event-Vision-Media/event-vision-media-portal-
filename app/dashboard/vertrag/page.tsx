@@ -122,6 +122,8 @@ export default async function ContractPage() {
             noDeposit={doc.depositAmount === 0}
             shortNotice={Boolean(doc.shortNotice)}
             shippedOnly={doc.shippedOnly}
+            afterEventDays={doc.afterEventDays ?? null}
+            agreedDueDays={doc.agreedDueDays ?? null}
             devices={doc.devices}
             carryHelper={hasDelivery && booking.inquiry_items?.access?.help === "helfer"}
             slots={slots}

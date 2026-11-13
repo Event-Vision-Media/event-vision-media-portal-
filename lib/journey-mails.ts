@@ -340,6 +340,8 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     if (!noDeposit && !b.deposit_paid_at && !b.deposit_reminder_sent_at && signedAt && signedAt <= confirmedCutoff) kind = "anzahlung";
     else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "ueberweisung" && signedAt && days >= dueDays && days <= dueDays + 3) kind = "rest_ueberweisung";
     else if (!b.rest_paid_at && !b.rest_reminder_sent_at && b.rest_payment_method === "bar" && days >= 1 && days <= 2) kind = "rest_bar";
+    // Rechnung erst nach der Veranstaltung (so vereinbart): keine Zahlungserinnerungen vor dem Event
+    if (kind !== "anzahlung" && fullPaymentTerms(b)?.after) kind = null;
     if (!kind) continue;
 
     const p = await getPaymentSummary(b);

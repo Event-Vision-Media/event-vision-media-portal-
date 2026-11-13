@@ -39,13 +39,16 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
 
   const short = isShortNotice(b);
   const deposit = total != null ? depositForBooking(total, b) : 0;
-  const dueDays = fullPaymentTerms(b)?.dueDays ?? REST_DUE_DAYS;
+  const agreed = fullPaymentTerms(b);
+  const dueDays = agreed?.dueDays ?? REST_DUE_DAYS;
   const payment = short
     ? t(
         `Da dein Event schon bald ist, entfällt die Anzahlung: Der Gesamtbetrag ist per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Rechnung (spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung) oder bar bei der Übergabe zu zahlen.`,
         `Da Ihre Veranstaltung kurzfristig stattfindet, entfällt die Anzahlung: Der Gesamtbetrag ist per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Rechnung (spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung) oder bar bei der Übergabe zu zahlen.`
       )
-    : deposit > 0
+    : agreed?.after
+      ? `Keine Anzahlung. Die Rechnung über den Gesamtbetrag wird nach der Veranstaltung gestellt und ist innerhalb von ${dueDays} Tagen per Überweisung zahlbar.`
+      : deposit > 0
       ? `Anzahlung ${formatEuro(deposit)} nach Vertragsabschluss (Rechnung per E-Mail). Restbetrag per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe.`
       : `Keine Anzahlung. Der Gesamtbetrag ist per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe zu zahlen.`;
 

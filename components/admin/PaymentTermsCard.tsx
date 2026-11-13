@@ -13,7 +13,7 @@ export function PaymentTermsCard({
   shortNotice,
 }: {
   bookingId: string;
-  /** "standard" | "full7" | "full14" */
+  /** "standard" | "full7" | "full14" | "after7" | "after14" */
   current: string;
   /** Grund, warum nicht mehr änderbar (Vertrag unterschrieben / schon bezahlt) */
   locked: string | null;
@@ -41,6 +41,8 @@ export function PaymentTermsCard({
     { id: "standard", label: "Anzahlung + Restbetrag", hint: "Standard: 20 % Anzahlung nach Vertrag, Rest 14 Tage vorher oder bar" },
     { id: "full14", label: "Gesamtbetrag auf einmal – 14 Tage vorher", hint: "Keine Anzahlung, eine Rechnung über alles" },
     { id: "full7", label: "Gesamtbetrag auf einmal – 7 Tage vorher", hint: "Keine Anzahlung, eine Rechnung über alles" },
+    { id: "after14", label: "Rechnung nach der Veranstaltung – zahlbar in 14 Tagen", hint: "Z. B. Städte/Behörden: keine Anzahlung, keine Zahlungserinnerung vor dem Event" },
+    { id: "after7", label: "Rechnung nach der Veranstaltung – zahlbar in 7 Tagen", hint: "Keine Anzahlung, keine Zahlungserinnerung vor dem Event" },
   ];
 
   return (

@@ -435,7 +435,7 @@ export default async function AdminBookingDetailPage(props: {
         {payment && (
           <PaymentTermsCard
             bookingId={booking.id}
-            current={booking.inquiry_items?.payment?.full ? `full${fullPaymentTerms(booking)!.dueDays}` : "standard"}
+            current={booking.inquiry_items?.payment?.full ? `${fullPaymentTerms(booking)!.after ? "after" : "full"}${fullPaymentTerms(booking)!.dueDays}` : "standard"}
             locked={contract ? "Der Mietvertrag ist schon unterschrieben – die Zahlungsbedingungen stehen darin fest." : booking.deposit_paid_at || booking.rest_paid_at ? "Es ist schon eine Zahlung abgehakt." : null}
             shortNotice={payment.shortNotice}
           />

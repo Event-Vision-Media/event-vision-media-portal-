@@ -37,14 +37,14 @@ export function PaymentAdminCard({
       ) : (
         <dl className="mb-4 space-y-1 text-sm">
           {p.deposit === 0 ? (
-            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">{p.shortNotice ? "keine (kurzfristige Buchung)" : `keine (bis ${NO_DEPOSIT_UP_TO} €)`}</dd></div>
+            <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium text-anthracite-500">{p.shortNotice ? "keine (kurzfristige Buchung)" : p.afterEvent != null ? "keine (Rechnung nach der Veranstaltung)" : p.agreed ? "keine (so vereinbart)" : `keine (bis ${NO_DEPOSIT_UP_TO} €)`}</dd></div>
           ) : (
             <div className="flex justify-between"><dt className="text-anthracite-500">Anzahlung</dt><dd className="font-medium">{formatCurrencyEUR(p.deposit!)}</dd></div>
           )}
           <div className="flex justify-between">
             <dt className="text-anthracite-500">
               {p.followUp ? "Nachzahlung (später zugebucht)" : p.deposit === 0 ? "Gesamtbetrag" : "Restbetrag"}{" "}
-              {p.method === "bar" ? `· bar bei ${p.pickupOnly ? "Abholung" : "Lieferung"}` : p.method === "ueberweisung" ? `· Überweisung bis ${formatDateGerman(p.restDueDate)}` : ""}
+              {p.afterEvent != null && !p.followUp ? `· Rechnung nach dem Event, zahlbar in ${p.afterEvent} Tagen` : p.method === "bar" ? `· bar bei ${p.pickupOnly ? "Abholung" : "Lieferung"}` : p.method === "ueberweisung" ? `· Überweisung bis ${formatDateGerman(p.restDueDate)}` : ""}
             </dt>
             <dd className="font-medium">{from}{formatCurrencyEUR(p.rest!)}</dd>
           </div>

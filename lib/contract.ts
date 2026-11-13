@@ -104,18 +104,26 @@ export function isShortNotice(b: { event_date: string; confirmed_at?: string | n
 /** Mögliche Fristen für „Gesamtbetrag auf einmal“ (Tage vor der Veranstaltung). */
 export const FULL_PAYMENT_DAYS = [7, 14] as const;
 
+type PaymentAgreement = { payment?: { full?: boolean; dueDays?: number; after?: boolean } | null };
+
 /**
- * Mit dem Kunden individuell vereinbart (im Admin pro Buchung): keine Anzahlung,
- * der Gesamtbetrag ist dueDays Tage vor der Veranstaltung fällig (oder bar bei Übergabe).
+ * Mit dem Kunden individuell vereinbart (im Admin pro Buchung): keine Anzahlung, der Gesamtbetrag ist
+ * dueDays Tage vor der Veranstaltung fällig (oder bar bei Übergabe) – bzw. mit after (z. B. Behörden):
+ * Rechnung erst nach der Veranstaltung, zahlbar innerhalb von dueDays Tagen per Überweisung.
  */
-export function fullPaymentTerms(b: { inquiry_items?: { payment?: { full?: boolean; dueDays?: number } | null } | null } | null | undefined): { dueDays: number } | null {
+export function fullPaymentTerms(b: { inquiry_items?: PaymentAgreement | null } | null | undefined): { dueDays: number; after: boolean } | null {
   const p = b?.inquiry_items?.payment;
   if (!p?.full) return null;
-  return { dueDays: (FULL_PAYMENT_DAYS as readonly number[]).includes(Number(p.dueDays)) ? Number(p.dueDays) : REST_DUE_DAYS };
+  return { dueDays: (FULL_PAYMENT_DAYS as readonly number[]).includes(Number(p.dueDays)) ? Number(p.dueDays) : REST_DUE_DAYS, after: Boolean(p.after) };
+}
+
+/** Voraussichtliche Fälligkeit bei „Rechnung nach der Veranstaltung“: letzter Veranstaltungstag + Zahlungsziel. */
+export function afterEventDueDate(eventDate: string, eventDays: number | null | undefined, dueDays: number): string {
+  return shiftDays(eventDate.slice(0, 10), Math.max(1, eventDays ?? 1) - 1 + dueDays);
 }
 
 /** Anzahlung für eine Buchung – bei kurzfristigen Buchungen und vereinbarter Gesamtzahlung keine. */
-export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null; inquiry_items?: { payment?: { full?: boolean; dueDays?: number } | null } | null }): number {
+export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null; inquiry_items?: PaymentAgreement | null }): number {
   return isShortNotice(b) || fullPaymentTerms(b) ? 0 : depositFor(total);
 }
 
@@ -208,6 +216,10 @@ export interface ContractDoc {
   depositAmount: number | null;
   /** Kurzfristige Buchung: keine Anzahlung, Gesamtbetrag 3 Tage nach Rechnung (spätestens 2 Tage vorher) oder bar. */
   shortNotice: boolean;
+  /** Rechnung nach der Veranstaltung (so vereinbart): Zahlungsziel in Tagen, sonst null. */
+  afterEventDays?: number | null;
+  /** Gesamtbetrag vorab (so vereinbart): fällig so viele Tage vor der Veranstaltung, sonst null. */
+  agreedDueDays?: number | null;
   taxNote: string;
   sections: ContractSection[];
   /** Rechnungsangaben (Firmenkunden), falls angegeben. */
@@ -391,6 +403,10 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
                 ? `per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Erhalt der Rechnung, spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung (vom Mieter so gewählt).`
                 : `per Überweisung innerhalb von ${SHORT_PAY_DAYS} Tagen nach Erhalt der Rechnung, spätestens ${SHORT_LAST_DAYS} Tage vor der Veranstaltung, oder in bar bei ${delivered.length ? "Lieferung" : "Abholung"} bzw. Übergabe.`,
           "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
+          `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
+        ] : depositNum === 0 && agreed?.after ? [
+          `Keine Anzahlung (so vereinbart). Der Gesamtbetrag von ${rest} wird nach der Veranstaltung in Rechnung gestellt und ist innerhalb von ${agreed.dueDays} Tagen nach Erhalt der Rechnung per Überweisung zu zahlen.`,
+          "Später im Kundenportal zugebuchte Leistungen werden mit dieser Rechnung abgerechnet.",
           `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
         ] : depositNum === 0 ? [
           `${agreed ? "Keine Anzahlung (so vereinbart)." : `Keine Anzahlung (Gesamtpreis bis ${NO_DEPOSIT_UP_TO} €).`} Der Gesamtbetrag von ${rest} ist auf einmal zu zahlen:`,
@@ -679,6 +695,8 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     totalAmount: totalNum,
     depositAmount: depositNum,
     shortNotice,
+    afterEventDays: agreed?.after && !shortNotice ? agreed.dueDays : null,
+    agreedDueDays: agreed && !agreed.after && !shortNotice ? agreed.dueDays : null,
     shippedOnly,
     taxNote: "Alle Preise sind Endpreise. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",
     sections: S,

@@ -34,6 +34,8 @@ export function PaymentCard({
   const noDeposit = p.deposit === 0;
   const restStatus = p.restPaid
     ? { label: "Erhalten ✓", tone: "text-emerald-700" }
+    : p.afterEvent != null && !p.followUp
+      ? { label: `Rechnung nach der Veranstaltung – zahlbar innerhalb von ${p.afterEvent} Tagen`, tone: "text-anthracite-600" }
     : p.method === "bar"
       ? { label: p.pickupOnly ? "Bar bei Abholung" : "Bar bei Lieferung", tone: "text-anthracite-600" }
       : p.method === "ueberweisung"

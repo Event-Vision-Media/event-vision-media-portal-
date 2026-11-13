@@ -30,6 +30,8 @@ export function ContractSignForm({
   shortNotice = false,
   shippedOnly = false,
   devices = [],
+  afterEventDays = null,
+  agreedDueDays = null,
 }: {
   prefill: ContractPrefill;
   sie: boolean;
@@ -46,6 +48,10 @@ export function ContractSignForm({
   shippedOnly?: boolean;
   /** Gebuchte Geräte – bestimmen, welche Aufnahmen als Referenz gemeint sind. */
   devices?: string[];
+  /** So vereinbart: Rechnung nach der Veranstaltung, zahlbar in so vielen Tagen. */
+  afterEventDays?: number | null;
+  /** So vereinbart: Gesamtbetrag so viele Tage vor der Veranstaltung. */
+  agreedDueDays?: number | null;
 }) {
   const ref = referenceMedia(devices);
   const [state, formAction] = useFormState(signContract, initialState);
@@ -53,7 +59,7 @@ export function ContractSignForm({
   const t = (du: string, s: string) => (sie ? s : du);
   // Kleiner Betrag zur Selbstabholung: Barzahlung bei Abholung vorausgewählt, Überweisung bleibt möglich.
   const cashFirst = noDeposit && !hasDelivery;
-  const transferText = shortNotice ? "innerhalb von 3 Tagen nach Rechnung" : "bis 14 Tage vor dem Event";
+  const transferText = shortNotice ? "innerhalb von 3 Tagen nach Rechnung" : `bis ${agreedDueDays ?? 14} Tage vor dem Event`;
   const pickupHoursHint = `Täglich (Mo–So) zwischen ${Number(SELF_PICKUP_HOURS[0].slice(0, 2))} und ${Number(SELF_PICKUP_HOURS[1].slice(0, 2))} Uhr.`;
 
   return (
@@ -125,10 +131,18 @@ export function ContractSignForm({
 
       <fieldset className="space-y-3">
         <legend className="font-serif text-lg font-semibold text-anthracite-800">3. {t("Bestätigen & unterschreiben", "Bestätigen & unterschreiben")}</legend>
-        {isBusiness || shippedOnly ? (
+        {isBusiness || shippedOnly || afterEventDays ? (
           <>
             <input type="hidden" name="rest_payment_method" value="ueberweisung" />
-            {shippedOnly && !isBusiness && (
+            {afterEventDays ? (
+              <p className="rounded-xl border border-anthracite-100 bg-sand-50 p-4 text-sm text-anthracite-600">
+                {t(
+                  `Wie vereinbart: keine Anzahlung – die Rechnung über den Gesamtbetrag kommt nach der Veranstaltung per E-Mail und ist innerhalb von ${afterEventDays} Tagen zahlbar.`,
+                  `Wie vereinbart: keine Anzahlung – die Rechnung über den Gesamtbetrag erhalten Sie nach der Veranstaltung per E-Mail, zahlbar innerhalb von ${afterEventDays} Tagen.`
+                )}
+              </p>
+            ) : null}
+            {shippedOnly && !isBusiness && !afterEventDays && (
               <p className="rounded-xl border border-anthracite-100 bg-sand-50 p-4 text-sm text-anthracite-600">
                 Da wir euch alles zuschicken, zahlt ihr {noDeposit ? "den Betrag" : "den Restbetrag"} per Überweisung vor dem Versand – die Rechnung kommt per E-Mail.
               </p>

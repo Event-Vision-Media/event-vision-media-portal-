@@ -13,7 +13,8 @@ import { FULL_PAYMENT_DAYS } from "@/lib/contract";
  */
 export async function setPaymentTerms(bookingId: string, mode: string): Promise<{ success?: boolean; error?: string }> {
   if (!(await isAdminAuthenticated())) return { error: "Nicht angemeldet." };
-  const days = mode === "standard" ? null : Number(mode.replace("full", ""));
+  const after = mode.startsWith("after");
+  const days = mode === "standard" ? null : Number(mode.replace(/^(full|after)/, ""));
   if (days !== null && !(FULL_PAYMENT_DAYS as readonly number[]).includes(days)) return { error: "Ungültige Auswahl." };
 
   const supabase = createAdminClient();
@@ -23,10 +24,16 @@ export async function setPaymentTerms(bookingId: string, mode: string): Promise<
   const { count } = await supabase.from("booking_contracts").select("id", { count: "exact", head: true }).eq("booking_id", bookingId);
   if (count) return { error: "Der Mietvertrag ist schon unterschrieben – die Zahlungsbedingungen stehen darin fest." };
 
-  const items = { ...(b.inquiry_items ?? {}), payment: days ? { full: true, dueDays: days } : null };
+  const items = { ...(b.inquiry_items ?? {}), payment: days ? { full: true, dueDays: days, ...(after ? { after: true } : {}) } : null };
   const { error } = await supabase.from("bookings").update({ inquiry_items: items, deposit_amount: null }).eq("id", bookingId);
   if (error) return { error: "Konnte nicht gespeichert werden." };
-  await logActivity(bookingId, "zahlungsweise_geaendert", days ? `Zahlungsweise: Gesamtbetrag auf einmal, fällig ${days} Tage vor der Veranstaltung (keine Anzahlung)` : "Zahlungsweise: Standard (Anzahlung + Restbetrag)");
+  await logActivity(
+    bookingId,
+    "zahlungsweise_geaendert",
+    !days ? "Zahlungsweise: Standard (Anzahlung + Restbetrag)"
+      : after ? `Zahlungsweise: Rechnung nach der Veranstaltung, zahlbar innerhalb von ${days} Tagen (keine Anzahlung)`
+      : `Zahlungsweise: Gesamtbetrag auf einmal, fällig ${days} Tage vor der Veranstaltung (keine Anzahlung)`
+  );
   revalidatePath(`/admin/bookings/${bookingId}`);
   return { success: true };
 }
