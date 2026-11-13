@@ -27,6 +27,7 @@ export function toMailBooking(b: any): MailBooking {
     occasion: b.occasion,
     total_price: b.total_price,
     inquiry_items: b.inquiry_items,
+    deposit_paid_at: b.deposit_paid_at ?? null,
   };
 }
 

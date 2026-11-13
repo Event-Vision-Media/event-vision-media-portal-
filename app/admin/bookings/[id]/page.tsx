@@ -25,7 +25,7 @@ import { Card } from "@/components/ui/Card";
 import { VbBookingCard } from "@/components/admin/visionbooth/VbBookingCard";
 import { ContractAdminCard } from "@/components/admin/ContractAdminCard";
 import { getLatestContract } from "@/lib/contract-server";
-import { contractRequired, fullPaymentTerms } from "@/lib/contract";
+import { agreedDeposit, contractRequired, fullPaymentTerms } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentAdminCard } from "@/components/admin/PaymentAdminCard";
 import { listInvoices } from "@/lib/invoices";
@@ -435,8 +435,10 @@ export default async function AdminBookingDetailPage(props: {
         {payment && (
           <PaymentTermsCard
             bookingId={booking.id}
-            current={booking.inquiry_items?.payment?.full ? `${fullPaymentTerms(booking)!.after ? "after" : "full"}${fullPaymentTerms(booking)!.dueDays}` : "standard"}
-            locked={contract ? "Der Mietvertrag ist schon unterschrieben – die Zahlungsbedingungen stehen darin fest." : booking.deposit_paid_at || booking.rest_paid_at ? "Es ist schon eine Zahlung abgehakt." : null}
+            current={agreedDeposit(booking) != null ? "deposit" : booking.inquiry_items?.payment?.full ? `${fullPaymentTerms(booking)!.after ? "after" : "full"}${fullPaymentTerms(booking)!.dueDays}` : "standard"}
+            locked={contract ? "Der Mietvertrag ist schon unterschrieben – die Zahlungsbedingungen stehen darin fest." : booking.rest_paid_at ? "Der Restbetrag ist schon abgehakt." : null}
+            depositAmount={agreedDeposit(booking)}
+            depositPaid={Boolean(booking.deposit_paid_at)}
             shortNotice={payment.shortNotice}
           />
         )}

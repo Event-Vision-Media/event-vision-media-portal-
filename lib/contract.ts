@@ -93,9 +93,10 @@ const shiftDays = (iso: string, days: number) => {
 };
 const daysFromTo = (from: string, to: string) => Math.round((Date.parse(to + "T00:00:00Z") - Date.parse(from + "T00:00:00Z")) / 86_400_000);
 
-/** Kurzfristig? Maßgeblich ist der Tag der Bestätigung (noch nicht bestätigt: heute). */
-export function isShortNotice(b: { event_date: string; confirmed_at?: string | null }): boolean {
+/** Kurzfristig? Maßgeblich ist der Tag der Bestätigung (noch nicht bestätigt: heute). Individuell vereinbarte Anzahlung geht vor. */
+export function isShortNotice(b: { event_date: string; confirmed_at?: string | null; inquiry_items?: { payment?: { deposit?: number } | null } | null }): boolean {
   if (!b.event_date) return false;
+  if (b.inquiry_items?.payment?.deposit != null) return false;
   const anchor = b.confirmed_at ? berlinDate(new Date(b.confirmed_at)) : berlinDate(new Date());
   if (anchor < SHORT_NOTICE_SINCE) return false;
   return daysFromTo(anchor, b.event_date.slice(0, 10)) < SHORT_NOTICE_DAYS;
@@ -104,7 +105,13 @@ export function isShortNotice(b: { event_date: string; confirmed_at?: string | n
 /** Mögliche Fristen für „Gesamtbetrag auf einmal“ (Tage vor der Veranstaltung). */
 export const FULL_PAYMENT_DAYS = [7, 14] as const;
 
-type PaymentAgreement = { payment?: { full?: boolean; dueDays?: number; after?: boolean } | null };
+type PaymentAgreement = { payment?: { full?: boolean; dueDays?: number; after?: boolean; deposit?: number } | null };
+
+/** Individuell vereinbarte Anzahlung in € (z. B. Bestandsbuchung, bei der schon ein anderer Betrag angezahlt wurde). */
+export function agreedDeposit(b: { inquiry_items?: PaymentAgreement | null } | null | undefined): number | null {
+  const d = b?.inquiry_items?.payment?.deposit;
+  return typeof d === "number" && Number.isFinite(d) && d >= 0 ? d : null;
+}
 
 /**
  * Mit dem Kunden individuell vereinbart (im Admin pro Buchung): keine Anzahlung, der Gesamtbetrag ist
@@ -124,6 +131,8 @@ export function afterEventDueDate(eventDate: string, eventDays: number | null | 
 
 /** Anzahlung für eine Buchung – bei kurzfristigen Buchungen und vereinbarter Gesamtzahlung keine. */
 export function depositForBooking(total: number, b: { event_date: string; confirmed_at?: string | null; inquiry_items?: PaymentAgreement | null }): number {
+  const agreed = agreedDeposit(b);
+  if (agreed != null) return Math.min(total, agreed);
   return isShortNotice(b) || fullPaymentTerms(b) ? 0 : depositFor(total);
 }
 
@@ -218,6 +227,8 @@ export interface ContractDoc {
   shortNotice: boolean;
   /** Rechnung nach der Veranstaltung (so vereinbart): Zahlungsziel in Tagen, sonst null. */
   afterEventDays?: number | null;
+  /** Anzahlung ist schon eingegangen (z. B. Bestandsbuchung). */
+  depositPaid?: boolean;
   /** Gesamtbetrag vorab (so vereinbart): fällig so viele Tage vor der Veranstaltung, sonst null. */
   agreedDueDays?: number | null;
   taxNote: string;
@@ -420,7 +431,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
           "Später im Kundenportal zugebuchte Leistungen werden mit dem Gesamtbetrag abgerechnet.",
           `Verwendungszweck: Rechnungsnummer bzw. Buchungsnummer ${booking.booking_code}.`,
         ] : [
-          `Anzahlung: ${deposit}, zahlbar innerhalb von 7 Tagen nach Erhalt der Anzahlungsrechnung.`,
+          booking.deposit_paid_at ? `Anzahlung: ${deposit} (bereits erhalten).` : `Anzahlung: ${deposit}, zahlbar innerhalb von 7 Tagen nach Erhalt der Anzahlungsrechnung.`,
           renter?.rest_payment_method === "bar"
             ? `Restbetrag: ${rest}, zahlbar in bar bei Lieferung bzw. Übergabe der Mietsache (vom Mieter so gewählt). Der Mieter erhält hierüber eine Rechnung mit Zahlungsvermerk.`
             : renter?.rest_payment_method === "ueberweisung"
@@ -696,6 +707,7 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
     depositAmount: depositNum,
     shortNotice,
     afterEventDays: agreed?.after && !shortNotice ? agreed.dueDays : null,
+    depositPaid: Boolean(booking.deposit_paid_at) && (depositNum ?? 0) > 0,
     agreedDueDays: agreed && !agreed.after && !shortNotice ? agreed.dueDays : null,
     shippedOnly,
     taxNote: "Alle Preise sind Endpreise. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.",

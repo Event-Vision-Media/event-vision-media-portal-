@@ -96,7 +96,7 @@ export interface Booking {
     /** Abweichungen laut schriftlichem Angebot (z. B. aus der Zeit vor dem Portal). */
     offer?: OfferTerms | null;
     /** Individuell vereinbarte Zahlung (Admin): keine Anzahlung, Gesamtbetrag dueDays Tage vor der Veranstaltung – bzw. mit after: Rechnung nach der Veranstaltung, zahlbar in dueDays Tagen. */
-    payment?: { full?: boolean; dueDays?: number; after?: boolean } | null;
+    payment?: { full?: boolean; dueDays?: number; after?: boolean; deposit?: number } | null;
   } | null;
   total_price: number | null;
   inquiry_message: string | null;
