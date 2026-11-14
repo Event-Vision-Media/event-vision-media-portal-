@@ -234,16 +234,18 @@ export function confirmationMail(b: MailBooking) {
   const url = portalUrl();
   const short = isShortNotice(b);
   const noDeposit = b.total_price != null && depositForBooking(Number(b.total_price), b) === 0;
+  // Layout-Auswahl gibt es nur für Fotobox/Fotospiegel – nicht für 360°, Audiogästebuch, LOVE
+  const photo = /spiegel|mirror|fotobox/i.test((b.inquiry_items?.packages ?? []).map((p) => p.name).join(" "));
   const t = isSie(b)
     ? {
         title: "Ihre Buchung ist bestätigt",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen Ihnen Ihren Termin. Wir freuen uns auf Ihr Event!",
-        next: `<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da Ihr Event schon bald ist, ist keine Anzahlung nötig: Sie zahlen den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung ist nicht nötig." : b.deposit_paid_at ? "Ihre Anzahlung haben wir bereits erhalten – vielen Dank!" : "Danach erhalten Sie die Rechnung über die Anzahlung."} Im Portal wählen Sie außerdem Ihr Layout und sehen jederzeit den Stand Ihrer Buchung.`,
+        next: `<strong>Nächster Schritt:</strong> Bitte melden Sie sich mit dem Zugangscode unten im Kundenportal an und unterschreiben Sie dort Ihren Mietvertrag – er ist bereits vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da Ihr Event schon bald ist, ist keine Anzahlung nötig: Sie zahlen den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung ist nicht nötig." : b.deposit_paid_at ? "Ihre Anzahlung haben wir bereits erhalten – vielen Dank!" : "Danach erhalten Sie die Rechnung über die Anzahlung."} Im Portal ${photo ? "wählen Sie außerdem Ihr Foto-Layout und sehen" : "sehen Sie"} jederzeit den Stand Ihrer Buchung.`,
       }
     : {
         title: "Deine Buchung ist bestätigt 🎉",
         intro: "gute Nachrichten: Wir haben alles geprüft und bestätigen dir deinen Termin. Wir freuen uns riesig auf dein Event!",
-        next: `<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da dein Event schon bald ist, brauchst du keine Anzahlung: Du zahlst den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal." : b.deposit_paid_at ? "Deine Anzahlung haben wir schon erhalten – danke!" : "Danach bekommst du die Rechnung über die Anzahlung."} Im Portal wählst du außerdem dein Layout und siehst jederzeit den Stand deiner Buchung.`,
+        next: `<strong>Nächster Schritt:</strong> Melde dich mit dem Zugangscode unten im Kundenportal an und unterschreib dort deinen Mietvertrag – er ist schon vorausgefüllt und in ca. 2 Minuten erledigt. ${short ? "Da dein Event schon bald ist, brauchst du keine Anzahlung: Du zahlst den Gesamtbetrag auf einmal – per Überweisung innerhalb von 3 Tagen nach Rechnung oder bar bei der Übergabe." : noDeposit ? "Eine Anzahlung brauchst du nicht – du zahlst alles auf einmal." : b.deposit_paid_at ? "Deine Anzahlung haben wir schon erhalten – danke!" : "Danach bekommst du die Rechnung über die Anzahlung."} Im Portal ${photo ? "wählst du außerdem dein Foto-Layout und siehst" : "siehst du"} jederzeit den Stand deiner Buchung.`,
       };
   return {
     subject: `Auftragsbestätigung ${b.booking_code} – ${BRAND}`,
