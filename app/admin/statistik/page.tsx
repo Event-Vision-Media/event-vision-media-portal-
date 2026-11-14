@@ -55,9 +55,20 @@ function count<T>(items: T[], key: (t: T) => string | null | undefined) {
 
 const cityOf = (loc: string | null) => loc?.match(/\b\d{5}\s+([^,]+)/)?.[1]?.trim() ?? null;
 const pct = (a: number, b: number) => (b ? `${Math.round((a / b) * 100)} %` : "–");
+const pct1 = (a: number, b: number) => (b ? `${((a / b) * 100).toLocaleString("de-DE", { maximumFractionDigits: 1 })} %` : "–");
 
 /** Auswertung der Website-Anfragen: Abschlussquote, Umsatz, Upsells, Herkunft. */
-export default async function AdminStatsPage(props: { searchParams: Promise<{ zeitraum?: string }> }) {
+const FUNNEL_QUICK = { "7": "7 Tage", "14": "14 Tage", "30": "30 Tage" } as const;
+const isDay = (v: string | undefined): v is string => !!v && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v));
+/** Tagesanfang in deutscher Zeit (Winter/Sommer) als ISO-Zeitpunkt. */
+function berlinDayStart(day: string): string {
+  const noon = new Date(`${day}T12:00:00Z`);
+  const offsetH = Number(noon.toLocaleString("en-US", { timeZone: "Europe/Berlin", hour: "2-digit", hour12: false })) - 12;
+  return new Date(Date.parse(`${day}T00:00:00Z`) - offsetH * 3_600_000).toISOString();
+}
+const dayDE = (day: string) => new Date(`${day}T12:00:00Z`).toLocaleDateString("de-DE", { day: "2-digit", month: "2-digit", year: "numeric" });
+
+export default async function AdminStatsPage(props: { searchParams: Promise<{ zeitraum?: string; t?: string; tv?: string; tb?: string }> }) {
   const searchParams = await props.searchParams;
   const range: RangeKey = (searchParams.zeitraum as RangeKey) in RANGES ? (searchParams.zeitraum as RangeKey) : "90";
   const since = new Date(Date.now() - RANGES[range].days * 86_400_000).toISOString();
@@ -158,12 +169,20 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
     }
   }
 
-  // ---- Besucher-Trichter (anonym gezählt auf der Website) ----
-  const { data: funnelRows } = await createAdminClient()
-    .from("funnel_events")
-    .select("step, channel")
-    .gte("created_at", since)
-    .limit(100000);
+  // ---- Besucher-Trichter (anonym gezählt auf der Website) – eigener Zeitraum möglich ----
+  const quick = searchParams.t && searchParams.t in FUNNEL_QUICK ? (searchParams.t as keyof typeof FUNNEL_QUICK) : null;
+  const fromDay = isDay(searchParams.tv) ? searchParams.tv : null;
+  const toDay = isDay(searchParams.tb) ? searchParams.tb : null;
+  const custom = Boolean(fromDay || toDay);
+  const funnelSince = fromDay ? berlinDayStart(fromDay) : quick ? new Date(Date.now() - Number(quick) * 86_400_000).toISOString() : custom ? new Date(0).toISOString() : since;
+  const funnelUntil = toDay ? new Date(Date.parse(berlinDayStart(toDay)) + 86_400_000).toISOString() : null;
+  const funnelLabel = custom
+    ? `${fromDay ? dayDE(fromDay) : "Start"} – ${toDay ? dayDE(toDay) : "heute"}`
+    : quick ? `letzte ${FUNNEL_QUICK[quick]}` : RANGES[range].label;
+  let funnelQuery = createAdminClient().from("funnel_events").select("step, channel").gte("created_at", funnelSince);
+  if (funnelUntil) funnelQuery = funnelQuery.lt("created_at", funnelUntil);
+  const { data: funnelRows } = await funnelQuery.limit(100000);
+  const funnelHref = (extra: Record<string, string>) => `/admin/statistik?${new URLSearchParams({ zeitraum: range, ...extra }).toString()}#trichter`;
   const funnel = new Map<string, { ads: number; sonst: number }>(FUNNEL_STEPS.map((k) => [k, { ads: 0, sonst: 0 }]));
   for (const r of funnelRows ?? []) {
     const f = funnel.get(r.step);
@@ -283,8 +302,38 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
           </div>
         </Card>
 
-        <Card className="mt-6">
+        <Card className="mt-6 scroll-mt-6" id="trichter">
           <h2 className="font-serif text-lg font-semibold text-anthracite-800">Besucher-Trichter: Wie weit kommen Besucher?</h2>
+          <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
+            <Link
+              href={funnelHref({})}
+              className={`rounded-full border px-3 py-1 transition ${!quick && !custom ? "border-anthracite-800 bg-anthracite-800 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}
+            >
+              Wie oben ({RANGES[range].label})
+            </Link>
+            {(Object.keys(FUNNEL_QUICK) as (keyof typeof FUNNEL_QUICK)[]).map((k) => (
+              <Link
+                key={k}
+                href={funnelHref({ t: k })}
+                className={`rounded-full border px-3 py-1 transition ${quick === k && !custom ? "border-anthracite-800 bg-anthracite-800 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}
+              >
+                {FUNNEL_QUICK[k]}
+              </Link>
+            ))}
+            <form action="/admin/statistik#trichter" className="flex flex-wrap items-center gap-1.5">
+              <input type="hidden" name="zeitraum" value={range} />
+              <label className="text-anthracite-500">
+                von <input type="date" name="tv" defaultValue={fromDay ?? ""} className="rounded-lg border border-anthracite-200 px-2 py-1 text-xs" />
+              </label>
+              <label className="text-anthracite-500">
+                bis <input type="date" name="tb" defaultValue={toDay ?? ""} className="rounded-lg border border-anthracite-200 px-2 py-1 text-xs" />
+              </label>
+              <button type="submit" className={`rounded-full border px-3 py-1 transition ${custom ? "border-anthracite-800 bg-anthracite-800 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}>
+                Anzeigen
+              </button>
+            </form>
+          </div>
+          <p className="mt-2 text-xs font-medium text-anthracite-600">Zeitraum: {funnelLabel}</p>
           <p className="mt-1 text-xs text-anthracite-400">
             Anonym gezählt auf der Website (ohne Cookies) – jeder Schritt einmal pro Seitenaufruf. „Google Ads“ = über eine Anzeige gekommen.
             Die Prozentzahl zeigt, wie viele vom vorherigen Schritt weitergemacht haben; wo sie stark fällt, springen Besucher ab.
@@ -316,6 +365,11 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
                     </tr>
                   );
                 })}
+                <tr className="border-t-2 border-anthracite-100 font-medium text-anthracite-800">
+                  <td className="py-2">Anfragen pro Besucher</td>
+                  <td className="py-2 text-right">{pct1(funnel.get("abgeschickt")!.ads, funnel.get("einstieg")!.ads)}</td>
+                  <td className="py-2 text-right">{pct1(funnel.get("abgeschickt")!.sonst, funnel.get("einstieg")!.sonst)}</td>
+                </tr>
                 {FUNNEL_EXTRAS.map((k) => (
                   <tr key={k} className="text-anthracite-500">
                     <td className="py-1.5">{FUNNEL_LABELS[k]}</td>
