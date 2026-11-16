@@ -21,9 +21,12 @@ export function LayoutGallery({
   hasConsentedBefore,
   premiumIncluded,
   sie = false,
+  business = sie,
 }: {
   /** Businesskunde: Sie-Form und Firmen-Kategorien zuerst. */
   sie?: boolean;
+  /** Firmenkunde (auch bei Du): Firmen-Kategorien zuerst. */
+  business?: boolean;
   inclusiveLayouts: Layout[];
   premiumLayouts: Layout[];
   selectedLayoutId: string | null;
@@ -49,7 +52,7 @@ export function LayoutGallery({
 
   const t = (ihr: string, s: string) => (sie ? s : ihr);
   // Reihenfolge nach Kundentyp: Firmen sehen Firmen-Designs zuerst
-  const preferred = sie ? ["Firmenevent", "Weihnachtsfeier", "Minimalistisch"] : ["Hochzeit", "Geburtstag"];
+  const preferred = business ? ["Firmenevent", "Weihnachtsfeier", "Minimalistisch"] : ["Hochzeit", "Geburtstag"];
   const rank = (c: string | null) => (c && preferred.includes(c) ? preferred.indexOf(c) : preferred.length);
   const availableCategories = [...LAYOUT_CATEGORIES]
     .filter((category) => premiumLayouts.some((layout) => layout.category === category))

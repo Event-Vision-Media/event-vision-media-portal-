@@ -1,7 +1,7 @@
 import "server-only";
 import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames, premiumLayoutIncluded } from "@/lib/catalog";
 import { buildContract, type BankDetails, type ContractDoc, type RenterDetails } from "@/lib/contract";
 import { SELECTION_SWITCH_FEE, type Booking } from "@/lib/types";
 
@@ -67,7 +67,7 @@ export async function contractInputFor(booking: Booking) {
     }));
 
   const portalFees: { name: string; price: number }[] = [];
-  const premiumFee = booking.is_premium_selected && !booking.premium_layout_included ? Number((layout as any)?.extra_price ?? 0) : 0;
+  const premiumFee = booking.is_premium_selected && !premiumLayoutIncluded(booking) ? Number((layout as any)?.extra_price ?? 0) : 0;
   const premiumInInquiry = (booking.inquiry_items?.extras ?? []).some((e) => e.id === "premium-layout");
   if (premiumFee > 0 && !premiumInInquiry) portalFees.push({ name: "Premium-Layout", price: premiumFee });
   const switches = (booking.layout_switch_count ?? 0) + (booking.home_screen_switch_count ?? 0);

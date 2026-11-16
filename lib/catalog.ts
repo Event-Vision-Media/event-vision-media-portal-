@@ -84,6 +84,19 @@ export function includedExtraIds(items: { packages?: { id: string }[] } | null |
   return new Set((items?.packages ?? []).flatMap((p) => PACKAGES.find((x) => x.id === p.id)?.bundle ?? []));
 }
 
+/** Corporate Branding gebucht (als Extra oder im Paket enthalten)? */
+export function hasBrandingBooked(items: { packages?: { id: string }[]; extras?: { id: string }[] } | null | undefined): boolean {
+  return (items?.extras ?? []).some((e) => e.id === "branding") || includedExtraIds(items).has("branding");
+}
+
+/** Premium-Layout ohne Aufpreis: eigens gebucht/freigeschaltet oder Teil von Corporate Branding. */
+export function premiumLayoutIncluded(b: {
+  premium_layout_included?: boolean | null;
+  inquiry_items?: { packages?: { id: string }[]; extras?: { id: string }[] } | null;
+}): boolean {
+  return Boolean(b.premium_layout_included) || hasBrandingBooked(b.inquiry_items);
+}
+
 /**
  * Namen (public.extras) der im Paket enthaltenen Extras. Sie werden bei der
  * Buchung mit 0 € in booking_extras eingetragen – so wählt der Kunde z. B.

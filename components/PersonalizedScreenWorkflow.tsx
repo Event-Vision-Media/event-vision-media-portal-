@@ -28,15 +28,18 @@ export function PersonalizedScreenWorkflow({
   initialRequest,
   proofs,
   sie = false,
+  business = sie,
 }: {
   initialRequest: PersonalizedScreenRequest | null;
   proofs: PersonalizedScreenProof[];
-  /** Firmenkunde: Logo, Firmenname und Begrüßungstext statt Paar-Foto. */
+  /** Anrede: Sie (sonst ihr/euch). */
   sie?: boolean;
+  /** Firmenkunde: Logo, Firmenname und Begrüßungstext statt Paar-Foto (auch bei Du). */
+  business?: boolean;
 }) {
   return (
     <div className="space-y-5">
-      <PersonalizationDetailsForm initialRequest={initialRequest} sie={sie} />
+      <PersonalizationDetailsForm initialRequest={initialRequest} sie={sie} business={business} />
 
       {proofs.length > 0 ? (
         <PersonalizedScreenProofCard versions={proofs} />
@@ -56,9 +59,11 @@ export function PersonalizedScreenWorkflow({
 function PersonalizationDetailsForm({
   initialRequest,
   sie,
+  business,
 }: {
   initialRequest: PersonalizedScreenRequest | null;
   sie: boolean;
+  business: boolean;
 }) {
   const router = useRouter();
   const [isEditing, setIsEditing] = useState(!initialRequest);
@@ -72,7 +77,7 @@ function PersonalizationDetailsForm({
   function handleSave() {
     setErrorMessage(null);
     if (!nameDraft.trim() || !dateDraft.trim()) {
-      setErrorMessage(sie ? "Bitte geben Sie mindestens Firmen-/Veranstaltungsname und Datum an." : "Bitte gebt mindestens Name und Datum an.");
+      setErrorMessage(business ? (sie ? "Bitte geben Sie mindestens Firmen-/Veranstaltungsname und Datum an." : "Bitte gebt mindestens Firmen-/Veranstaltungsname und Datum an.") : "Bitte gebt mindestens Name und Datum an.");
       return;
     }
     const formData = new FormData();
@@ -97,7 +102,7 @@ function PersonalizationDetailsForm({
     <Card>
       <div className="flex items-center justify-between gap-2">
         <h3 className="font-medium text-anthracite-800">
-          {sie ? "Ihre Angaben für den Startbildschirm" : "Eure Angaben für den personalisierten Startbildschirm"}
+          {business ? (sie ? "Ihre Angaben für den Startbildschirm" : "Eure Angaben für den Startbildschirm") : "Eure Angaben für den personalisierten Startbildschirm"}
         </h3>
         {!isEditing && (
           <button
@@ -113,7 +118,7 @@ function PersonalizationDetailsForm({
       {!isEditing && initialRequest ? (
         <div className="mt-3 space-y-2 text-sm text-anthracite-700">
           <p>
-            <span className="text-anthracite-400">{sie ? "Firma / Veranstaltung:" : "Name:"}</span>{" "}
+            <span className="text-anthracite-400">{business ? "Firma / Veranstaltung:" : "Name:"}</span>{" "}
             {initialRequest.personalization_name}
           </p>
           <p>
@@ -123,7 +128,7 @@ function PersonalizationDetailsForm({
           </p>
           {initialRequest.wish_text && (
             <p>
-              <span className="text-anthracite-400">{sie ? "Begrüßungstext:" : "Wunschtext:"}</span> {initialRequest.wish_text}
+              <span className="text-anthracite-400">{business ? "Begrüßungstext:" : "Wunschtext:"}</span> {initialRequest.wish_text}
             </p>
           )}
           {initialRequest.photo_url && (
@@ -143,7 +148,7 @@ function PersonalizationDetailsForm({
                 rel="noreferrer"
                 className="text-xs font-medium text-anthracite-500 underline hover:text-anthracite-800"
               >
-                {sie ? "Logo in voller Größe ansehen" : "Bild in voller Größe ansehen"}
+                {business ? "Logo in voller Größe ansehen" : "Bild in voller Größe ansehen"}
               </a>
             </div>
           )}
@@ -155,13 +160,13 @@ function PersonalizationDetailsForm({
         <div className="mt-4 space-y-4">
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              {sie ? "Firmenname / Veranstaltung" : "Name(n)"}
+              {business ? "Firmenname / Veranstaltung" : "Name(n)"}
             </label>
             <input
               type="text"
               value={nameDraft}
               onChange={(e) => setNameDraft(e.target.value)}
-              placeholder={sie ? "z. B. Muster GmbH · Sommerfest 2027" : "z. B. Julia & Marco"}
+              placeholder={business ? "z. B. Muster GmbH · Sommerfest 2027" : "z. B. Julia & Marco"}
               className="input-field"
             />
           </div>
@@ -176,21 +181,21 @@ function PersonalizationDetailsForm({
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              {sie ? "Begrüßungstext / Slogan" : "Wunschtext / Spruch"} <span className="text-anthracite-400">(optional)</span>
+              {business ? "Begrüßungstext / Slogan" : "Wunschtext / Spruch"} <span className="text-anthracite-400">(optional)</span>
             </label>
             <textarea
               value={wishDraft}
               onChange={(e) => setWishDraft(e.target.value)}
               rows={2}
-              placeholder={sie ? "z. B. Willkommen zum Sommerfest!" : "z. B. euer Lieblingsspruch"}
+              placeholder={business ? "z. B. Willkommen zum Sommerfest!" : "z. B. euer Lieblingsspruch"}
               className="input-field"
             />
           </div>
           <div>
             <label className="mb-1 block text-sm font-medium text-anthracite-600">
-              {sie ? "Logo" : "Bild"}{" "}
+              {business ? "Logo" : "Bild"}{" "}
               <span className="text-anthracite-400">
-                {sie ? "(am besten PNG mit transparentem Hintergrund)" : "(optional, z. B. Brautpaar-Foto)"}
+                {business ? "(am besten PNG mit transparentem Hintergrund)" : "(optional, z. B. Brautpaar-Foto)"}
               </span>
             </label>
             <input

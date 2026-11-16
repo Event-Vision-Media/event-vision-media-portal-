@@ -34,3 +34,11 @@ export function greetingLine(b: AddressFields): string {
   if (!name) return "Hallo";
   return /&| und /i.test(name) ? `Hallo ${name}` : `Hallo ${words[0]}`;
 }
+
+/**
+ * Firmenkunde? Steuert Firmen-Funktionen (Logo, Corporate Design, Firmen-Texte) –
+ * unabhängig davon, ob geduzt oder gesiezt wird.
+ */
+export function isBusiness(b: { customer_type?: string | null; company?: string | null }): boolean {
+  return b.customer_type === "business" || Boolean(b.company?.trim());
+}

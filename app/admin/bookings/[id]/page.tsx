@@ -1,4 +1,5 @@
 import { bookingDevices } from "@/lib/audience";
+import { premiumLayoutIncluded } from "@/lib/catalog";
 import Link from "next/link";
 import { MediaReadyCard } from "@/components/admin/MediaReadyCard";
 import { mediaStatus } from "@/lib/media-ready";
@@ -190,7 +191,7 @@ export default async function AdminBookingDetailPage(props: {
   const doneCount = steps.filter((s) => s.done).length;
 
   const premiumFee =
-    booking.is_premium_selected && !booking.premium_layout_included
+    booking.is_premium_selected && !premiumLayoutIncluded(booking)
       ? booking.layouts?.extra_price ?? 0
       : 0;
   const layoutSwitchFee = booking.layout_switch_count * SELECTION_SWITCH_FEE;
@@ -521,7 +522,7 @@ export default async function AdminBookingDetailPage(props: {
             <SelectedLayoutSummary
               layout={booking.layouts}
               isPremiumSelected={booking.is_premium_selected}
-              premiumIncluded={booking.premium_layout_included}
+              premiumIncluded={premiumLayoutIncluded(booking)}
               personalizationName={booking.personalization_name}
               personalizationDate={booking.personalization_date}
               extraWishes={booking.extra_wishes}

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { premiumLayoutIncluded } from "@/lib/catalog";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { SELECTION_SWITCH_FEE } from "@/lib/types";
@@ -79,7 +80,7 @@ export async function GET() {
       b.layouts?.name ?? "",
       !b.is_premium_selected
         ? "Nein"
-        : b.premium_layout_included
+        : premiumLayoutIncluded(b)
           ? "Ja (bereits inklusive, kein Aufpreis)"
           : "Ja (25 € Aufpreis)",
       switchFeeTotal
