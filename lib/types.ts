@@ -76,7 +76,7 @@ export interface Booking {
   event_days: number;
   inquiry_items: {
     packages?: { id: string; product: string; name: string; price: number }[];
-    extras?: { id: string; name: string; price: number; from?: boolean }[];
+    extras?: { id: string; name: string; price: number; from?: boolean; listPrice?: number }[];
     days?: number;
     total?: number;
     packagesTotal?: number;

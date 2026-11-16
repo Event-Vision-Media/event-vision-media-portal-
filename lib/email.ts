@@ -1,5 +1,5 @@
 import "server-only";
-import { followupLine, formatEuro } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { logMail } from "@/lib/mail-log";
 import { greetingLine, usesSie } from "@/lib/address";
@@ -112,7 +112,7 @@ export interface MailBooking {
   total_price: number | null;
   inquiry_items: {
     packages?: { name: string; price: number }[];
-    extras?: { name: string; price: number; from?: boolean }[];
+    extras?: { id?: string; name: string; price: number; from?: boolean; listPrice?: number }[];
     isFromPrice?: boolean;
     days?: number;
     packagesTotal?: number;
@@ -139,12 +139,15 @@ function itemsRows(b: MailBooking): { html: string; text: string } {
   const items = [
     ...(b.inquiry_items?.packages ?? []).map((p) => ({ name: p.name, price: formatEuro(p.price) })),
     ...(follow ? [{ name: follow.label, price: formatEuro(follow.amount) }] : []),
-    ...(b.inquiry_items?.extras ?? []).map((e) => ({ name: e.name, price: (e.from ? "ab " : "") + formatEuro(e.price) })),
+    ...(b.inquiry_items?.extras ?? []).map((e) => {
+      const free = e.id ? freeExtraInfo({ ...e, id: e.id }) : null;
+      return free ? { name: free.name, price: "inklusive", was: formatEuro(free.listPrice) } : { name: e.name, price: (e.from ? "ab " : "") + formatEuro(e.price), was: undefined as string | undefined };
+    }),
   ];
   const total = b.total_price != null ? (b.inquiry_items?.isFromPrice ? "ab " : "") + formatEuro(Number(b.total_price)) : "–";
   const html =
     items
-      .map((i) => `<tr><td style="padding:6px 0;color:#3a4048">${esc(i.name)}</td><td style="padding:6px 0;text-align:right;color:#1f2227;white-space:nowrap">${esc(i.price)}</td></tr>`)
+      .map((i: { name: string; price: string; was?: string }) => `<tr><td style="padding:6px 0;color:#3a4048">${esc(i.name)}</td><td style="padding:6px 0;text-align:right;color:#1f2227;white-space:nowrap">${i.was ? `<s style="color:#9aa1a8">${esc(i.was)}</s> ` : ""}${esc(i.price)}</td></tr>`)
       .join("") +
 
     `<tr><td style="padding:10px 0 0;border-top:1px solid #e4e6e8;font-weight:600">Gesamt</td><td style="padding:10px 0 0;border-top:1px solid #e4e6e8;text-align:right;font-weight:600;white-space:nowrap">${esc(total)}</td></tr>`;

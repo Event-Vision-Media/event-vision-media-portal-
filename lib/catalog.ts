@@ -415,7 +415,19 @@ export function withStaffHours<T extends { extras?: { id: string; name: string; 
   return { ...items, extras, total, isFromPrice: extras.some((e) => e.from), staff: { ...(items.staff ?? {}), hours, requestedExtra: 0 } };
 }
 
-type OfferLine = { id: string; name: string; price: number; from?: boolean };
+type OfferLine = { id: string; name: string; price: number; from?: boolean; listPrice?: number };
+
+export const OFFER_FREE_SUFFIX = " (laut Angebot inklusive)";
+
+/**
+ * Laut Angebot geschenktes Extra? Dann Name ohne Zusatz und der eigentliche Preis
+ * (für die Anzeige „~~69 €~~ inklusive“). Ältere Buchungen ohne listPrice: Katalogpreis.
+ */
+export function freeExtraInfo(e: { id: string; name: string; price: number; listPrice?: number }): { name: string; listPrice: number } | null {
+  if (Number(e.price) !== 0 || !e.name.endsWith(OFFER_FREE_SUFFIX)) return null;
+  const listPrice = e.listPrice ?? EXTRAS.find((x) => x.id === e.id)?.price ?? 0;
+  return listPrice > 0 ? { name: e.name.slice(0, -OFFER_FREE_SUFFIX.length), listPrice } : null;
+}
 
 /**
  * Wendet Abweichungen laut Angebot an (Extras inklusive, Anfahrt inklusive,
@@ -428,10 +440,10 @@ export function applyOffer<T extends { extras?: OfferLine[]; packagesTotal?: num
 ): T {
   if (!offer) return items;
   const free = new Set(offer.freeExtraIds ?? []);
-  const suffix = " (laut Angebot inklusive)";
+  const suffix = OFFER_FREE_SUFFIX;
   const extras = (items.extras ?? [])
     .filter((e) => e.id !== "angebot" && !e.id.startsWith("angebot-") && !(offer.travelIncluded && e.id === "anfahrt"))
-    .map((e) => (free.has(e.id) ? { ...e, price: 0, from: false, name: e.name.endsWith(suffix) ? e.name : e.name + suffix } : { ...e, from: Boolean(e.from) }));
+    .map((e) => (free.has(e.id) ? { ...e, price: 0, from: false, listPrice: e.listPrice ?? (e.price > 0 ? e.price : undefined), name: e.name.endsWith(suffix) ? e.name : e.name + suffix } : { ...e, from: Boolean(e.from) }));
   if (offer.adjustment && offer.adjustment.amount) {
     extras.push({ id: "angebot", name: offer.adjustment.label || `Anpassung laut Angebot${offer.number ? ` ${offer.number}` : ""}`, price: offer.adjustment.amount, from: false });
   }

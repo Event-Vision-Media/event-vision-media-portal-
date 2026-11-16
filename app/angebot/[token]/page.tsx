@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/Footer";
 import { OfferResponse } from "@/components/OfferResponse";
-import { followupLine, formatEuro } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { customerAskedChange, offerByToken, offerIsOpen } from "@/lib/offers";
 import { usesSie } from "@/lib/address";
@@ -77,9 +77,14 @@ export default async function OfferPage(props: { params: Promise<{ token: string
             <Line key={p.id} name={p.name} price={formatEuro(p.price)} strong />
           ))}
           {follow && <Line name={follow.label} price={formatEuro(follow.amount)} />}
-          {(items.extras ?? []).map((e: any) => (
-            <Line key={e.id} name={e.name} price={`${e.from ? "ab " : ""}${formatEuro(e.price)}`} highlight={String(e.id).startsWith("angebot")} />
-          ))}
+          {(items.extras ?? []).map((e: any) => {
+            const free = freeExtraInfo(e);
+            return free ? (
+              <Line key={e.id} name={free.name} price="inklusive" was={formatEuro(free.listPrice)} />
+            ) : (
+              <Line key={e.id} name={e.name} price={`${e.from ? "ab " : ""}${formatEuro(e.price)}`} highlight={String(e.id).startsWith("angebot")} />
+            );
+          })}
           <div className="mt-3 flex items-baseline justify-between border-t border-anthracite-100 pt-3">
             <span className="font-semibold text-anthracite-800">Gesamt</span>
             <span className="font-serif text-2xl font-semibold text-anthracite-800">
@@ -145,11 +150,14 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Line({ name, price, strong, highlight }: { name: string; price: string; strong?: boolean; highlight?: boolean }) {
+function Line({ name, price, strong, highlight, was }: { name: string; price: string; strong?: boolean; highlight?: boolean; was?: string }) {
   return (
     <div className={`flex justify-between gap-4 py-1.5 ${strong ? "font-medium text-anthracite-800" : "text-anthracite-600"} ${highlight ? "text-gold-800" : ""}`}>
       <span>{highlight ? "✦ " : strong ? "" : "+ "}{name}</span>
-      <span className="whitespace-nowrap">{price}</span>
+      <span className="whitespace-nowrap">
+        {was && <s className="mr-1.5 text-anthracite-400">{was}</s>}
+        <span className={was ? "font-medium text-emerald-700" : ""}>{price}</span>
+      </span>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { notFound } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { PrintButton } from "@/components/PrintButton";
-import { followupLine, formatEuro } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { customerAskedChange, offerByToken, offerUrl } from "@/lib/offers";
 import { greetingLine, usesSie } from "@/lib/address";
@@ -52,10 +52,13 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
       ? `Anzahlung ${formatEuro(deposit)} nach Vertragsabschluss (Rechnung per E-Mail). Restbetrag per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe.`
       : `Keine Anzahlung. Der Gesamtbetrag ist per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe zu zahlen.`;
 
-  const rows: { name: string; price: string; strong?: boolean }[] = [
+  const rows: { name: string; price: string; strong?: boolean; was?: string }[] = [
     ...(items.packages ?? []).map((p: any) => ({ name: p.name, price: formatEuro(p.price), strong: true })),
     ...(follow ? [{ name: follow.label.replace(/^\+\s*/, ""), price: formatEuro(follow.amount) }] : []),
-    ...(items.extras ?? []).map((e: any) => ({ name: e.name, price: `${e.from ? "ab " : ""}${formatEuro(e.price)}` })),
+    ...(items.extras ?? []).map((e: any) => {
+      const free = freeExtraInfo(e);
+      return free ? { name: free.name, price: "inklusive", was: formatEuro(free.listPrice) } : { name: e.name, price: `${e.from ? "ab " : ""}${formatEuro(e.price)}` };
+    }),
   ];
 
   const facts: [string, string][] = [
@@ -158,7 +161,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
                 <tr key={i} className="border-b border-anthracite-100 align-top">
                   <td className="w-12 py-2 text-anthracite-400 print:py-1.5">{i + 1}</td>
                   <td className={`py-2 pr-4 print:py-1.5 ${r.strong ? "font-medium" : ""}`}>{r.name}</td>
-                  <td className="whitespace-nowrap py-2 text-right print:py-1.5">{r.price}</td>
+                  <td className="whitespace-nowrap py-2 text-right print:py-1.5">{r.was && <s className="mr-1.5 text-anthracite-400">{r.was}</s>}{r.price}</td>
                 </tr>
               ))}
             </tbody>

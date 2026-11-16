@@ -13,7 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { getAudioGreetingDeadline } from "@/lib/types";
-import { EXTRAS as CATALOG_EXTRAS, MIN_LEAD_DAYS, PACKAGES, bundledExtraNames, daysUntil, followupLine, staffFor, upgradeOffers } from "@/lib/catalog";
+import { EXTRAS as CATALOG_EXTRAS, MIN_LEAD_DAYS, PACKAGES, bundledExtraNames, daysUntil, followupLine, freeExtraInfo, staffFor, upgradeOffers } from "@/lib/catalog";
 import { bookingDevices } from "@/lib/audience";
 import { checkDeviceAvailability } from "@/lib/inquiry-server";
 import { DeviceCrossSell, type CrossSellOffer } from "@/components/DeviceCrossSell";
@@ -771,12 +771,19 @@ function BookedItemsCard({
             <span className="font-medium text-anthracite-800">{euro(followupLine(items)!.amount)}</span>
           </div>
         )}
-        {(items.extras ?? []).map((e) => (
-          <div key={e.id} className="flex justify-between gap-4 text-anthracite-500">
-            <span>+ {e.name}</span>
-            <span>{e.from ? "ab " : ""}{euro(e.price)}</span>
-          </div>
-        ))}
+        {(items.extras ?? []).map((e) => {
+          const free = freeExtraInfo(e);
+          return (
+            <div key={e.id} className="flex justify-between gap-4 text-anthracite-500">
+              <span>+ {free ? free.name : e.name}</span>
+              {free ? (
+                <span className="whitespace-nowrap"><s className="mr-1.5 text-anthracite-400">{euro(free.listPrice)}</s><span className="font-medium text-emerald-700">inklusive</span></span>
+              ) : (
+                <span>{e.from ? "ab " : ""}{euro(e.price)}</span>
+              )}
+            </div>
+          );
+        })}
         {laterExtras.map((e) => (
           <div key={e.name} className="flex justify-between gap-4 text-emerald-700">
             <span>+ {e.name} <span className="text-xs text-emerald-600/80">(nachgebucht)</span></span>

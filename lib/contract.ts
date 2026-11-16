@@ -25,6 +25,7 @@ import {
   staffLabel,
   STAFF_INCLUDED_HOURS,
   type DeviceKey,
+  freeExtraInfo,
 } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { ACCESS_LABELS, type Booking } from "@/lib/types";
@@ -311,7 +312,10 @@ export function buildContract({ booking, bookedExtraNames, laterExtras, portalFe
   }
   const follow = followupLine(items);
   if (follow) lines.push({ name: follow.label.replace(/^\+ /, ""), price: formatEuro(follow.amount) });
-  for (const e of items?.extras ?? []) lines.push({ name: e.name, price: (e.from ? "ab " : "") + formatEuro(e.price) });
+  for (const e of items?.extras ?? []) {
+    const free = freeExtraInfo(e);
+    lines.push(free ? { name: free.name, price: `inklusive (statt ${formatEuro(free.listPrice)})` } : { name: e.name, price: (e.from ? "ab " : "") + formatEuro(e.price) });
+  }
   for (const e of laterExtras) lines.push({ name: `${e.name} (im Kundenportal gebucht)`, price: formatEuro(e.price) });
   for (const f of portalFees) lines.push({ name: f.name, price: formatEuro(f.price) });
   if (lines.length === 0) lines.push({ name: `${booking.product_type} – laut Angebot`, price: "–" });
