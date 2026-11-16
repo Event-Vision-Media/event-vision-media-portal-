@@ -8,9 +8,9 @@ import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } f
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired, depositForBooking, fullPaymentTerms, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
-import { rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
+import { greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
-import { GALLERY_UNLOCK_DAYS, type Booking } from "@/lib/types";
+import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
 import { usesSie } from "@/lib/address";
 
@@ -23,6 +23,8 @@ const FOLLOWUP_MAX_AGE_DAYS = 30;
 const MAX_PER_RUN = 50;
 /** Vertrags-Erinnerung, wenn X Tage nach der Reservierung noch nicht unterschrieben wurde. */
 const CONTRACT_REMINDER_AFTER_DAYS = 3;
+/** Begrüßungsansage: nur Events in den nächsten X Tagen prüfen (Frist liegt 7 Tage vorher). */
+const GREETING_REMINDER_MAX_DAYS = 14;
 
 export interface JourneyRunResult {
   reminders: { booking: string; openSteps: string[]; recommendations: string[]; sent: boolean }[];
@@ -35,6 +37,8 @@ export interface JourneyRunResult {
   waitingInquiries: string[];
   adminDigestSent: boolean;
   rebookingOffers: { booking: string; suggestedDate: string; sent: boolean }[];
+  /** Audiogästebuch: Begrüßungsansage fehlt (kurz vor bzw. nach der Frist). */
+  greetingReminders: { booking: string; kind: "bald" | "ueberfaellig"; sent: boolean }[];
 }
 
 function toMailBooking(b: Booking): MailBooking {
@@ -110,7 +114,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [] };
+  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [] };
 
   // ---- Für dich: Anfragen, die seit über 24 Stunden unbeantwortet sind ----
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
@@ -204,6 +208,67 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       }
     }
     result.reminders.push({ booking: b.booking_code, openSteps, recommendations: recs.map((r) => r.name), sent });
+  }
+
+  // ---- Audiogästebuch: Begrüßungsansage fehlt noch ----
+  // "bald": 0–3 Tage vor der Frist (Frist = 7 Tage vor dem Event, kurzfristig 2 Tage).
+  // "ueberfaellig": ab 2 Tage nach der Frist, solange das Event noch bevorsteht – plus Info an dich.
+  // Jede Mail pro Buchung nur einmal (activity_log).
+  const { data: greetCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .gte("event_date", addDays(1))
+    .lte("event_date", addDays(GREETING_REMINDER_MAX_DAYS))
+    .limit(MAX_PER_RUN);
+  const greetIds = (greetCandidates ?? []).map((b) => b.id);
+  if (greetIds.length) {
+    const [{ data: greetings }, { data: greetLogs }, { data: greetExtras }] = await Promise.all([
+      supabase.from("audio_guestbook_greetings").select("booking_id").in("booking_id", greetIds),
+      supabase.from("activity_log").select("booking_id, event_type").in("event_type", ["ansage_erinnerung", "ansage_erinnerung_frist"]).in("booking_id", greetIds),
+      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", greetIds),
+    ]);
+    const hasGreeting = new Set((greetings ?? []).map((r) => r.booking_id));
+    const logged = new Set((greetLogs ?? []).map((r) => `${r.booking_id}:${r.event_type}`));
+    const extraNames = new Map<string, string[]>();
+    for (const r of (greetExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
+      const list = extraNames.get(r.booking_id) ?? [];
+      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
+      extraNames.set(r.booking_id, list);
+    }
+    for (const b of (greetCandidates ?? []) as Booking[]) {
+      if (hasGreeting.has(b.id)) continue;
+      if (!bookingHasAudioGuestbook(b.product_type, extraNames.get(b.id) ?? [], b.inquiry_items)) continue;
+      const deadline = getAudioGreetingDeadline(b.event_date, b.confirmed_at ?? b.created_at);
+      const deadlineISO = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, "0")}-${String(deadline.getDate()).padStart(2, "0")}`;
+      const toDeadline = daysUntil(deadlineISO);
+      let kind: "bald" | "ueberfaellig" | null = null;
+      if (toDeadline >= 0 && toDeadline <= 3 && !logged.has(`${b.id}:ansage_erinnerung`)) {
+        // Allgemeine Erinnerung (mit der Ansage als offenem Schritt) gerade erst verschickt? Dann nicht doppelt.
+        const recent = b.reminder_sent_at && Date.now() - new Date(b.reminder_sent_at).getTime() < 3 * 86_400_000;
+        if (!recent) kind = "bald";
+      } else if (toDeadline <= -2 && !logged.has(`${b.id}:ansage_erinnerung_frist`)) {
+        kind = "ueberfaellig";
+      }
+      if (!kind) continue;
+      let sent = false;
+      if (!dryRun) {
+        const mb = toMailBooking(b);
+        const mail = greetingReminderMail(mb, deadlineISO, kind === "ueberfaellig");
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) {
+          await logActivity(
+            b.id,
+            kind === "bald" ? "ansage_erinnerung" : "ansage_erinnerung_frist",
+            mailLog(b, mail.subject, kind === "bald" ? `Begrüßungsansage fehlt noch, Frist ${dateDE(deadlineISO)}.` : `Begrüßungsansage fehlt, Frist ${dateDE(deadlineISO)} überschritten – Event am ${dateDE(b.event_date)}.`)
+          );
+          if (kind === "ueberfaellig" && process.env.ADMIN_EMAIL) await sendEmail({ to: process.env.ADMIN_EMAIL, ...greetingAdminMail(mb, deadlineISO) });
+        }
+      }
+      result.greetingReminders.push({ booking: b.booking_code, kind, sent });
+    }
   }
 
   // ---- Nachher: Galerie + Bewertung ----

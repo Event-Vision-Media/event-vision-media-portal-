@@ -553,6 +553,63 @@ export function contractReminderMail(b: MailBooking) {
   };
 }
 
+/**
+ * Erinnerung: Begrüßungsansage fürs Audiogästebuch fehlt noch.
+ * overdue = Frist schon vorbei (Upload geht trotzdem weiter).
+ */
+export function greetingReminderMail(b: MailBooking, deadline: string, overdue: boolean) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const dl = esc(formatDateGerman(deadline));
+  const what = sie
+    ? "Das ist die kurze Nachricht, die Ihre Gäste hören, wenn sie den Hörer abnehmen."
+    : "Das ist die kurze Nachricht, die deine Gäste hören, wenn sie den Hörer abnehmen.";
+  const intro = overdue
+    ? sie
+      ? `für Ihr Audiogästebuch am <strong>${esc(formatDateGerman(b.event_date))}</strong> fehlt uns noch Ihre Begrüßungsansage. ${what} Die Frist (${dl}) ist zwar schon vorbei – Sie können die Ansage aber trotzdem noch hochladen. Bitte erledigen Sie das so bald wie möglich, damit wir alles rechtzeitig vorbereiten können.`
+      : `für dein Audiogästebuch am <strong>${esc(formatDateGerman(b.event_date))}</strong> fehlt uns noch deine Begrüßungsansage. ${what} Die Frist (${dl}) ist zwar schon vorbei – du kannst die Ansage aber trotzdem noch hochladen. Bitte erledige das so bald wie möglich, damit wir alles rechtzeitig vorbereiten können.`
+    : sie
+      ? `bald ist es so weit! Für Ihr Audiogästebuch fehlt nur noch Ihre Begrüßungsansage. ${what} Bitte laden Sie sie bis zum <strong>${dl}</strong> im Kundenportal hoch.`
+      : `bald ist es so weit! Für dein Audiogästebuch fehlt nur noch deine Begrüßungsansage. ${what} Bitte lade sie bis zum <strong>${dl}</strong> im Kundenportal hoch.`;
+  const tip = sie
+    ? "So geht’s ganz einfach: Nehmen Sie die Ansage mit der Sprachmemo-App Ihres Handys auf (ca. 10–30 Sekunden) und laden Sie die Datei im Portal hoch (MP3, M4A oder WAV). Zum Beispiel: „Schön, dass Sie da sind! Hinterlassen Sie uns nach dem Signalton eine kleine Nachricht.“"
+    : "So geht’s ganz einfach: Nimm die Ansage mit der Sprachmemo-App deines Handys auf (ca. 10–30 Sekunden) und lade die Datei im Portal hoch (MP3, M4A oder WAV). Zum Beispiel: „Schön, dass du da bist! Hinterlass uns nach dem Signalton eine kleine Nachricht.“";
+  const help = sie
+    ? "Falls Sie Hilfe benötigen oder nicht zurechtkommen, melden Sie sich gern – antworten Sie einfach auf diese E-Mail. Sie können uns die Aufnahme auch direkt als Anhang schicken."
+    : "Falls du Hilfe brauchst oder nicht zurechtkommst, melde dich gern – antworte einfach auf diese E-Mail. Du kannst uns die Aufnahme auch direkt als Anhang schicken.";
+  const button = url
+    ? `<p style="margin:22px 0;text-align:center"><a href="${esc(url)}/dashboard/audiogaestebuch" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Begrüßungsansage hochladen</a></p>`
+    : "";
+  const subject = overdue
+    ? sie
+      ? `Bitte noch Ihre Begrüßungsansage hochladen – ${b.booking_code}`
+      : `Bitte noch deine Begrüßungsansage hochladen – ${b.booking_code}`
+    : sie
+      ? `Ihre Begrüßungsansage fürs Audiogästebuch – ${b.booking_code}`
+      : `Deine Begrüßungsansage fürs Audiogästebuch – ${b.booking_code}`;
+  return {
+    subject,
+    html: layout(
+      "Begrüßungsansage",
+      `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${button}
+<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#f7f3ec;line-height:1.6;font-size:14px">🎙️ ${esc(tip)}</div>${codeBox(b)}
+<p style="line-height:1.6">${esc(help)}</p>`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${url ? `${url}/dashboard/audiogaestebuch\n\n` : ""}${tip}\n\nZugangscode: ${loginCode(b)}\n\n${help}\n\n${BRAND}`,
+  };
+}
+
+/** An dich: Begrüßungsansage fehlt trotz abgelaufener Frist (Kunde wurde gerade erinnert). */
+export function greetingAdminMail(b: MailBooking, deadline: string) {
+  const name = b.customer_name || b.couple_names || b.booking_code;
+  const line = `${name} (${b.booking_code}) hat die Begrüßungsansage fürs Audiogästebuch noch nicht hochgeladen. Frist war der ${formatDateGerman(deadline)}, Event am ${formatDateGerman(b.event_date)}. Der Kunde wurde gerade automatisch erinnert – ggf. kurz anrufen oder per WhatsApp nachfassen.`;
+  return {
+    subject: `Begrüßungsansage fehlt noch – ${b.booking_code}`,
+    html: layout("Begrüßungsansage fehlt", `<p style="line-height:1.6">${esc(line)}</p>`),
+    text: line,
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Zahlungen (Rechnungen selbst kommen aus Lexware Office)
 // ---------------------------------------------------------------------------

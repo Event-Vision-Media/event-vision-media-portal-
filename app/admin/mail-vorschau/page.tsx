@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { AdminHeader } from "@/components/admin/AdminHeader";
-import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, mediaReadyMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail } from "@/lib/email";
+import { rebookingMail, waitingInquiriesMail, adminNotificationMail, cashReminderMail, confirmationMail, portalInviteMail, contractReminderMail, depositReminderMail, paymentCompleteMail, restTransferReminderMail, declineMail, followupMail, mediaReadyMail, inquiryReceivedMail, reminderMail, reservationMail, type MailBooking, pickupReminderMail, greetingReminderMail, greetingAdminMail } from "@/lib/email";
 import { priceSelection } from "@/lib/catalog";
 import { depositFor } from "@/lib/contract";
 import { weeklyPlanMail, vbAfterMail, vbBeforeMail, vbDeletionMail, vbInvoiceMail, vbManageMail, vbAdminOrderMail, offerMail, offerExpiredMail, offerAdminMail } from "@/lib/email";
@@ -67,6 +67,9 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
       title: "4e · Erinnerung Selbstabholung (Tag vor der Abholung, inkl. Barbetrag)",
       mail: pickupReminderMail(sample, { devices: "Audiogästebuch", handover: "Fr., 11.12.2026, 17:00–19:00 Uhr", ret: "So., 13.12.2026, 10:00–12:00 Uhr", cash: 70 }),
     },
+    { title: "4f · Erinnerung Begrüßungsansage Audiogästebuch (0–3 Tage vor der Frist, falls noch nicht hochgeladen)", mail: greetingReminderMail(sample, "2027-06-05", false) },
+    { title: "4g · Begrüßungsansage fehlt – Frist überschritten (2 Tage nach der Frist)", mail: greetingReminderMail(sample, "2027-06-05", true) },
+    { title: "4h · An dich: Begrüßungsansage fehlt trotz Frist", mail: greetingAdminMail(sample, "2027-06-05") },
     { title: "5 · Absage (optional beim Ablehnen)", mail: declineMail(sample, "An dem Tag sind leider bereits alle Spiegel vergeben.") },
     {
       title: "6 · Erinnerung 4 Wochen vor dem Event (automatisch)",
