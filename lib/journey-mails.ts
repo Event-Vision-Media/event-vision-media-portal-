@@ -44,6 +44,9 @@ export interface JourneyRunResult {
 function toMailBooking(b: Booking): MailBooking {
   return {
     booking_code: b.booking_code,
+    // Ansprache aus der Buchung (Du/Sie, Frau/Herr) – sonst greift die Automatik „Firma = Sie“
+    address_form: b.address_form ?? null,
+    salutation: b.salutation ?? null,
     customer_type: b.customer_type,
     access_code: b.access_code ?? null,
     custom_login_code: b.custom_login_code,
