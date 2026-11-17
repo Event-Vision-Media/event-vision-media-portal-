@@ -4,7 +4,7 @@ import QRCode from "qrcode";
 import { notFound } from "next/navigation";
 import { BrandMark } from "@/components/BrandMark";
 import { PrintButton } from "@/components/PrintButton";
-import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo, packageFeatures } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { customerAskedChange, offerByToken, offerUrl } from "@/lib/offers";
 import { greetingLine, usesSie } from "@/lib/address";
@@ -52,8 +52,8 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
       ? `Anzahlung ${formatEuro(deposit)} nach Vertragsabschluss (Rechnung per E-Mail). Restbetrag per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe.`
       : `Keine Anzahlung. Der Gesamtbetrag ist per Überweisung bis ${dueDays} Tage vor der Veranstaltung oder bar bei der Übergabe zu zahlen.`;
 
-  const rows: { name: string; price: string; strong?: boolean; was?: string }[] = [
-    ...(items.packages ?? []).map((p: any) => ({ name: p.name, price: formatEuro(p.price), strong: true })),
+  const rows: { name: string; price: string; strong?: boolean; was?: string; features?: string[] }[] = [
+    ...(items.packages ?? []).map((p: any) => ({ name: p.name, price: formatEuro(p.price), strong: true, features: packageFeatures(p.id) })),
     ...(follow ? [{ name: follow.label.replace(/^\+\s*/, ""), price: formatEuro(follow.amount) }] : []),
     ...(items.extras ?? []).map((e: any) => {
       const free = freeExtraInfo(e);
@@ -107,7 +107,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
             </div>
           </header>
 
-          <section className="mt-6 flex flex-wrap items-start justify-between gap-6 print:mt-4">
+          <section className="mt-6 flex flex-wrap items-start justify-between gap-6 print:mt-3">
             <div className="text-[13px] leading-snug">
               <p className="text-[10px] uppercase tracking-wide text-anthracite-400">Angebot für</p>
               {b.company && <p className="font-medium">{b.company}</p>}
@@ -125,7 +125,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
             </table>
           </section>
 
-          <h1 className="mt-8 font-serif text-2xl font-semibold print:mt-5 print:text-xl">
+          <h1 className="mt-8 font-serif text-2xl font-semibold print:mt-3 print:text-xl">
             Angebot{changed ? " (angepasst)" : ""}
           </h1>
           <p className="mt-3">{greetingLine(b)},</p>
@@ -159,9 +159,14 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
             <tbody>
               {rows.map((r, i) => (
                 <tr key={i} className="border-b border-anthracite-100 align-top">
-                  <td className="w-12 py-2 text-anthracite-400 print:py-1.5">{i + 1}</td>
-                  <td className={`py-2 pr-4 print:py-1.5 ${r.strong ? "font-medium" : ""}`}>{r.name}</td>
-                  <td className="whitespace-nowrap py-2 text-right print:py-1.5">{r.was && <s className="mr-1.5 text-anthracite-400">{r.was}</s>}{r.price}</td>
+                  <td className="w-12 py-2 text-anthracite-400 print:py-1">{i + 1}</td>
+                  <td className="py-2 pr-4 print:py-1">
+                    <span className={r.strong ? "font-medium" : ""}>{r.name}</span>
+                    {r.features && r.features.length > 0 && (
+                      <span className="mt-0.5 block text-[11px] leading-snug text-anthracite-500 print:text-[9px] print:leading-tight">{r.features.join(" · ")}</span>
+                    )}
+                  </td>
+                  <td className="whitespace-nowrap py-2 text-right print:py-1">{r.was && <s className="mr-1.5 text-anthracite-400">{r.was}</s>}{r.price}</td>
                 </tr>
               ))}
             </tbody>
@@ -177,7 +182,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
           </table>
           <p className="mt-1 text-right text-[11px] text-anthracite-500">Alle Preise sind Endpreise. Gemäß § 19 UStG wird keine Umsatzsteuer berechnet.</p>
 
-          <section className="mt-8 space-y-3 break-inside-avoid print:mt-4 print:space-y-2">
+          <section className="mt-8 space-y-3 break-inside-avoid print:mt-3 print:space-y-1.5">
             <div>
               <p className="font-semibold">Zahlungsbedingungen</p>
               <p className="text-anthracite-700">{payment}</p>
@@ -205,7 +210,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
             </div>
           </section>
 
-          <div className="mt-8 break-inside-avoid print:mt-4 print:leading-snug">
+          <div className="mt-8 break-inside-avoid print:mt-3 print:leading-snug">
             <p>{t("Wir freuen uns auf dein Event!", "Wir freuen uns auf Ihre Veranstaltung!")}</p>
             <p className="mt-1">
               {t("Viele Grüße", "Mit freundlichen Grüßen")}
@@ -214,7 +219,7 @@ export default async function OfferPdfPage(props: { params: Promise<{ token: str
             </p>
           </div>
 
-          <footer className="mt-10 border-t border-anthracite-100 pt-3 print:mt-4 print:pt-2 text-center text-[10px] text-anthracite-400">
+          <footer className="mt-10 border-t border-anthracite-100 pt-3 print:mt-2 print:pt-1.5 text-center text-[10px] text-anthracite-400">
             {["Event Vision Media", "Inhaber Dustin Nowitzki", `${LANDLORD.street}, ${LANDLORD.zipCity}`, LANDLORD.phone, LANDLORD.email, "fotobox-essen.com"].map((x, i) => (
               <span key={i} className="whitespace-nowrap">
                 {i > 0 && " · "}

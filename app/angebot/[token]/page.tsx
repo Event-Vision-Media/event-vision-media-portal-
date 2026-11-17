@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Footer } from "@/components/Footer";
 import { OfferResponse } from "@/components/OfferResponse";
-import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo, packageFeatures } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { customerAskedChange, offerByToken, offerIsOpen } from "@/lib/offers";
 import { usesSie } from "@/lib/address";
@@ -74,7 +74,19 @@ export default async function OfferPage(props: { params: Promise<{ token: string
 
         <div className="text-sm">
           {(items.packages ?? []).map((p: any) => (
-            <Line key={p.id} name={p.name} price={formatEuro(p.price)} strong />
+            <div key={p.id}>
+              <Line name={p.name} price={formatEuro(p.price)} strong />
+              {packageFeatures(p.id).length > 0 && (
+                <ul className="mb-2 grid gap-x-4 gap-y-1 pl-1 text-[13px] text-anthracite-500 sm:grid-cols-2">
+                  {packageFeatures(p.id).map((f) => (
+                    <li key={f} className="flex gap-1.5">
+                      <span className="text-gold-600">✓</span>
+                      <span>{f}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
           ))}
           {follow && <Line name={follow.label} price={formatEuro(follow.amount)} />}
           {(items.extras ?? []).map((e: any) => {

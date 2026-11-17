@@ -1,5 +1,5 @@
 import "server-only";
-import { followupLine, formatEuro, freeExtraInfo } from "@/lib/catalog";
+import { followupLine, formatEuro, freeExtraInfo, packageFeatures } from "@/lib/catalog";
 import { formatDateGerman } from "@/lib/format";
 import { logMail } from "@/lib/mail-log";
 import { greetingLine, usesSie } from "@/lib/address";
@@ -111,7 +111,7 @@ export interface MailBooking {
   occasion: string | null;
   total_price: number | null;
   inquiry_items: {
-    packages?: { name: string; price: number }[];
+    packages?: { id?: string; name: string; price: number }[];
     extras?: { id?: string; name: string; price: number; from?: boolean; listPrice?: number }[];
     isFromPrice?: boolean;
     days?: number;
@@ -134,10 +134,11 @@ function loginCode(b: MailBooking): string {
   return b.access_code || b.custom_login_code || b.booking_code;
 }
 
-function itemsRows(b: MailBooking): { html: string; text: string } {
+/** features = Leistungen je Paket (wie auf der Website) unter dem Paket anzeigen – fürs Angebot. */
+function itemsRows(b: MailBooking, opts: { features?: boolean } = {}): { html: string; text: string } {
   const follow = followupLine(b.inquiry_items);
-  const items = [
-    ...(b.inquiry_items?.packages ?? []).map((p) => ({ name: p.name, price: formatEuro(p.price) })),
+  const items: { name: string; price: string; was?: string; features?: string[] }[] = [
+    ...(b.inquiry_items?.packages ?? []).map((p) => ({ name: p.name, price: formatEuro(p.price), features: opts.features && p.id ? packageFeatures(p.id) : [] })),
     ...(follow ? [{ name: follow.label, price: formatEuro(follow.amount) }] : []),
     ...(b.inquiry_items?.extras ?? []).map((e) => {
       const free = e.id ? freeExtraInfo({ ...e, id: e.id }) : null;
@@ -147,11 +148,17 @@ function itemsRows(b: MailBooking): { html: string; text: string } {
   const total = b.total_price != null ? (b.inquiry_items?.isFromPrice ? "ab " : "") + formatEuro(Number(b.total_price)) : "–";
   const html =
     items
-      .map((i: { name: string; price: string; was?: string }) => `<tr><td style="padding:6px 0;color:#3a4048">${esc(i.name)}</td><td style="padding:6px 0;text-align:right;color:#1f2227;white-space:nowrap">${i.was ? `<s style="color:#9aa1a8">${esc(i.was)}</s> ` : ""}${esc(i.price)}</td></tr>`)
+      .map(
+        (i) =>
+          `<tr><td style="padding:6px 0;color:#3a4048${i.features?.length ? ";font-weight:600" : ""}">${esc(i.name)}</td><td style="padding:6px 0;text-align:right;color:#1f2227;white-space:nowrap;vertical-align:top">${i.was ? `<s style="color:#9aa1a8">${esc(i.was)}</s> ` : ""}${esc(i.price)}</td></tr>` +
+          (i.features?.length
+            ? `<tr><td colspan="2" style="padding:0 0 10px;color:#5b636d;font-size:13px;line-height:1.55">${i.features.map((f) => `<span style="color:#a87731">✓</span>&nbsp;${esc(f)}`).join("<br>")}</td></tr>`
+            : "")
+      )
       .join("") +
 
     `<tr><td style="padding:10px 0 0;border-top:1px solid #e4e6e8;font-weight:600">Gesamt</td><td style="padding:10px 0 0;border-top:1px solid #e4e6e8;text-align:right;font-weight:600;white-space:nowrap">${esc(total)}</td></tr>`;
-  const text = items.map((i) => `- ${i.name}: ${i.price}`).join("\n") + `\nGesamt: ${total}`;
+  const text = items.map((i) => `- ${i.name}: ${i.price}${i.features?.length ? `\n${i.features.map((f) => `    ✓ ${f}`).join("\n")}` : ""}`).join("\n") + `\nGesamt: ${total}`;
   return { html, text };
 }
 
@@ -185,14 +192,14 @@ function greeting(b: MailBooking): string {
   return greetingLine(b);
 }
 
-function details(b: MailBooking): string {
+function details(b: MailBooking, opts: { features?: boolean } = {}): string {
   return `<table role="presentation" width="100%" style="font-size:14px;margin:8px 0 4px">
 <tr><td style="color:#6f7882;padding:3px 0">Buchungsnummer</td><td style="text-align:right">${esc(b.booking_code)}</td></tr>
 <tr><td style="color:#6f7882;padding:3px 0">Datum</td><td style="text-align:right">${esc(formatDateGerman(b.event_date))}${b.event_days > 1 ? ` · ${b.event_days} Tage` : ""}</td></tr>
 ${b.occasion ? `<tr><td style="color:#6f7882;padding:3px 0">Anlass</td><td style="text-align:right">${esc(b.occasion)}</td></tr>` : ""}
 ${b.location ? `<tr><td style="color:#6f7882;padding:3px 0">Location</td><td style="text-align:right">${esc(b.location)}</td></tr>` : ""}
 </table>
-<table role="presentation" width="100%" style="font-size:14px;margin-top:12px">${itemsRows(b).html}</table>`;
+<table role="presentation" width="100%" style="font-size:14px;margin-top:12px">${itemsRows(b, opts).html}</table>`;
 }
 
 const TAX = "Alle Preise sind Endpreise. Gemäß § 19 UStG (Kleinunternehmerregelung) wird keine Umsatzsteuer berechnet.";
@@ -1120,7 +1127,7 @@ export function offerMail(b: MailBooking, o: MailOffer, opts: { reminder?: boole
       `<p style="line-height:1.6">${esc(greeting(b))},</p>
 <p style="line-height:1.6">${t.intro}</p>
 ${answer}
-${details(b)}
+${details(b, { features: true })}
 ${offerBenefits(b)}
 <p style="margin-top:18px;line-height:1.6">${t.reserved}</p>
 <p style="margin:22px 0;text-align:center"><a href="${esc(o.url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${t.button}</a></p>
@@ -1128,7 +1135,7 @@ ${offerBenefits(b)}
 <p style="margin-top:12px;line-height:1.6">${t.call}</p>
 <p style="margin-top:12px;color:#6f7882;font-size:13px;line-height:1.6">${TAX}</p>`
     ),
-    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim() ? `${o.message.trim()}\n\n` : updated || opts.reminder ? `${t.standard}\n\n` : ""}Anfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & annehmen: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
+    text: `${greeting(b)},\n\n${stripTags(t.intro)}\n\n${o.message.trim() ? `${o.message.trim()}\n\n` : updated || opts.reminder ? `${t.standard}\n\n` : ""}Anfrage: ${b.booking_code}\nDatum: ${formatDateGerman(b.event_date)}\n${itemsRows(b, { features: true }).text}\n\n${stripTags(t.reserved)}\n\nAngebot ansehen & annehmen: ${o.url}\n\n${stripTags(t.how)}\n\n${TAX}\n\n${BRAND} · 0176 22748363`,
   };
 }
 
