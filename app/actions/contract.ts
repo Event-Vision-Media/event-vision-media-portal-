@@ -58,6 +58,9 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
   const booking = await getCurrentBooking();
   if (!booking) return { error: "Bitte melde dich erneut an." };
   const sie = usesSie(booking);
+  // Firma/Privat entscheidet über Widerruf, Zahlungsweise und Rechnungsangaben – nicht die Du/Sie-Ansprache
+  // (gleiche Regel wie im Vertragstext, lib/contract.ts).
+  const business = booking.customer_type === "business";
 
   if (!contractRequired(booking)) return { error: "Für diese Buchung ist kein digitaler Vertrag vorgesehen." };
   if (await getLatestContract(booking.id)) {
@@ -78,8 +81,8 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
     return_window: null,
     reference_consent: formData.get("reference_consent") === "on",
     // Firmen zahlen per Überweisung; Privatkunden wählen
-    rest_payment_method: sie ? "ueberweisung" : formData.get("rest_payment_method") === "bar" ? "bar" : "ueberweisung",
-    billing: sie
+    rest_payment_method: business ? "ueberweisung" : formData.get("rest_payment_method") === "bar" ? "bar" : "ueberweisung",
+    billing: business
       ? {
           address: field(formData, "billing_address", 300) || null,
           email: field(formData, "billing_email", 200) || null,
@@ -112,11 +115,11 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
   if (booking.inquiry_items?.access?.help === "helfer" && formData.get("carry_helper") !== "on") {
     return { error: sie ? "Bitte bestätigen Sie, dass eine Tragehilfe vor Ort ist." : "Bitte bestätige, dass eine Tragehilfe vor Ort ist." };
   }
-  const isConsumer = !sie;
+  const isConsumer = !business;
   if (isConsumer && formData.get("withdrawal_ack") !== "on") {
-    return { error: "Bitte bestätige den Erhalt der Widerrufsbelehrung." };
+    return { error: sie ? "Bitte bestätigen Sie den Erhalt der Widerrufsbelehrung." : "Bitte bestätige den Erhalt der Widerrufsbelehrung." };
   }
-  if (!sie && !["bar", "ueberweisung"].includes(String(formData.get("rest_payment_method")))) {
+  if (!business && !["bar", "ueberweisung"].includes(String(formData.get("rest_payment_method")))) {
     return { error: "Bitte wählt aus, wie ihr den Restbetrag zahlen möchtet." };
   }
   if (!signerName) return { error: sie ? "Bitte geben Sie Ihren Namen zur Unterschrift ein." : "Bitte gib deinen Namen zur Unterschrift ein." };
