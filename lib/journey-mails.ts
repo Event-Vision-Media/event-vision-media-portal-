@@ -8,11 +8,13 @@ import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } f
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired, depositForBooking, fullPaymentTerms, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
-import { greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
+import { gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
 import { usesSie } from "@/lib/address";
+import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestbook-game";
+import { gameAccess, gameConfig, type GuestbookGameRow } from "@/lib/guestbook-game-server";
 
 /** Erinnerung geht raus, sobald das Event höchstens so viele Tage entfernt ist … */
 const REMINDER_DAYS_BEFORE = 28;
@@ -25,6 +27,9 @@ const MAX_PER_RUN = 50;
 const CONTRACT_REMINDER_AFTER_DAYS = 3;
 /** Begrüßungsansage: nur Events in den nächsten X Tagen prüfen (Frist liegt 7 Tage vorher). */
 const GREETING_REMINDER_MAX_DAYS = 14;
+/** Gästebuch-Spiel: Erinnerung an den QR-Aufsteller, wenn das Event 2–7 Tage entfernt ist. */
+const GAME_REMINDER_MAX_DAYS = 7;
+const GAME_REMINDER_MIN_DAYS = 2;
 
 export interface JourneyRunResult {
   reminders: { booking: string; openSteps: string[]; recommendations: string[]; sent: boolean }[];
@@ -39,6 +44,8 @@ export interface JourneyRunResult {
   rebookingOffers: { booking: string; suggestedDate: string; sent: boolean }[];
   /** Audiogästebuch: Begrüßungsansage fehlt (kurz vor bzw. nach der Frist). */
   greetingReminders: { booking: string; kind: "bald" | "ueberfaellig"; sent: boolean }[];
+  /** Gästebuch-Spiel: Erinnerung an den QR-Aufsteller. */
+  gameReminders: { booking: string; sent: boolean }[];
 }
 
 function toMailBooking(b: Booking): MailBooking {
@@ -117,7 +124,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [] };
+  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [], gameReminders: [] };
 
   // ---- Für dich: Anfragen, die seit über 24 Stunden unbeantwortet sind ----
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
@@ -271,6 +278,50 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
         }
       }
       result.greetingReminders.push({ booking: b.booking_code, kind, sent });
+    }
+  }
+
+  // ---- Gästebuch-Spiel: an den QR-Aufsteller erinnern ----
+  // Einmalig 2–7 Tage vor dem Event, nur wenn das Spiel aktiv ist und der Kunde die Druckvorlage
+  // noch nicht geöffnet hat. Nicht am selben Tag wie eine Ansage-Erinnerung (kommt dann am Folgetag).
+  const greetedToday = new Set(result.greetingReminders.filter((r) => r.sent).map((r) => r.booking));
+  const { data: gameCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .gte("event_date", addDays(GAME_REMINDER_MIN_DAYS))
+    .lte("event_date", addDays(GAME_REMINDER_MAX_DAYS))
+    .limit(MAX_PER_RUN);
+  const gameIds = (gameCandidates ?? []).map((b) => b.id);
+  if (gameIds.length) {
+    const [{ data: games }, { data: gameLogs }, { data: gameExtras }] = await Promise.all([
+      supabase.from("guestbook_games").select("*").in("booking_id", gameIds),
+      supabase.from("activity_log").select("booking_id").in("event_type", ["spiel_erinnerung", "spielkarte_geoeffnet"]).in("booking_id", gameIds),
+      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", gameIds),
+    ]);
+    const gameBy = new Map(((games ?? []) as GuestbookGameRow[]).map((g) => [g.booking_id, g]));
+    const done = new Set((gameLogs ?? []).map((r) => r.booking_id));
+    const extraNames = new Map<string, string[]>();
+    for (const r of (gameExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
+      const list = extraNames.get(r.booking_id) ?? [];
+      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
+      extraNames.set(r.booking_id, list);
+    }
+    for (const b of (gameCandidates ?? []) as Booking[]) {
+      if (done.has(b.id) || greetedToday.has(b.booking_code)) continue;
+      const game = gameBy.get(b.id) ?? null;
+      if (!gameAccess(b, extraNames.get(b.id) ?? [], game).active) continue;
+      const occasion = game?.occasion ?? occasionFromBooking(b);
+      const title = game ? gameTitle(gameConfig(game)) : gameTitle({ occasion, names: namesFromBooking(b, occasion) });
+      let sent = false;
+      if (!dryRun) {
+        const mail = gameReminderMail(toMailBooking(b), title);
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "spiel_erinnerung", mailLog(b, mail.subject, `QR-Aufsteller fürs Gästebuch-Spiel noch nicht geöffnet – Event am ${dateDE(b.event_date)}.`));
+      }
+      result.gameReminders.push({ booking: b.booking_code, sent });
     }
   }
 

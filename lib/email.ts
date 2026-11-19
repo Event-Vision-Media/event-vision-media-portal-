@@ -731,6 +731,34 @@ export function invoiceMail(
   };
 }
 
+/** Gästebuch-Spiel: ca. eine Woche vor dem Event an den QR-Aufsteller erinnern (einmalig). */
+export function gameReminderMail(b: MailBooking, title: string) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const intro = sie
+    ? `bald ist es so weit! Für Ihr Audiogästebuch ist auch das <strong>Gästebuch-Spiel</strong> dabei: Ihre Gäste scannen einen QR-Code, drehen an einer Wählscheibe und bekommen eine witzige Aufgabe, was sie aufs Band sprechen können. Damit das klappt, drucken Sie bitte den <strong>QR-Aufsteller</strong> aus und stellen ihn neben das Telefon.`
+    : `bald ist es so weit! Für dein Audiogästebuch ist auch das <strong>Gästebuch-Spiel</strong> dabei: Deine Gäste scannen einen QR-Code, drehen an einer Wählscheibe und bekommen eine witzige Aufgabe, was sie aufs Band sprechen können. Damit das klappt, druck bitte den <strong>QR-Aufsteller</strong> aus und stell ihn neben das Telefon.`;
+  const tips = sie
+    ? ["Im Kundenportal unter „Audiogästebuch“ → „QR-Code-Aufsteller drucken“ (Format A5).", `Ihre Gäste sehen als Überschrift: „${title}“ – Anlass, Namen und eigene Aufgaben können Sie dort noch anpassen.`, "Am schönsten auf festem Papier in einem A5-Bilderrahmen."]
+    : ["Im Kundenportal unter „Audiogästebuch“ → „QR-Code-Aufsteller drucken“ (Format A5).", `Deine Gäste sehen als Überschrift: „${title}“ – Anlass, Namen und eigene Aufgaben kannst du dort noch anpassen.`, "Am schönsten auf festem Papier in einem A5-Bilderrahmen."];
+  const help = sie
+    ? "Sie haben keinen Drucker? Antworten Sie einfach auf diese E-Mail – dann drucken wir ihn aus und geben ihn mit dem Telefon mit."
+    : "Du hast keinen Drucker? Antworte einfach auf diese E-Mail – dann drucken wir ihn aus und geben ihn mit dem Telefon mit.";
+  const button = url
+    ? `<p style="margin:22px 0;text-align:center"><a href="${esc(url)}/dashboard/audiogaestebuch" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">QR-Aufsteller drucken</a></p>`
+    : "";
+  return {
+    subject: sie ? `Ihr QR-Aufsteller fürs Gästebuch-Spiel – ${b.booking_code}` : `Dein QR-Aufsteller fürs Gästebuch-Spiel – ${b.booking_code}`,
+    html: layout(
+      "Gästebuch-Spiel",
+      `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${button}
+<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#f7f3ec;line-height:1.6;font-size:14px">${tips.map((t) => `✓ ${esc(t)}`).join("<br>")}</div>${codeBox(b)}
+<p style="line-height:1.6">${esc(help)}</p>`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${url ? `${url}/dashboard/audiogaestebuch\n\n` : ""}${tips.map((t) => `- ${t}`).join("\n")}\n\nZugangscode: ${loginCode(b)}\n\n${help}\n\n${BRAND}`,
+  };
+}
+
 /** Restbetrag per Überweisung – Erinnerung ca. 3 Tage vor Fälligkeit. */
 export function restTransferReminderMail(b: MailBooking, amount: number, dueDate: string, bank: MailBank | null) {
   const sie = isSie(b);
