@@ -56,10 +56,14 @@ export async function uploadInvoice(bookingId: string, _prev: AdminActionResult,
   const amountRaw = String(formData.get("amount") ?? "").trim().replace(",", ".");
   const amount = amountRaw ? Number(amountRaw) : null;
   const send = formData.get("send") === "on";
+  const note = String(formData.get("note") ?? "").trim().slice(0, 1000) || null;
+  const dueDate = String(formData.get("due_date") ?? "").trim() || null;
+  const noReminders = formData.get("no_reminders") === "on";
   const file = formData.get("file") as File | null;
 
   if (!KINDS.includes(kind)) return { error: "Bitte die Art der Rechnung wählen." };
   if (amount != null && (!Number.isFinite(amount) || amount < 0)) return { error: "Bitte einen gültigen Betrag eingeben." };
+  if (dueDate && (!/^\d{4}-\d{2}-\d{2}$/.test(dueDate) || Number.isNaN(Date.parse(dueDate)))) return { error: "Bitte ein gültiges Zahlungsziel wählen." };
   if (!file || file.size === 0) return { error: "Bitte das Rechnungs-PDF auswählen." };
   if (file.size > INVOICE_MAX_BYTES) return { error: "Die Datei ist größer als 4 MB." };
   const bytes = Buffer.from(await file.arrayBuffer());
@@ -85,6 +89,16 @@ export async function uploadInvoice(bookingId: string, _prev: AdminActionResult,
     return { error: "Die Rechnung konnte nicht gespeichert werden." };
   }
 
+  // Erinnerungen abstellen (die Spalten markieren „erledigt“, die Journey überspringt die Buchung dann):
+  // Gesamtrechnung → keine separate Anzahlungs-Erinnerung; Sonderfall per Haken → auch keine Rest-Erinnerung.
+  const now = new Date().toISOString();
+  if (kind === "gesamt" || noReminders) {
+    await supabase.from("bookings").update({ deposit_reminder_sent_at: now }).eq("id", bookingId).is("deposit_reminder_sent_at", null);
+  }
+  if (noReminders) {
+    await supabase.from("bookings").update({ rest_reminder_sent_at: now }).eq("id", bookingId).is("rest_reminder_sent_at", null);
+  }
+
   const title = invoiceTitle({ kind, invoice_number: number });
   let mailNote = "";
   if (send) {
@@ -99,11 +113,12 @@ export async function uploadInvoice(bookingId: string, _prev: AdminActionResult,
         : kind !== "anzahlung" && p.method === "bar" ? (p.pickupOnly ? "bar_abholung" : "bar_lieferung")
         : "ueberweisung";
       const dueText =
-        kind === "anzahlung" ? "innerhalb von 7 Tagen"
+        dueDate && !paid ? `bis zum ${formatDateGerman(dueDate)}`
+        : kind === "anzahlung" ? "innerhalb von 7 Tagen"
         : (kind === "rest" || kind === "gesamt") && p.afterEvent != null ? `innerhalb von ${p.afterEvent} Tagen`
         : kind === "rest" || kind === "gesamt" ? `bis zum ${formatDateGerman(p.shortNotice ? shortNoticeInvoiceDue(b.event_date) : p.restDueDate)}`
         : null;
-      const mail = invoiceMail(toMailBooking(b), { title, amount, pay, dueText, bank: p.bank });
+      const mail = invoiceMail(toMailBooking(b), { title, amount, pay, dueText, bank: p.bank, note });
       const res = await sendEmail({ to: b.email, ...mail, attachments: [{ filename: fileName, content: bytes.toString("base64") }] });
       if (res.sent) await supabase.from("booking_invoices").update({ emailed_at: new Date().toISOString() }).eq("id", row.id);
       else mailNote = " – E-Mail konnte nicht verschickt werden, liegt aber im Portal";

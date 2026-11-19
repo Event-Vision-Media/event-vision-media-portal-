@@ -697,10 +697,13 @@ export function depositReminderMail(b: MailBooking, amount: number, bank: MailBa
  */
 export function invoiceMail(
   b: MailBooking,
-  o: { title: string; amount: number | null; pay: "ueberweisung" | "bar_abholung" | "bar_lieferung" | "bezahlt"; dueText: string | null; bank: MailBank | null }
+  o: { title: string; amount: number | null; pay: "ueberweisung" | "bar_abholung" | "bar_lieferung" | "bezahlt"; dueText: string | null; bank: MailBank | null; note?: string | null }
 ) {
   const sie = isSie(b);
   const url = portalUrl();
+  // Persönlicher Hinweis aus dem Admin (z. B. „Gesamtrechnung statt Anzahlung, da das Event bald ist“)
+  const note = o.note?.trim() || "";
+  const noteHtml = note ? `<p style="line-height:1.6">${esc(note).replace(/\n/g, "<br>")}</p>` : "";
   const intro = sie
     ? `anbei erhalten Sie die <strong>${esc(o.title)}</strong> für Ihr Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Sie finden sie außerdem jederzeit in Ihrem Kundenportal unter „Zahlung“.`
     : `anbei bekommst du die <strong>${esc(o.title)}</strong> für dein Event am <strong>${esc(formatDateGerman(b.event_date))}</strong>. Du findest sie außerdem jederzeit in deinem Kundenportal unter „Zahlung“.`;
@@ -723,8 +726,8 @@ export function invoiceMail(
     : "";
   return {
     subject: `${o.title} · ${b.booking_code}`,
-    html: layout(o.title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${payLine ? `<p style="line-height:1.6">${payLine}</p>` : ""}${box.html}${portal}<p style="color:#6f7882;font-size:13px;line-height:1.6">${esc(TAX)}</p>`),
-    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${payLine ? stripTags(payLine) + "\n\n" : ""}${box.text ? box.text + "\n\n" : ""}${url ? `Kundenportal: ${url}\n\n` : ""}${TAX}\n\n${BRAND}`,
+    html: layout(o.title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${noteHtml}${payLine ? `<p style="line-height:1.6">${payLine}</p>` : ""}${box.html}${portal}<p style="color:#6f7882;font-size:13px;line-height:1.6">${esc(TAX)}</p>`),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${note ? note + "\n\n" : ""}${payLine ? stripTags(payLine) + "\n\n" : ""}${box.text ? box.text + "\n\n" : ""}${url ? `Kundenportal: ${url}\n\n` : ""}${TAX}\n\n${BRAND}`,
   };
 }
 

@@ -85,6 +85,22 @@ export function InvoiceAdminSection({
             <input name="amount" inputMode="decimal" defaultValue={defaultAmount ?? ""} className="input-field mt-1 py-2 text-sm" />
           </label>
         </div>
+        <label className="block text-xs font-medium text-anthracite-600">
+          Zahlbar bis (optional)
+          <input name="due_date" type="date" className="input-field mt-1 py-2 text-sm" />
+          <span className="mt-1 block font-normal text-anthracite-400">Leer lassen = Frist laut Vertrag.</span>
+        </label>
+        <label className="block text-xs font-medium text-anthracite-600">
+          Persönlicher Hinweis in der E-Mail (optional)
+          <textarea name="note" rows={3} maxLength={1000} placeholder="z. B. Da euer Event schon bald ist, bekommt ihr statt Anzahlung und Restbetrag direkt eine Gesamtrechnung." className="input-field mt-1 py-2 text-sm" />
+        </label>
+        <label className="flex items-start gap-2 text-sm text-anthracite-700">
+          <input type="checkbox" name="no_reminders" className="mt-0.5 h-4 w-4 accent-gold-600" />
+          <span>
+            Sonderfall: keine automatischen Zahlungserinnerungen mehr
+            <span className="block text-xs text-anthracite-400">Nur anhaken, wenn diese Rechnung den normalen Ablauf ersetzt (z. B. kurzfristig Gesamtrechnung statt Anzahlung + Rest).</span>
+          </span>
+        </label>
         <input
           name="file"
           type="file"
