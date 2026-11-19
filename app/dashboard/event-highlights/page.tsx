@@ -7,7 +7,9 @@ import { Footer } from "@/components/Footer";
 import { ExtrasSection } from "@/components/ExtrasSection";
 import { getAvailabilityBoard } from "@/lib/availability-server";
 import type { BookingExtra, Extra, ExtraVariant } from "@/lib/types";
-import { extraNamesCoveredByPackages } from "@/lib/catalog";
+import { bundledExtraNames, extraNamesCoveredByPackages } from "@/lib/catalog";
+import { GAME_EXTRA_NAME } from "@/lib/guestbook-game";
+import { getGame } from "@/lib/guestbook-game-server";
 import { usesSie } from "@/lib/address";
 
 export const dynamic = "force-dynamic";
@@ -30,6 +32,9 @@ export default async function EventHighlightsPage(props: { searchParams: Promise
   ]);
 
   const coveredByPackages = new Set(extraNamesCoveredByPackages(booking.inquiry_items));
+  // Gästebuch-Spiel nur anbieten, wenn es nicht schon im Paket steckt (Komfort/Premium) oder freigeschaltet ist.
+  // Andere Bundle-Extras bleiben sichtbar – z. B. der Hintergrund, dessen Motiv hier gewählt wird.
+  if (bundledExtraNames(booking.inquiry_items).includes(GAME_EXTRA_NAME) || (await getGame(booking.id))?.admin_enabled) coveredByPackages.add(GAME_EXTRA_NAME);
   const sie = usesSie(booking);
   // Reihenfolge je Kundentyp; nur Extras, die zum gebuchten Gerät passen
   const devices = bookingDevices(booking);

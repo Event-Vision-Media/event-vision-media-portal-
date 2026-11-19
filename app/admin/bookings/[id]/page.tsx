@@ -22,6 +22,9 @@ import { DeliveryPickupForm } from "@/components/admin/DeliveryPickupForm";
 import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
 import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
 import { AudioGuestbookAdminSection } from "@/components/admin/AudioGuestbookAdminSection";
+import { GuestbookGameAdminCard } from "@/components/admin/GuestbookGameAdminCard";
+import { bookedExtraNamesFor, gameAccess, gameConfig, getGame } from "@/lib/guestbook-game-server";
+import { gameTitle } from "@/lib/guestbook-game";
 import { Card } from "@/components/ui/Card";
 import { VbBookingCard } from "@/components/admin/visionbooth/VbBookingCard";
 import { ContractAdminCard } from "@/components/admin/ContractAdminCard";
@@ -205,6 +208,8 @@ export default async function AdminBookingDetailPage(props: {
   );
 
   const audioGreeting = audioGreetingData as AudioGuestbookGreeting | null;
+  const guestbookGame = hasAudioGuestbook ? await getGame(booking.id) : null;
+  const guestbookGameAccess = hasAudioGuestbook ? gameAccess(booking, await bookedExtraNamesFor(booking.id), guestbookGame) : null;
   const audioRecordings = (audioRecordingsData ?? []) as AudioGuestbookRecording[];
 
   let audioGreetingPlayUrl: string | null = null;
@@ -652,6 +657,15 @@ export default async function AdminBookingDetailPage(props: {
                 uploadedAt: r.uploaded_at,
                 playUrl: audioRecordingPlayUrlByPath.get(r.storage_path) ?? null,
               }))}
+            />
+            <GuestbookGameAdminCard
+              bookingId={booking.id}
+              source={guestbookGameAccess?.included ? "paket" : guestbookGameAccess?.extraBooked ? "extra" : guestbookGameAccess?.adminEnabled ? "admin" : null}
+              adminEnabled={Boolean(guestbookGame?.admin_enabled)}
+              title={guestbookGame ? gameTitle(gameConfig(guestbookGame)) : null}
+              gameHref={guestbookGame ? `/gb/${guestbookGame.token}` : null}
+              spins={guestbookGame?.spins ?? 0}
+              customTasks={guestbookGame ? gameConfig(guestbookGame).customTasks.length : 0}
             />
           </section>
         )}

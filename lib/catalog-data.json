@@ -272,11 +272,14 @@
       "features": [
         "Alles aus dem Basis-Paket",
         "Leuchtschild „Audio Guest Book“",
-        "Karten mit witzigen Anweisungen für die Gäste",
+        "Gästebuch-Spiel: Wählscheibe mit witzigen Aufgaben per QR-Code",
         "Selbstabholung am Standort",
         "Optional: Lieferung"
       ],
-      "includes": "audio-basis"
+      "includes": "audio-basis",
+      "bundle": [
+        "gaestebuch-spiel"
+      ]
     },
     {
       "id": "audio-premium",
@@ -292,7 +295,10 @@
         "Selbstabholung am Standort",
         "Optional: Lieferung"
       ],
-      "includes": "audio-komfort"
+      "includes": "audio-komfort",
+      "bundle": [
+        "gaestebuch-spiel"
+      ]
     },
     {
       "id": "love-abholung",
@@ -484,6 +490,17 @@
         "audio"
       ],
       "dbExtraName": "Herz-USB-Stick"
+    },
+    {
+      "id": "gaestebuch-spiel",
+      "name": "Gästebuch-Spiel",
+      "desc": "Wählscheibe per QR-Code: Eure Gäste drehen und bekommen eine witzige Aufgabe fürs Audiogästebuch – mit euren Namen und auf Wunsch eigenen Aufgaben. In Komfort und Premium inklusive.",
+      "price": 10,
+      "from": false,
+      "for": [
+        "audio"
+      ],
+      "dbExtraName": "Gästebuch-Spiel"
     },
     {
       "id": "audio-versand",

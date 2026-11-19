@@ -9,6 +9,9 @@ import { AudioGreetingUploader } from "@/components/AudioGreetingUploader";
 import { AudioRecordingsList } from "@/components/AudioRecordingsList";
 import { GALLERY_UNLOCK_DAYS, type AudioGuestbookGreeting, type AudioGuestbookRecording } from "@/lib/types";
 import { usesSie } from "@/lib/address";
+import { GuestbookGameSettings } from "@/components/GuestbookGameSettings";
+import { GAME_EXTRA_NAME } from "@/lib/guestbook-game";
+import { ensureGame, gameAccess, gameConfig, getGame } from "@/lib/guestbook-game-server";
 
 export const dynamic = "force-dynamic";
 
@@ -49,6 +52,13 @@ export default async function AudioGuestbookPage() {
   ]);
 
   const greeting = greetingData as AudioGuestbookGreeting | null;
+
+  // Gästebuch-Spiel: inklusive (Komfort/Premium), als Extra gebucht oder vom Admin freigeschaltet – sonst Hinweis zum Dazubuchen
+  const gameAcc = gameAccess(booking, bookedExtraNames, await getGame(booking.id));
+  const game = gameAcc.active ? await ensureGame(booking) : null;
+  const { data: gameExtra } = gameAcc.active
+    ? { data: null }
+    : await supabase.from("extras").select("id, price").eq("name", GAME_EXTRA_NAME).eq("is_active", true).maybeSingle();
   const recordings = (recordingsData ?? []) as AudioGuestbookRecording[];
 
   let greetingPlayUrl: string | null = null;
@@ -122,6 +132,48 @@ export default async function AudioGuestbookPage() {
             downloadHref={`/api/audio-guestbook/file?kind=greeting&bookingId=${booking.id}`}
           />
         </section>
+
+        {(game || gameExtra) && (
+          <section className="mb-10 space-y-4 animate-fade-in-up">
+            <div>
+              <h2 className="font-serif text-lg font-semibold text-anthracite-800">
+                {sie ? "Ihr Gästebuch-Spiel" : "Euer Gästebuch-Spiel"}
+              </h2>
+              <p className="mt-1 text-sm text-anthracite-500">
+                {sie
+                  ? "Ihre Gäste scannen am Telefon einen QR-Code, drehen an einer Wählscheibe und bekommen eine witzige Aufgabe, was sie aufs Band sprechen können – passend zu Ihrem Anlass."
+                  : "Eure Gäste scannen am Telefon einen QR-Code, drehen an einer Wählscheibe und bekommen eine witzige Aufgabe, was sie aufs Band sprechen können – passend zu eurem Anlass."}
+              </p>
+            </div>
+            {game ? (
+              <GuestbookGameSettings
+                sie={sie}
+                occasion={game.occasion}
+                names={game.names ?? ""}
+                customTasks={gameConfig(game).customTasks}
+                gameHref={`/gb/${game.token}`}
+                printHref="/dashboard/audiogaestebuch/spielkarte"
+              />
+            ) : (
+              <div className="rounded-2xl border border-gold-200 bg-gold-50/60 p-4 sm:p-5">
+                <p className="font-medium text-anthracite-800">
+                  {sie ? "Für Ihr Paket noch nicht enthalten – jetzt dazubuchen:" : "In eurem Paket noch nicht enthalten – jetzt dazubuchen:"}
+                </p>
+                <ul className="mt-2 space-y-1 text-sm text-anthracite-600">
+                  <li>✓ Wählscheibe mit 30 Aufgaben je Anlass</li>
+                  <li>✓ {sie ? "Mit Ihren Namen und auf Wunsch eigenen Aufgaben" : "Mit euren Namen und auf Wunsch eigenen Aufgaben"}</li>
+                  <li>✓ Aufsteller mit QR-Code zum Ausdrucken – ohne App für die Gäste</li>
+                </ul>
+                <Link
+                  href={`/dashboard/event-highlights?extra=${gameExtra!.id}`}
+                  className="mt-4 inline-flex items-center justify-center rounded-xl bg-anthracite-800 px-5 py-3 text-sm font-medium text-white transition hover:bg-anthracite-700"
+                >
+                  Gästebuch-Spiel dazubuchen · {Number(gameExtra!.price).toLocaleString("de-DE")} €
+                </Link>
+              </div>
+            )}
+          </section>
+        )}
 
         <section className="space-y-4 animate-fade-in-up">
           <div>
