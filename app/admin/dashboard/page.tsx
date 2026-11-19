@@ -44,7 +44,7 @@ export default async function AdminBookingsPage(props: {
     supabase
       .from("activity_log")
       .select("id, message, created_at, read_at, booking_id, bookings(booking_code, customer_name, couple_names)")
-      .not("event_type", "in", "(mail_bestaetigung,mail_persoenlich_id,mail_klick)") // technische Einträge (Mail-ID, Klick-Zuordnung)
+      .not("event_type", "in", "(mail_bestaetigung,mail_portal_zugang,mail_persoenlich_id,mail_klick)") // technische Einträge (Mail-ID für den Zustellstatus, Klick-Zuordnung)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
