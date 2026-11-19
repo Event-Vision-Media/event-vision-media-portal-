@@ -20,6 +20,12 @@ const FILTERS: { id: Filter; label: string }[] = [
   { id: "rechnung", label: "Rechnung fehlt" },
 ];
 
+// Bei jedem Aufruf neu berechnen (nicht beim Laden des Moduls – der Server läuft über Tage)
+const berlinToday = () => new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" });
+/** Monat (JJJJ-MM) eines Fälligkeitsdatums – Vergangenes zählt zum aktuellen Monat. */
+const monthOf = (isoDate: string, today: string) => (isoDate.slice(0, 7) < today.slice(0, 7) ? today.slice(0, 7) : isoDate.slice(0, 7));
+const monthLabel = (m: string) => new Date(`${m}-15T12:00:00Z`).toLocaleDateString("de-DE", { month: "long", year: "numeric" });
+
 const dt = (iso: string) => new Date(iso).toLocaleDateString("de-DE", { timeZone: "Europe/Berlin", day: "2-digit", month: "2-digit", year: "numeric" });
 
 /**
@@ -44,7 +50,7 @@ export default async function AdminPaymentsPage(props: { searchParams: Promise<{
             Eingänge
           </Link>
         </div>
-        {view === "offen" ? <OpenView filter={(FILTERS.find((f) => f.id === sp.filter)?.id ?? "alle") as Filter} /> : <IncomeView month={/^\d{4}-\d{2}$/.test(sp.monat ?? "") ? sp.monat! : thisMonth} />}
+        {view === "offen" ? <OpenView filter={(FILTERS.find((f) => f.id === sp.filter)?.id ?? "alle") as Filter} month={/^\d{4}-\d{2}$/.test(sp.monat ?? "") ? sp.monat! : null} /> : <IncomeView month={/^\d{4}-\d{2}$/.test(sp.monat ?? "") ? sp.monat! : thisMonth} />}
       </main>
     </div>
   );
@@ -52,7 +58,7 @@ export default async function AdminPaymentsPage(props: { searchParams: Promise<{
 
 /* ---------------------------------------------------------------- Offen */
 
-async function OpenView({ filter }: { filter: Filter }) {
+async function OpenView({ filter, month }: { filter: Filter; month: string | null }) {
   const supabase = createAdminClient();
   const since = new Date(Date.now() - 30 * 86_400_000).toISOString().slice(0, 10);
   const recentSince = new Date(Date.now() - 14 * 86_400_000).toISOString();
@@ -88,8 +94,36 @@ async function OpenView({ filter }: { filter: Filter }) {
       const restLate = !p.restPaid && p.method === "ueberweisung" && days < p.restDueDays;
       const depositInvoiceMissing = p.deposit !== 0 && !p.depositPaid && !invoiced(b.id, ["anzahlung", "gesamt"]);
       const restInvoiceMissing = !p.restPaid && p.method === "ueberweisung" && days <= 28 && !invoiced(b.id, ["rest", "gesamt"]);
-      return { b, p, days, depositLate, restLate, depositInvoiceMissing, restInvoiceMissing };
+      // Wann kommt das Geld voraussichtlich? Anzahlung: 7 Tage nach Bestätigung; Rest: Fälligkeit
+      // (Überweisung/Rechnung) bzw. Event-Tag (bar). Schon Fälliges zählt zum aktuellen Monat.
+      const today = berlinToday();
+      const due: { month: string; amount: number }[] = [];
+      if (p.deposit && !p.depositPaid) {
+        const at = b.confirmed_at ? new Date(Date.parse(b.confirmed_at) + 7 * 86_400_000).toISOString().slice(0, 10) : today;
+        due.push({ month: monthOf(at, today), amount: p.deposit });
+      }
+      if (!p.restPaid) {
+        const amount = p.deposit === 0 && !p.followUp ? p.total ?? 0 : p.rest ?? 0;
+        const at = p.method === "bar" ? b.event_date : p.restDueDate || b.event_date;
+        if (amount) due.push({ month: monthOf(at, today), amount });
+      }
+      return { b, p, days, depositLate, restLate, depositInvoiceMissing, restInvoiceMissing, due };
     });
+  // Monate mit offenen Beträgen (für die Monats-Auswahl)
+  const months = new Map<string, { sum: number; count: number }>();
+  for (const r of rows) {
+    const seen = new Set<string>();
+    for (const d of r.due) {
+      const m = months.get(d.month) ?? { sum: 0, count: 0 };
+      m.sum += d.amount;
+      if (!seen.has(d.month)) m.count += 1;
+      seen.add(d.month);
+      months.set(d.month, m);
+    }
+  }
+  const monthList = [...months.entries()].sort(([a], [b]) => a.localeCompare(b));
+  const inMonth = (r: (typeof rows)[number]) => !month || r.due.some((d) => d.month === month);
+  const monthSum = month ? rows.reduce((s, r) => s + r.due.filter((d) => d.month === month).reduce((x, d) => x + d.amount, 0), 0) : 0;
   const counts: Record<Filter, number> = {
     alle: rows.length,
     ueberfaellig: rows.filter((r) => r.depositLate || r.restLate).length,
@@ -97,8 +131,16 @@ async function OpenView({ filter }: { filter: Filter }) {
     rechnung: rows.filter((r) => r.depositInvoiceMissing || r.restInvoiceMissing).length,
   };
   const shown = rows.filter((r) =>
-    filter === "ueberfaellig" ? r.depositLate || r.restLate : filter === "bar" ? r.p.method === "bar" && !r.p.restPaid : filter === "rechnung" ? r.depositInvoiceMissing || r.restInvoiceMissing : true
+    inMonth(r) &&
+    (filter === "ueberfaellig" ? r.depositLate || r.restLate : filter === "bar" ? r.p.method === "bar" && !r.p.restPaid : filter === "rechnung" ? r.depositInvoiceMissing || r.restInvoiceMissing : true)
   );
+  const link = (f: Filter, m: string | null) => {
+    const q = new URLSearchParams();
+    if (f !== "alle") q.set("filter", f);
+    if (m) q.set("monat", m);
+    const qs = q.toString();
+    return qs ? `/admin/zahlungen?${qs}` : "/admin/zahlungen";
+  };
   const openOf = (p: PaymentSummary) => (p.depositPaid ? 0 : p.deposit ?? 0) + (p.restPaid ? 0 : p.rest ?? 0);
   const openSum = rows.reduce((s, r) => s + openOf(r.p), 0);
   const lateSum = rows.filter((r) => r.depositLate || r.restLate).reduce((s, r) => s + openOf(r.p), 0);
@@ -114,17 +156,47 @@ async function OpenView({ filter }: { filter: Filter }) {
           <p className="text-xs text-anthracite-500">Insgesamt offen</p>
           <p className="mt-1 font-serif text-2xl font-semibold text-gold-700">{formatCurrencyEUR(openSum)}</p>
         </div>
-        <div className={`rounded-2xl border bg-white p-4 ${lateSum > 0 ? "border-red-200" : "border-anthracite-100"}`}>
-          <p className="text-xs text-anthracite-500">Davon überfällig</p>
-          <p className={`mt-1 font-serif text-2xl font-semibold ${lateSum > 0 ? "text-red-700" : "text-anthracite-800"}`}>{formatCurrencyEUR(lateSum)}</p>
-        </div>
+        {month ? (
+          <div className="rounded-2xl border border-gold-200 bg-white p-4">
+            <p className="text-xs text-anthracite-500">Erwartet im {monthLabel(month)}</p>
+            <p className="mt-1 font-serif text-2xl font-semibold text-anthracite-800">{formatCurrencyEUR(monthSum)}</p>
+          </div>
+        ) : (
+          <div className={`rounded-2xl border bg-white p-4 ${lateSum > 0 ? "border-red-200" : "border-anthracite-100"}`}>
+            <p className="text-xs text-anthracite-500">Davon überfällig</p>
+            <p className={`mt-1 font-serif text-2xl font-semibold ${lateSum > 0 ? "text-red-700" : "text-anthracite-800"}`}>{formatCurrencyEUR(lateSum)}</p>
+          </div>
+        )}
       </div>
+
+      {monthList.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-2 text-xs font-medium text-anthracite-500">Nach Monat (wann das Geld voraussichtlich reinkommt)</p>
+          <div className="flex flex-wrap gap-2 text-sm">
+            <Link
+              href={link(filter, null)}
+              className={`rounded-full border px-3.5 py-1.5 transition ${!month ? "border-gold-600 bg-gold-600 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}
+            >
+              Alle Monate
+            </Link>
+            {monthList.map(([m, v]) => (
+              <Link
+                key={m}
+                href={link(filter, m)}
+                className={`rounded-full border px-3.5 py-1.5 transition ${m === month ? "border-gold-600 bg-gold-600 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}
+              >
+                {monthLabel(m)} · <span className="font-medium">{formatCurrencyEUR(v.sum)}</span> <span className="opacity-70">({v.count})</span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="mt-5 flex flex-wrap gap-2 text-sm">
         {FILTERS.map((f) => (
           <Link
             key={f.id}
-            href={f.id === "alle" ? "/admin/zahlungen" : `/admin/zahlungen?filter=${f.id}`}
+            href={link(f.id, month)}
             className={`rounded-full border px-3.5 py-1.5 transition ${f.id === filter ? "border-anthracite-800 bg-anthracite-800 text-white" : "border-anthracite-200 bg-white text-anthracite-600 hover:border-gold-300"}`}
           >
             {f.label} <span className="opacity-70">({counts[f.id]})</span>
@@ -136,10 +208,10 @@ async function OpenView({ filter }: { filter: Filter }) {
       <div className="mt-4 space-y-3">
         {shown.length === 0 && (
           <Card>
-            <p className="text-center text-sm text-anthracite-400">{filter === "alle" ? "Alles bezahlt – nichts offen. 🎉" : "Nichts in diesem Filter."}</p>
+            <p className="text-center text-sm text-anthracite-400">{filter === "alle" && !month ? "Alles bezahlt – nichts offen. 🎉" : "Nichts in diesem Filter."}</p>
           </Card>
         )}
-        {shown.map(({ b, p, days, depositLate, restLate, depositInvoiceMissing, restInvoiceMissing }) => (
+        {shown.map(({ b, p, days, depositLate, restLate, depositInvoiceMissing, restInvoiceMissing, due }) => (
           <Card key={b.id} className="space-y-3">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
@@ -151,6 +223,9 @@ async function OpenView({ filter }: { filter: Filter }) {
                 </p>
               </div>
               <div className="flex flex-wrap gap-1.5">
+                {month && due.length > 1 && due.some((d) => d.month !== month) && (
+                  <Badge tone="neutral">im {monthLabel(month)}: {formatCurrencyEUR(due.filter((d) => d.month === month).reduce((s, d) => s + d.amount, 0))}</Badge>
+                )}
                 {depositInvoiceMissing && <Badge tone="gold">Anzahlungsrechnung fehlt</Badge>}
                 {restInvoiceMissing && <Badge tone="gold">Restrechnung fehlt</Badge>}
                 {depositLate && <Badge tone="danger">Anzahlung überfällig</Badge>}
