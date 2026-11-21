@@ -1066,13 +1066,13 @@ export function vbBeforeMail(o: { name: string | null; title: string; date: stri
 <li>✅ Design, Text und Logo passen?</li>
 <li>🖨️ QR-Aufsteller ausgedruckt (am besten auf festes Papier)?</li>
 <li>🎯 Missionen oder Spiele gewählt?</li>
-<li>📺 Foto-Wand: Laptop mit Beamer oder TV bereitstellen</li>
 </ul>
+<p style="margin:14px 0;padding:12px 14px;border-radius:12px;background:#f7f3ec;line-height:1.6;font-size:14px">📱 <strong>Ein Bildschirm ist nicht nötig:</strong> Alle Fotos, die Bestenliste der Missionen und die Spiel-Ergebnisse sehen eure Gäste direkt auf dem eigenen Handy. Die Foto-Wand ist ein optionales Extra-Highlight – wer mag, zeigt sie auf einem Fernseher, Beamer oder Laptop.</p>
 ${vbButton(o.manageUrl, "Meine VisionBooth öffnen")}
 <p style="text-align:center;font-size:13px"><a href="${esc(o.posterUrl)}" style="color:#a87731">QR-Aufsteller direkt drucken</a></p>
 <p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>`
     ),
-    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele, Foto-Wand.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
+    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele.\n\nEin Bildschirm ist nicht nötig: Fotos, Bestenliste und Spiel-Ergebnisse sehen eure Gäste direkt auf dem Handy. Die Foto-Wand (Fernseher, Beamer oder Laptop) ist optional.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
   };
 }
 
