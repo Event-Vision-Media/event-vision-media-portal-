@@ -15,6 +15,7 @@ export function PaymentControls({
   customer = null,
   depositAmount = null,
   restAmount = null,
+  canMail = true,
 }: {
   bookingId: string;
   depositPaid: boolean;
@@ -29,30 +30,36 @@ export function PaymentControls({
   customer?: string | null;
   depositAmount?: number | null;
   restAmount?: number | null;
+  /** E-Mail-Adresse vorhanden → Bestätigung an den Kunden anbieten */
+  canMail?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [undo, setUndo] = useState<{ text: string; kind: "deposit" | "rest"; back: boolean } | null>(null);
+  /** Rückfrage beim Abhaken: mit oder ohne Bestätigung an den Kunden */
+  const [ask, setAsk] = useState<{ kind: "deposit" | "rest"; label: string } | null>(null);
   const run = (fn: () => Promise<{ error?: string }>) =>
     start(async () => {
       const res = await fn();
       setError(res.error ?? null);
     });
   const eur = (n: number | null) => (n == null ? "" : ` ${n.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}`);
-  /** Haken setzen/entfernen – mit kurzer Rückfrage und „Rückgängig“ (es wird nie eine Mail verschickt). */
-  function toggle(kind: "deposit" | "rest", label: string, v: boolean) {
-    const amount = kind === "deposit" ? depositAmount : restAmount;
-    const who = customer ? ` von ${customer}` : "";
-    const q = v ? `${label}${eur(amount)}${who} als erhalten markieren?\n\n(Es wird keine E-Mail an den Kunden verschickt.)` : `${label}${who} wieder auf „offen“ setzen?`;
-    if (!confirm(q)) return;
+  /** Abhaken fragt inline „mit oder ohne Bestätigung an den Kunden“, Zurücksetzen per kurzer Rückfrage; danach „Rückgängig“. */
+  function save(kind: "deposit" | "rest", label: string, v: boolean, mail: boolean) {
+    setAsk(null);
     start(async () => {
-      const res = await setPaymentReceived(bookingId, kind, v);
+      const res = await setPaymentReceived(bookingId, kind, v, mail);
       setError(res.error ?? null);
       if (!res.error) {
-        setUndo({ text: v ? `${label} gespeichert` : "Wieder auf offen gesetzt", kind, back: !v });
+        setUndo({ text: v ? `${label} gespeichert${res.mailSent ? " · Bestätigung verschickt" : ""}` : "Wieder auf offen gesetzt", kind, back: !v });
         setTimeout(() => setUndo(null), 10000);
       }
     });
+  }
+  function toggle(kind: "deposit" | "rest", label: string, v: boolean) {
+    if (v) return setAsk({ kind, label });
+    if (!confirm(`${label}${customer ? ` von ${customer}` : ""} wieder auf „offen“ setzen?`)) return;
+    save(kind, label, false, false);
   }
 
   return (
@@ -83,6 +90,28 @@ export function PaymentControls({
             <option value="bar">Bar bei Übergabe (Lieferung/Abholung)</option>
           </select>
         </label>
+      )}
+      {ask && (
+        <div className="w-full rounded-xl border border-gold-200 bg-gold-50/60 p-3 text-sm">
+          <p className="font-medium text-anthracite-800">
+            {ask.label}
+            {eur(ask.kind === "deposit" ? depositAmount : restAmount)}
+            {customer ? ` von ${customer}` : ""} als erhalten markieren?
+          </p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {canMail && (
+              <button type="button" disabled={pending} onClick={() => save(ask.kind, ask.label, true, true)} className="rounded-lg bg-anthracite-800 px-3 py-1.5 text-white hover:bg-anthracite-700 disabled:opacity-60">
+                Abhaken &amp; Bestätigung an Kunden senden
+              </button>
+            )}
+            <button type="button" disabled={pending} onClick={() => save(ask.kind, ask.label, true, false)} className="rounded-lg border border-anthracite-200 bg-white px-3 py-1.5 text-anthracite-700 hover:bg-sand-50 disabled:opacity-60">
+              Nur abhaken (ohne Mail)
+            </button>
+            <button type="button" onClick={() => setAsk(null)} className="px-2 py-1.5 text-anthracite-500 hover:text-anthracite-800">
+              Abbrechen
+            </button>
+          </div>
+        </div>
       )}
       {undo && (
         <span className="inline-flex items-center gap-2 rounded-full bg-anthracite-900 px-3 py-1.5 text-xs text-white">

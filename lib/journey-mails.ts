@@ -17,19 +17,19 @@ import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestboo
 import { gameAccess, gameConfig, type GuestbookGameRow } from "@/lib/guestbook-game-server";
 
 /** Erinnerung geht raus, sobald das Event höchstens so viele Tage entfernt ist … */
-const REMINDER_DAYS_BEFORE = 28;
+export const REMINDER_DAYS_BEFORE = 28;
 /** … aber nicht mehr, wenn es näher als das ist (dann lohnt es nicht mehr). */
-const REMINDER_MIN_DAYS = 3;
+export const REMINDER_MIN_DAYS = 3;
 /** Nachher-Mail nur für Events der letzten X Tage (verhindert Massenversand beim ersten Start). */
-const FOLLOWUP_MAX_AGE_DAYS = 30;
+export const FOLLOWUP_MAX_AGE_DAYS = 30;
 const MAX_PER_RUN = 50;
 /** Vertrags-Erinnerung, wenn X Tage nach der Reservierung noch nicht unterschrieben wurde. */
-const CONTRACT_REMINDER_AFTER_DAYS = 3;
+export const CONTRACT_REMINDER_AFTER_DAYS = 3;
 /** Begrüßungsansage: nur Events in den nächsten X Tagen prüfen (Frist liegt 7 Tage vorher). */
-const GREETING_REMINDER_MAX_DAYS = 14;
+export const GREETING_REMINDER_MAX_DAYS = 14;
 /** Gästebuch-Spiel: Erinnerung an den QR-Aufsteller, wenn das Event 2–7 Tage entfernt ist. */
-const GAME_REMINDER_MAX_DAYS = 7;
-const GAME_REMINDER_MIN_DAYS = 2;
+export const GAME_REMINDER_MAX_DAYS = 7;
+export const GAME_REMINDER_MIN_DAYS = 2;
 
 export interface JourneyRunResult {
   reminders: { booking: string; openSteps: string[]; recommendations: string[]; sent: boolean }[];
@@ -141,221 +141,9 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     result.adminDigestSent = (await sendEmail({ to: process.env.ADMIN_EMAIL, ...waitingInquiriesMail(waiting) })).sent;
   }
 
-  // ---- Mietvertrag noch nicht unterschrieben (einmalige Erinnerung) ----
-  const cutoff = new Date(Date.now() - CONTRACT_REMINDER_AFTER_DAYS * 86_400_000).toISOString();
-  const { data: unsignedCandidates } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("source", "website")
-    .eq("lifecycle", "bestaetigt")
-    .eq("contract_on_file", false)
-    .eq("portal_invite_pending", false)
-    .not("email", "is", null)
-    .lte("confirmed_at", cutoff)
-    .gte("event_date", addDays(2))
-    .limit(MAX_PER_RUN);
-  const candidateIds = (unsignedCandidates ?? []).map((b) => b.id);
-  if (candidateIds.length) {
-    const [{ data: signed }, { data: reminded }] = await Promise.all([
-      supabase.from("booking_contracts").select("booking_id").in("booking_id", candidateIds),
-      supabase.from("activity_log").select("booking_id").eq("event_type", "vertrag_erinnerung").in("booking_id", candidateIds),
-    ]);
-    const skip = new Set([...(signed ?? []), ...(reminded ?? [])].map((r) => r.booking_id));
-    for (const b of (unsignedCandidates ?? []) as Booking[]) {
-      if (skip.has(b.id)) continue;
-      // Steht die allgemeine Erinnerung (mit dem Vertrag als erstem offenen Schritt) ohnehin an, keine zweite Mail
-      const days = daysUntil(b.event_date);
-      if (!b.reminder_sent_at && days >= REMINDER_MIN_DAYS && days <= REMINDER_DAYS_BEFORE) continue;
-      let sent = false;
-      if (!dryRun) {
-        const mail = contractReminderMail(toMailBooking(b));
-        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
-        if (sent) await logActivity(b.id, "vertrag_erinnerung", mailLog(b, mail.subject, `Grund: Mietvertrag ${CONTRACT_REMINDER_AFTER_DAYS} Tage nach deiner Bestätigung noch nicht unterschrieben.`));
-      }
-      result.contractReminders.push({ booking: b.booking_code, sent });
-    }
-  }
-
-  // ---- Erinnerungen vor dem Event ----
-  const { data: upcoming } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("lifecycle", "bestaetigt")
-    .eq("portal_invite_pending", false)
-    .not("email", "is", null)
-    .is("reminder_sent_at", null)
-    .gte("event_date", addDays(REMINDER_MIN_DAYS))
-    .lte("event_date", addDays(REMINDER_DAYS_BEFORE))
-    .limit(MAX_PER_RUN);
-
-  for (const b of (upcoming ?? []) as Booking[]) {
-    const openSteps = await openStepsFor(b);
-    // Selbstabholung gebucht? Dann zuerst die bequeme Lieferung empfehlen
-    const delivery = deliveryUpsells(b.inquiry_items)[0];
-    // 360° ohne Betreuung: Betreuung durch Personal als erste Empfehlung (Anfrage im Portal)
-    const staff = staffUpsellFor(b);
-    const staffRec = staff && !staff.requested ? [{ name: "Betreuung durch Personal für die 360° Video Booth", priceLabel: `${eur(staff.price)} für ${staff.includedHours} Std.` }] : [];
-    const recs = [
-      ...staffRec,
-      ...(delivery && !staffRec.length ? [{ name: "Lieferung, Aufbau & Abholung durch uns", priceLabel: `+${delivery.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}` }] : []),
-      ...(await getRecommendations(b, delivery || staffRec.length ? 1 : 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel })),
-    ];
-    let sent = false;
-    if (!dryRun) {
-      const mail = reminderMail(toMailBooking(b), openSteps, recs);
-      sent = (await sendEmail({ to: b.email!, ...mail })).sent;
-      if (sent) {
-        await supabase.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(
-          b.id,
-          "erinnerung",
-          mailLog(
-            b,
-            mail.subject,
-            `Event in ${daysUntil(b.event_date)} Tagen. ${openSteps.length ? `Noch offen: ${openSteps.join(", ")}.` : "Alles erledigt – Vorfreude-Mail."}${recs.length ? ` Empfohlen: ${recs.map((r) => r.name).join(", ")}.` : ""}`
-          )
-        );
-      }
-    }
-    result.reminders.push({ booking: b.booking_code, openSteps, recommendations: recs.map((r) => r.name), sent });
-  }
-
-  // ---- Audiogästebuch: Begrüßungsansage fehlt noch ----
-  // "bald": 0–3 Tage vor der Frist (Frist = 7 Tage vor dem Event, kurzfristig 2 Tage).
-  // "ueberfaellig": ab 2 Tage nach der Frist, solange das Event noch bevorsteht – plus Info an dich.
-  // Jede Mail pro Buchung nur einmal (activity_log).
-  const { data: greetCandidates } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("lifecycle", "bestaetigt")
-    .eq("portal_invite_pending", false)
-    .not("email", "is", null)
-    .gte("event_date", addDays(1))
-    .lte("event_date", addDays(GREETING_REMINDER_MAX_DAYS))
-    .limit(MAX_PER_RUN);
-  const greetIds = (greetCandidates ?? []).map((b) => b.id);
-  if (greetIds.length) {
-    const [{ data: greetings }, { data: greetLogs }, { data: greetExtras }] = await Promise.all([
-      supabase.from("audio_guestbook_greetings").select("booking_id").in("booking_id", greetIds),
-      supabase.from("activity_log").select("booking_id, event_type").in("event_type", ["ansage_erinnerung", "ansage_erinnerung_frist"]).in("booking_id", greetIds),
-      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", greetIds),
-    ]);
-    const hasGreeting = new Set((greetings ?? []).map((r) => r.booking_id));
-    const logged = new Set((greetLogs ?? []).map((r) => `${r.booking_id}:${r.event_type}`));
-    const extraNames = new Map<string, string[]>();
-    for (const r of (greetExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
-      const list = extraNames.get(r.booking_id) ?? [];
-      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
-      extraNames.set(r.booking_id, list);
-    }
-    for (const b of (greetCandidates ?? []) as Booking[]) {
-      if (hasGreeting.has(b.id)) continue;
-      if (!bookingHasAudioGuestbook(b.product_type, extraNames.get(b.id) ?? [], b.inquiry_items)) continue;
-      const deadline = getAudioGreetingDeadline(b.event_date, b.confirmed_at ?? b.created_at);
-      const deadlineISO = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, "0")}-${String(deadline.getDate()).padStart(2, "0")}`;
-      const toDeadline = daysUntil(deadlineISO);
-      let kind: "bald" | "ueberfaellig" | null = null;
-      if (toDeadline >= 0 && toDeadline <= 3 && !logged.has(`${b.id}:ansage_erinnerung`)) {
-        // Allgemeine Erinnerung (mit der Ansage als offenem Schritt) gerade erst verschickt? Dann nicht doppelt.
-        const recent = b.reminder_sent_at && Date.now() - new Date(b.reminder_sent_at).getTime() < 3 * 86_400_000;
-        if (!recent) kind = "bald";
-      } else if (toDeadline <= -2 && !logged.has(`${b.id}:ansage_erinnerung_frist`)) {
-        kind = "ueberfaellig";
-      }
-      if (!kind) continue;
-      let sent = false;
-      if (!dryRun) {
-        const mb = toMailBooking(b);
-        const mail = greetingReminderMail(mb, deadlineISO, kind === "ueberfaellig");
-        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
-        if (sent) {
-          await logActivity(
-            b.id,
-            kind === "bald" ? "ansage_erinnerung" : "ansage_erinnerung_frist",
-            mailLog(b, mail.subject, kind === "bald" ? `Begrüßungsansage fehlt noch, Frist ${dateDE(deadlineISO)}.` : `Begrüßungsansage fehlt, Frist ${dateDE(deadlineISO)} überschritten – Event am ${dateDE(b.event_date)}.`)
-          );
-          if (kind === "ueberfaellig" && process.env.ADMIN_EMAIL) await sendEmail({ to: process.env.ADMIN_EMAIL, ...greetingAdminMail(mb, deadlineISO) });
-        }
-      }
-      result.greetingReminders.push({ booking: b.booking_code, kind, sent });
-    }
-  }
-
-  // ---- Gästebuch-Spiel: an den QR-Aufsteller erinnern ----
-  // Einmalig 2–7 Tage vor dem Event, nur wenn das Spiel aktiv ist und der Kunde die Druckvorlage
-  // noch nicht geöffnet hat. Nicht am selben Tag wie eine Ansage-Erinnerung (kommt dann am Folgetag).
-  const greetedToday = new Set(result.greetingReminders.filter((r) => r.sent).map((r) => r.booking));
-  const { data: gameCandidates } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("lifecycle", "bestaetigt")
-    .eq("portal_invite_pending", false)
-    .not("email", "is", null)
-    .gte("event_date", addDays(GAME_REMINDER_MIN_DAYS))
-    .lte("event_date", addDays(GAME_REMINDER_MAX_DAYS))
-    .limit(MAX_PER_RUN);
-  const gameIds = (gameCandidates ?? []).map((b) => b.id);
-  if (gameIds.length) {
-    const [{ data: games }, { data: gameLogs }, { data: gameExtras }] = await Promise.all([
-      supabase.from("guestbook_games").select("*").in("booking_id", gameIds),
-      supabase.from("activity_log").select("booking_id").in("event_type", ["spiel_erinnerung", "spielkarte_geoeffnet"]).in("booking_id", gameIds),
-      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", gameIds),
-    ]);
-    const gameBy = new Map(((games ?? []) as GuestbookGameRow[]).map((g) => [g.booking_id, g]));
-    const done = new Set((gameLogs ?? []).map((r) => r.booking_id));
-    const extraNames = new Map<string, string[]>();
-    for (const r of (gameExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
-      const list = extraNames.get(r.booking_id) ?? [];
-      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
-      extraNames.set(r.booking_id, list);
-    }
-    for (const b of (gameCandidates ?? []) as Booking[]) {
-      if (done.has(b.id) || greetedToday.has(b.booking_code)) continue;
-      const game = gameBy.get(b.id) ?? null;
-      if (!gameAccess(b, extraNames.get(b.id) ?? [], game).active) continue;
-      const occasion = game?.occasion ?? occasionFromBooking(b);
-      const title = game ? gameTitle(gameConfig(game)) : gameTitle({ occasion, names: namesFromBooking(b, occasion) });
-      let sent = false;
-      if (!dryRun) {
-        const mail = gameReminderMail(toMailBooking(b), title);
-        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
-        if (sent) await logActivity(b.id, "spiel_erinnerung", mailLog(b, mail.subject, `QR-Aufsteller fürs Gästebuch-Spiel noch nicht geöffnet – Event am ${dateDE(b.event_date)}.`));
-      }
-      result.gameReminders.push({ booking: b.booking_code, sent });
-    }
-  }
-
-  // ---- Nachher: Galerie + Bewertung ----
-  const { data: reviewSetting } = await supabase.from("app_settings").select("value").eq("key", "google_review_url").maybeSingle();
-  const reviewUrl = (reviewSetting?.value as string | undefined) || null;
-  const { data: past } = await supabase
-    .from("bookings")
-    .select("*")
-    .eq("lifecycle", "bestaetigt")
-    .not("email", "is", null)
-    .is("followup_sent_at", null)
-    .lte("event_date", addDays(-GALLERY_UNLOCK_DAYS))
-    .gte("event_date", addDays(-FOLLOWUP_MAX_AGE_DAYS))
-    .limit(MAX_PER_RUN);
-
-  for (const b of (past ?? []) as Booking[]) {
-    if (daysUntil(b.event_date) > -GALLERY_UNLOCK_DAYS) continue;
-    // Was liegt bereit? Fotos (Galerie-Link) und/oder Audios – nur das ankündigen, was gebucht und da ist
-    const media = await mediaStatus(b);
-    const missing = ((media.photoBooked || media.videoBooked) && !media.galleryReady) || (media.audioBooked && media.audios === 0);
-    // Noch nicht alles hochgeladen: bis 14 Tage nach dem Event warten, danach Danke + Bewertung mit dem, was da ist
-    if (!media.informedAt && missing && daysUntil(b.event_date) > -14) continue;
-    let sent = false;
-    if (!dryRun) {
-      const mail = followupMail(toMailBooking(b), reviewUrl, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
-      sent = (await sendEmail({ to: b.email!, ...mail })).sent;
-      if (sent) {
-        await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
-        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: ${media.informedAt ? "Danke" : [media.galleryReady && "Online-Galerie", media.audios && "Audio-Nachrichten"].filter(Boolean).join(" + ") || "Danke"}${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
-      }
-    }
-    result.followups.push({ booking: b.booking_code, sent });
-  }
+  // Höchstens eine automatische Mail pro Kunde und Tag. Zeitkritisches (Abholung morgen, Zahlungen)
+  // läuft zuerst; alles andere wartet bei einer Überschneidung bis zum nächsten Lauf (Folgetag).
+  const mailedToday = new Set<string>();
 
   // ---- Selbstabholung: Erinnerung am Tag vor der Abholung (inkl. Barbetrag) ----
   const { data: pickupCandidates } = await supabase
@@ -405,6 +193,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
           if (cash) await supabase.from("bookings").update({ rest_reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
         }
       }
+      if (sent || dryRun) mailedToday.add(b.id);
       result.pickupReminders.push({ booking: b.booking_code, sent });
     }
   }
@@ -493,7 +282,229 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
         );
       }
     }
+    if (sent || dryRun) mailedToday.add(b.id);
     result.paymentReminders.push({ booking: b.booking_code, kind, sent });
+  }
+
+  // ---- Mietvertrag noch nicht unterschrieben (einmalige Erinnerung) ----
+  const cutoff = new Date(Date.now() - CONTRACT_REMINDER_AFTER_DAYS * 86_400_000).toISOString();
+  const { data: unsignedCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("source", "website")
+    .eq("lifecycle", "bestaetigt")
+    .eq("contract_on_file", false)
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .lte("confirmed_at", cutoff)
+    .gte("event_date", addDays(2))
+    .limit(MAX_PER_RUN);
+  const candidateIds = (unsignedCandidates ?? []).map((b) => b.id);
+  if (candidateIds.length) {
+    const [{ data: signed }, { data: reminded }] = await Promise.all([
+      supabase.from("booking_contracts").select("booking_id").in("booking_id", candidateIds),
+      supabase.from("activity_log").select("booking_id").eq("event_type", "vertrag_erinnerung").in("booking_id", candidateIds),
+    ]);
+    const skip = new Set([...(signed ?? []), ...(reminded ?? [])].map((r) => r.booking_id));
+    for (const b of (unsignedCandidates ?? []) as Booking[]) {
+      if (skip.has(b.id) || mailedToday.has(b.id)) continue;
+      // Steht die allgemeine Erinnerung (mit dem Vertrag als erstem offenen Schritt) ohnehin an, keine zweite Mail
+      const days = daysUntil(b.event_date);
+      if (!b.reminder_sent_at && days >= REMINDER_MIN_DAYS && days <= REMINDER_DAYS_BEFORE) continue;
+      let sent = false;
+      if (!dryRun) {
+        const mail = contractReminderMail(toMailBooking(b));
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "vertrag_erinnerung", mailLog(b, mail.subject, `Grund: Mietvertrag ${CONTRACT_REMINDER_AFTER_DAYS} Tage nach deiner Bestätigung noch nicht unterschrieben.`));
+      }
+      if (sent || dryRun) mailedToday.add(b.id);
+      result.contractReminders.push({ booking: b.booking_code, sent });
+    }
+  }
+
+  // ---- Erinnerungen vor dem Event ----
+  const { data: upcoming } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .is("reminder_sent_at", null)
+    .gte("event_date", addDays(REMINDER_MIN_DAYS))
+    .lte("event_date", addDays(REMINDER_DAYS_BEFORE))
+    .limit(MAX_PER_RUN);
+
+  for (const b of (upcoming ?? []) as Booking[]) {
+    if (mailedToday.has(b.id)) continue;
+    const openSteps = await openStepsFor(b);
+    // Selbstabholung gebucht? Dann zuerst die bequeme Lieferung empfehlen
+    const delivery = deliveryUpsells(b.inquiry_items)[0];
+    // 360° ohne Betreuung: Betreuung durch Personal als erste Empfehlung (Anfrage im Portal)
+    const staff = staffUpsellFor(b);
+    const staffRec = staff && !staff.requested ? [{ name: "Betreuung durch Personal für die 360° Video Booth", priceLabel: `${eur(staff.price)} für ${staff.includedHours} Std.` }] : [];
+    const recs = [
+      ...staffRec,
+      ...(delivery && !staffRec.length ? [{ name: "Lieferung, Aufbau & Abholung durch uns", priceLabel: `+${delivery.price.toLocaleString("de-DE", { style: "currency", currency: "EUR" })}` }] : []),
+      ...(await getRecommendations(b, delivery || staffRec.length ? 1 : 2)).map((r) => ({ name: r.extra.name, priceLabel: r.priceLabel })),
+    ];
+    let sent = false;
+    if (!dryRun) {
+      const mail = reminderMail(toMailBooking(b), openSteps, recs);
+      sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+      if (sent) {
+        await supabase.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);
+        await logActivity(
+          b.id,
+          "erinnerung",
+          mailLog(
+            b,
+            mail.subject,
+            `Event in ${daysUntil(b.event_date)} Tagen. ${openSteps.length ? `Noch offen: ${openSteps.join(", ")}.` : "Alles erledigt – Vorfreude-Mail."}${recs.length ? ` Empfohlen: ${recs.map((r) => r.name).join(", ")}.` : ""}`
+          )
+        );
+      }
+    }
+    if (sent || dryRun) mailedToday.add(b.id);
+    result.reminders.push({ booking: b.booking_code, openSteps, recommendations: recs.map((r) => r.name), sent });
+  }
+
+  // ---- Audiogästebuch: Begrüßungsansage fehlt noch ----
+  // "bald": 0–3 Tage vor der Frist (Frist = 7 Tage vor dem Event, kurzfristig 2 Tage).
+  // "ueberfaellig": ab 2 Tage nach der Frist, solange das Event noch bevorsteht – plus Info an dich.
+  // Jede Mail pro Buchung nur einmal (activity_log).
+  const { data: greetCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .gte("event_date", addDays(1))
+    .lte("event_date", addDays(GREETING_REMINDER_MAX_DAYS))
+    .limit(MAX_PER_RUN);
+  const greetIds = (greetCandidates ?? []).map((b) => b.id);
+  if (greetIds.length) {
+    const [{ data: greetings }, { data: greetLogs }, { data: greetExtras }] = await Promise.all([
+      supabase.from("audio_guestbook_greetings").select("booking_id").in("booking_id", greetIds),
+      supabase.from("activity_log").select("booking_id, event_type").in("event_type", ["ansage_erinnerung", "ansage_erinnerung_frist"]).in("booking_id", greetIds),
+      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", greetIds),
+    ]);
+    const hasGreeting = new Set((greetings ?? []).map((r) => r.booking_id));
+    const logged = new Set((greetLogs ?? []).map((r) => `${r.booking_id}:${r.event_type}`));
+    const extraNames = new Map<string, string[]>();
+    for (const r of (greetExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
+      const list = extraNames.get(r.booking_id) ?? [];
+      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
+      extraNames.set(r.booking_id, list);
+    }
+    for (const b of (greetCandidates ?? []) as Booking[]) {
+      if (hasGreeting.has(b.id) || mailedToday.has(b.id)) continue;
+      if (!bookingHasAudioGuestbook(b.product_type, extraNames.get(b.id) ?? [], b.inquiry_items)) continue;
+      const deadline = getAudioGreetingDeadline(b.event_date, b.confirmed_at ?? b.created_at);
+      const deadlineISO = `${deadline.getFullYear()}-${String(deadline.getMonth() + 1).padStart(2, "0")}-${String(deadline.getDate()).padStart(2, "0")}`;
+      const toDeadline = daysUntil(deadlineISO);
+      let kind: "bald" | "ueberfaellig" | null = null;
+      if (toDeadline >= 0 && toDeadline <= 3 && !logged.has(`${b.id}:ansage_erinnerung`)) {
+        // Allgemeine Erinnerung (mit der Ansage als offenem Schritt) gerade erst verschickt? Dann nicht doppelt.
+        const recent = b.reminder_sent_at && Date.now() - new Date(b.reminder_sent_at).getTime() < 3 * 86_400_000;
+        if (!recent) kind = "bald";
+      } else if (toDeadline <= -2 && !logged.has(`${b.id}:ansage_erinnerung_frist`)) {
+        kind = "ueberfaellig";
+      }
+      if (!kind) continue;
+      let sent = false;
+      if (!dryRun) {
+        const mb = toMailBooking(b);
+        const mail = greetingReminderMail(mb, deadlineISO, kind === "ueberfaellig");
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) {
+          await logActivity(
+            b.id,
+            kind === "bald" ? "ansage_erinnerung" : "ansage_erinnerung_frist",
+            mailLog(b, mail.subject, kind === "bald" ? `Begrüßungsansage fehlt noch, Frist ${dateDE(deadlineISO)}.` : `Begrüßungsansage fehlt, Frist ${dateDE(deadlineISO)} überschritten – Event am ${dateDE(b.event_date)}.`)
+          );
+          if (kind === "ueberfaellig" && process.env.ADMIN_EMAIL) await sendEmail({ to: process.env.ADMIN_EMAIL, ...greetingAdminMail(mb, deadlineISO) });
+        }
+      }
+      if (sent || dryRun) mailedToday.add(b.id);
+      result.greetingReminders.push({ booking: b.booking_code, kind, sent });
+    }
+  }
+
+  // ---- Gästebuch-Spiel: an den QR-Aufsteller erinnern ----
+  // Einmalig 2–7 Tage vor dem Event, nur wenn das Spiel aktiv ist und der Kunde die Druckvorlage
+  // noch nicht geöffnet hat. Ist heute schon eine andere Mail rausgegangen, kommt sie am Folgetag.
+  const { data: gameCandidates } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .eq("portal_invite_pending", false)
+    .not("email", "is", null)
+    .gte("event_date", addDays(GAME_REMINDER_MIN_DAYS))
+    .lte("event_date", addDays(GAME_REMINDER_MAX_DAYS))
+    .limit(MAX_PER_RUN);
+  const gameIds = (gameCandidates ?? []).map((b) => b.id);
+  if (gameIds.length) {
+    const [{ data: games }, { data: gameLogs }, { data: gameExtras }] = await Promise.all([
+      supabase.from("guestbook_games").select("*").in("booking_id", gameIds),
+      supabase.from("activity_log").select("booking_id").in("event_type", ["spiel_erinnerung", "spielkarte_geoeffnet"]).in("booking_id", gameIds),
+      supabase.from("booking_extras").select("booking_id, extras(name)").in("booking_id", gameIds),
+    ]);
+    const gameBy = new Map(((games ?? []) as GuestbookGameRow[]).map((g) => [g.booking_id, g]));
+    const done = new Set((gameLogs ?? []).map((r) => r.booking_id));
+    const extraNames = new Map<string, string[]>();
+    for (const r of (gameExtras ?? []) as { booking_id: string; extras: { name: string } | { name: string }[] | null }[]) {
+      const list = extraNames.get(r.booking_id) ?? [];
+      for (const e of Array.isArray(r.extras) ? r.extras : r.extras ? [r.extras] : []) list.push(e.name);
+      extraNames.set(r.booking_id, list);
+    }
+    for (const b of (gameCandidates ?? []) as Booking[]) {
+      if (done.has(b.id) || mailedToday.has(b.id)) continue;
+      const game = gameBy.get(b.id) ?? null;
+      if (!gameAccess(b, extraNames.get(b.id) ?? [], game).active) continue;
+      const occasion = game?.occasion ?? occasionFromBooking(b);
+      const title = game ? gameTitle(gameConfig(game)) : gameTitle({ occasion, names: namesFromBooking(b, occasion) });
+      let sent = false;
+      if (!dryRun) {
+        const mail = gameReminderMail(toMailBooking(b), title);
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "spiel_erinnerung", mailLog(b, mail.subject, `QR-Aufsteller fürs Gästebuch-Spiel noch nicht geöffnet – Event am ${dateDE(b.event_date)}.`));
+      }
+      if (sent || dryRun) mailedToday.add(b.id);
+      result.gameReminders.push({ booking: b.booking_code, sent });
+    }
+  }
+
+  // ---- Nachher: Galerie + Bewertung ----
+  const { data: reviewSetting } = await supabase.from("app_settings").select("value").eq("key", "google_review_url").maybeSingle();
+  const reviewUrl = (reviewSetting?.value as string | undefined) || null;
+  const { data: past } = await supabase
+    .from("bookings")
+    .select("*")
+    .eq("lifecycle", "bestaetigt")
+    .not("email", "is", null)
+    .is("followup_sent_at", null)
+    .lte("event_date", addDays(-GALLERY_UNLOCK_DAYS))
+    .gte("event_date", addDays(-FOLLOWUP_MAX_AGE_DAYS))
+    .limit(MAX_PER_RUN);
+
+  for (const b of (past ?? []) as Booking[]) {
+    if (daysUntil(b.event_date) > -GALLERY_UNLOCK_DAYS || mailedToday.has(b.id)) continue;
+    // Was liegt bereit? Fotos (Galerie-Link) und/oder Audios – nur das ankündigen, was gebucht und da ist
+    const media = await mediaStatus(b);
+    const missing = ((media.photoBooked || media.videoBooked) && !media.galleryReady) || (media.audioBooked && media.audios === 0);
+    // Noch nicht alles hochgeladen: bis 14 Tage nach dem Event warten, danach Danke + Bewertung mit dem, was da ist
+    if (!media.informedAt && missing && daysUntil(b.event_date) > -14) continue;
+    let sent = false;
+    if (!dryRun) {
+      const mail = followupMail(toMailBooking(b), reviewUrl, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
+      sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+      if (sent) {
+        await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
+        await logActivity(b.id, "nachher_mail", mailLog(b, mail.subject, `Event war am ${dateDE(b.event_date)}: ${media.informedAt ? "Danke" : [media.galleryReady && "Online-Galerie", media.audios && "Audio-Nachrichten"].filter(Boolean).join(" + ") || "Danke"}${reviewUrl ? " und Bitte um eine Google-Bewertung" : ""}.`));
+      }
+    }
+    if (sent || dryRun) mailedToday.add(b.id);
+    result.followups.push({ booking: b.booking_code, sent });
   }
 
   // ---- Firmenkunden: "Nächstes Jahr wieder?" ca. 3 Monate vor dem Jahrestag ----
@@ -516,7 +527,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
       .in("booking_id", lastYearIds);
     const already = new Set((offered ?? []).map((o) => o.booking_id));
     for (const b of (lastYear ?? []) as Booking[]) {
-      if (already.has(b.id)) continue;
+      if (already.has(b.id) || mailedToday.has(b.id)) continue;
       // gleicher Wochentag im Folgejahr
       const d = new Date(b.event_date + "T00:00:00Z");
       d.setUTCDate(d.getUTCDate() + 364);

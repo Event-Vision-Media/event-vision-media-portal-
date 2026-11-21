@@ -674,6 +674,52 @@ export function paymentCompleteMail(b: MailBooking, total: number | null) {
   };
 }
 
+/** Bestätigung an den Kunden: Anzahlung ist eingegangen – plus was noch offen ist (je nach Zahlungsweise). */
+export function depositReceivedMail(
+  b: MailBooking,
+  o: { deposit: number; rest: number; method: "ueberweisung" | "bar" | null; restDueDate: string; afterEventDays: number | null; pickupOnly: boolean }
+) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const date = esc(formatDateGerman(b.event_date));
+  const rest = `<strong>${esc(euro2(o.rest))}</strong>`;
+  const intro = sie
+    ? `vielen Dank – Ihre <strong>Anzahlung über ${esc(euro2(o.deposit))}</strong> ist bei uns eingegangen. Damit ist Ihr Termin am <strong>${date}</strong> fest für Sie reserviert.`
+    : `vielen Dank – deine <strong>Anzahlung über ${esc(euro2(o.deposit))}</strong> ist bei uns eingegangen. Damit ist dein Termin am <strong>${date}</strong> fest für dich reserviert.`;
+  const open =
+    o.afterEventDays != null
+      ? sie
+        ? `Den Restbetrag von ${rest} stellen wir Ihnen wie vereinbart nach der Veranstaltung in Rechnung (zahlbar innerhalb von ${o.afterEventDays} Tagen).`
+        : `Den Restbetrag von ${rest} stellen wir dir wie vereinbart nach der Veranstaltung in Rechnung (zahlbar innerhalb von ${o.afterEventDays} Tagen).`
+      : o.method === "bar"
+        ? sie
+          ? `Den Restbetrag von ${rest} zahlen Sie wie vereinbart bar bei der ${o.pickupOnly ? "Abholung" : "Lieferung"}.`
+          : `Den Restbetrag von ${rest} zahlst du wie vereinbart bar bei der ${o.pickupOnly ? "Abholung" : "Lieferung"}.`
+        : o.method === "ueberweisung"
+          ? o.restDueDate < new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Berlin" })
+            ? sie
+              ? `Den Restbetrag von ${rest} überweisen Sie bitte zeitnah – die Frist (${esc(formatDateGerman(o.restDueDate))}) ist bereits erreicht.`
+              : `Den Restbetrag von ${rest} überweist du bitte zeitnah – die Frist (${esc(formatDateGerman(o.restDueDate))}) ist bereits erreicht.`
+            : sie
+              ? `Den Restbetrag von ${rest} überweisen Sie bitte bis zum <strong>${esc(formatDateGerman(o.restDueDate))}</strong> – wir erinnern Sie rechtzeitig daran.`
+              : `Den Restbetrag von ${rest} überweist du bitte bis zum <strong>${esc(formatDateGerman(o.restDueDate))}</strong> – wir erinnern dich rechtzeitig daran.`
+          : sie
+            ? `Noch offen ist der Restbetrag von ${rest}. Teilen Sie uns gern kurz mit, ob Sie ihn überweisen oder bar bei der Übergabe zahlen möchten.`
+            : `Noch offen ist der Restbetrag von ${rest}. Sag uns gern kurz, ob du ihn überweisen oder bar bei der Übergabe zahlen möchtest.`;
+  const portal = url
+    ? `<p style="margin:18px 0"><a href="${esc(url)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Zum Kundenportal</a></p>`
+    : "";
+  return {
+    subject: sie ? `Anzahlung erhalten · ${b.booking_code}` : `Anzahlung erhalten ✓ · ${b.booking_code}`,
+    html: layout(
+      "Anzahlung erhalten ✓",
+      `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>
+<div style="margin:18px 0;padding:14px 16px;border-radius:12px;background:#f7f3ec;line-height:1.6">${open}</div>${portal}`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${stripTags(open)}\n\n${url ? `Kundenportal: ${url}\n\n` : ""}${BRAND}`,
+  };
+}
+
 /** Anzahlung 7 Tage nach der Auftragsbestätigung noch nicht eingegangen. */
 export function depositReminderMail(b: MailBooking, amount: number, bank: MailBank | null) {
   const sie = isSie(b);
@@ -838,23 +884,32 @@ ${url ? `<p><a href="${esc(url)}/admin/anfragen" style="display:inline-block;pad
  * Vorschlag: gleicher Wochentag im Folgejahr (Datum + 364 Tage).
  */
 export function rebookingMail(b: MailBooking, suggestedDate: string, bookingLink: string) {
+  const sie = isSie(b);
   const last = formatDateGerman(b.event_date);
   const next = new Date(suggestedDate + "T12:00:00Z").toLocaleDateString("de-DE", {
     weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: "Europe/Berlin",
   });
-  const what = b.occasion ? `Ihrer Veranstaltung „${b.occasion}“` : "Ihrer Veranstaltung";
+  const your = sie ? "Ihrer" : "deiner";
+  const what = b.occasion ? `${your} Veranstaltung „${b.occasion}“` : `${your} Veranstaltung`;
   const packages = (b.inquiry_items?.packages ?? []).map((p) => p.name).join(", ");
-  const intro = `am <strong>${esc(last)}</strong> durften wir bei ${esc(what)} dabei sein – vielen Dank noch einmal für Ihr Vertrauen! Planen Sie im nächsten Jahr wieder etwas Ähnliches? Beliebte Termine sind erfahrungsgemäß früh vergeben.`;
-  const offer = `Gern halten wir Ihnen einen Termin frei, zum Beispiel <strong>${esc(next)}</strong>${packages ? ` – wieder mit ${esc(packages)}` : ""}. Ein Klick genügt, die Anfrage ist bereits vorausgefüllt:`;
+  const intro = sie
+    ? `am <strong>${esc(last)}</strong> durften wir bei ${esc(what)} dabei sein – vielen Dank noch einmal für Ihr Vertrauen! Planen Sie im nächsten Jahr wieder etwas Ähnliches? Beliebte Termine sind erfahrungsgemäß früh vergeben.`
+    : `am <strong>${esc(last)}</strong> durften wir bei ${esc(what)} dabei sein – vielen Dank noch einmal für dein Vertrauen! Planst du im nächsten Jahr wieder etwas Ähnliches? Beliebte Termine sind erfahrungsgemäß früh vergeben.`;
+  const offer = sie
+    ? `Gern halten wir Ihnen einen Termin frei, zum Beispiel <strong>${esc(next)}</strong>${packages ? ` – wieder mit ${esc(packages)}` : ""}. Ein Klick genügt, die Anfrage ist bereits vorausgefüllt:`
+    : `Gern halten wir dir einen Termin frei, zum Beispiel <strong>${esc(next)}</strong>${packages ? ` – wieder mit ${esc(packages)}` : ""}. Ein Klick genügt, die Anfrage ist bereits vorausgefüllt:`;
+  const other = sie
+    ? "Anderer Termin oder andere Idee? Antworten Sie einfach auf diese E-Mail – wir melden uns umgehend."
+    : "Anderer Termin oder andere Idee? Antworte einfach auf diese E-Mail – wir melden uns umgehend.";
   return {
     subject: `Nächstes Jahr wieder dabei? – ${BRAND}`,
     html: layout(
       "Nächstes Jahr wieder dabei?",
       `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p><p style="line-height:1.6">${offer}</p>
 <p style="margin:22px 0;text-align:center"><a href="${esc(bookingLink)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">Termin ${esc(formatDateGerman(suggestedDate))} anfragen</a></p>
-<p style="color:#6f7882;font-size:13px;line-height:1.6">Anderer Termin oder andere Idee? Antworten Sie einfach auf diese E-Mail – wir melden uns umgehend.</p>`
+<p style="color:#6f7882;font-size:13px;line-height:1.6">${esc(other)}</p>`
     ),
-    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${stripTags(offer)}\n${bookingLink}\n\n${BRAND}`,
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${stripTags(offer)}\n${bookingLink}\n\n${other}\n\n${BRAND}`,
   };
 }
 

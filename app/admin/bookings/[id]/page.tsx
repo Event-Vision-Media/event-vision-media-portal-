@@ -42,6 +42,7 @@ import { EXTRAS, includedExtraIds, staffFor } from "@/lib/catalog";
 import { CustomerReachCard } from "@/components/admin/CustomerReachCard";
 import { PersonalMailCard } from "@/components/admin/PersonalMailCard";
 import { MailHistoryCard } from "@/components/admin/MailHistoryCard";
+import { MailPlanCard } from "@/components/admin/MailPlanCard";
 import { AddressingCard } from "@/components/admin/AddressingCard";
 import { PaymentTermsCard } from "@/components/admin/PaymentTermsCard";
 import { ReleaseBookingCard } from "@/components/admin/ReleaseBookingCard";
@@ -425,6 +426,7 @@ export default async function AdminBookingDetailPage(props: {
           salutation={booking.salutation ?? null}
         />
 
+        <MailPlanCard booking={booking} />
         {booking.email && <MailHistoryCard bookingId={booking.id} email={booking.email} />}
 
         {booking.lifecycle === "bestaetigt" && !contract && !booking.contract_on_file && !booking.deposit_paid_at && !booking.rest_paid_at && (

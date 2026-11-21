@@ -254,6 +254,7 @@ async function OpenView({ filter, month }: { filter: Filter; month: string | nul
               customer={b.customer_name || b.couple_names}
               depositAmount={p.deposit}
               restAmount={p.deposit === 0 && !p.followUp ? p.total : p.rest}
+              canMail={Boolean(b.email)}
               compact
             />
           </Card>
@@ -288,6 +289,7 @@ async function OpenView({ filter, month }: { filter: Filter; month: string | nul
                   customer={b.customer_name || b.couple_names}
                   depositAmount={p.deposit}
                   restAmount={p.deposit === 0 && !p.followUp ? p.total : p.rest}
+                  canMail={Boolean(b.email)}
                   compact
                 />
               </Card>

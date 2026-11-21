@@ -50,7 +50,7 @@ export function PaymentAdminCard({
           </div>
         </dl>
       )}
-      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} followUp={p.followUp} depositAmount={p.deposit} restAmount={p.followUp ? p.rest : p.deposit === 0 ? p.total : p.rest} />
+      <PaymentControls bookingId={bookingId} depositPaid={p.depositPaid} restPaid={p.restPaid} method={p.method} noDeposit={p.deposit === 0} followUp={p.followUp} depositAmount={p.deposit} restAmount={p.followUp ? p.rest : p.deposit === 0 ? p.total : p.rest} canMail={hasEmail} />
       {p.followUp && p.paidTotal != null && (
         <p className="mt-2 text-xs text-amber-700">
           Bereits bezahlt: {formatCurrencyEUR(p.paidTotal)} – danach zugebucht: {p.addedLines.length ? p.addedLines.map((l) => `${l.name} (${l.price})`).join(", ") : "siehe Positionen"}.{" "}

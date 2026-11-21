@@ -1,7 +1,9 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getAvailabilityBoard } from "@/lib/availability-server";
-import { extraNamesCoveredByPackages } from "@/lib/catalog";
+import { bundledExtraNames, extraNamesCoveredByPackages } from "@/lib/catalog";
+import { GAME_EXTRA_NAME } from "@/lib/guestbook-game";
+import { getGame } from "@/lib/guestbook-game-server";
 import { bookingDevices, extraFitsBooking, recommendableFor, sortExtrasForAudience } from "@/lib/audience";
 import { formatCurrencyEUR } from "@/lib/format";
 import type { AvailabilityInfo } from "@/lib/availability";
@@ -34,7 +36,9 @@ export async function getRecommendations(booking: Booking, limit = 3): Promise<R
   ]);
 
   const booked = new Set((selections ?? []).map((s) => s.extra_id));
-  const covered = new Set(extraNamesCoveredByPackages(booking.inquiry_items));
+  // Schon im Paket enthalten (Gerät oder Bundle wie Gästebuch-Spiel ab Komfort, Firmen-Komplett) → nicht empfehlen
+  const covered = new Set([...extraNamesCoveredByPackages(booking.inquiry_items), ...bundledExtraNames(booking.inquiry_items)]);
+  if ((await getGame(booking.id))?.admin_enabled) covered.add(GAME_EXTRA_NAME);
   const minVariantPrice = new Map<string, number>();
   (variantsData ?? []).forEach((v) => {
     if (v.is_available === false) return;
