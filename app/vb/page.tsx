@@ -45,7 +45,7 @@ const STEPS = [
 const FEATURES = [
   { icon: "sonstiges" as const, title: "KI-Verwandlung", text: "Superheld, Hollywood, Comic, 3D-Animation & mehr – in Sekunden aus dem eigenen Selfie." },
   { icon: "target" as const, title: "Foto-Missionen", text: "Kleine Foto-Aufgaben mit Punkten und Bestenliste – so machen auch die Fotofaulen mit, und ihr habt am Ende viel mehr Erinnerungen." },
-  { icon: "tv" as const, title: "Live-Foto-Wand", text: "Neue Fotos erscheinen sofort auf Beamer oder TV – mit Bestenliste und QR-Code zum Mitmachen." },
+  { icon: "tv" as const, title: "Live-Foto-Wand", text: "Optional für Beamer oder TV: Neue Fotos erscheinen sofort groß – mit Bestenliste und QR-Code zum Mitmachen. Ohne Bildschirm sehen alle die Fotos auf dem Handy." },
   { icon: "babyparty" as const, title: "Gender-Reveal-Tippspiel", text: "Junge oder Mädchen? Gäste tippen, ihr Foto wird rosa oder blau – und ihr löst live auf der Foto-Wand auf." },
   { icon: "image" as const, title: `${VB_TEMPLATES.length} Designs & Fotostreifen`, text: `${VB_TEMPLATES.filter((t) => t.art).length} liebevoll gestaltete Designs mit Ballons, Neon & Co. plus schlichte Designs in euren Farben – dazu Kinder-Motive wie Dino, Prinzessin oder Feuerwehr. Alles auch als 3er-Fotostreifen und Story.` },
   { icon: "wheel" as const, title: "Foto-Glücksrad", text: "Am Rad drehen, lustige Foto-Aufgabe bekommen, abdrücken – spontan und ohne Punkte. Die Lacher sind garantiert." },

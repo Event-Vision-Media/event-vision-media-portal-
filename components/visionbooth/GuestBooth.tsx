@@ -303,8 +303,9 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     }
   }
 
-  async function uploadVariant(v: Variant) {
-    if (!consent) return;
+  /** force: Gast stellt ein bereits gemachtes Foto nachträglich in die Galerie (aktive Zustimmung per Tipp). */
+  async function uploadVariant(v: Variant, force = false) {
+    if (!consent && !force) return;
     setVariant(v.id, { upload: "laeuft" });
     try {
       const { body, multipart } = await photoBody(v.blob);
@@ -696,8 +697,10 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             {event.galleryEnabled && (
               <button type="button" onClick={() => setConsent((c) => !c)} className="vb-glass flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left" aria-pressed={consent}>
                 <span className="flex-1 text-[13px] leading-snug text-white/80">
-                  <span className="block font-semibold text-white">In Galerie &amp; auf der Foto-Wand zeigen</span>
-                  {consent ? `Deine Fotos erscheinen für die Gäste – automatisch gelöscht am ${new Date(event.deleteAfter).toLocaleDateString("de-DE")}.` : "Aus: Fotos bleiben nur auf deinem Handy."}
+                  <span className="block font-semibold text-white">Meine Fotos mit allen teilen</span>
+                  {consent
+                    ? `An: Deine Fotos landen in der Event-Galerie – automatisch gelöscht am ${new Date(event.deleteAfter).toLocaleDateString("de-DE")}.`
+                    : "Einschalten, damit alle deine Fotos in der Event-Galerie sehen. Aus: Fotos bleiben nur auf deinem Handy."}
                 </span>
                 <span className="vb-switch" data-on={consent} />
               </button>
@@ -910,7 +913,18 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               </a>
             )}
             {current.upload === "fehler" && `Galerie-Upload hat nicht geklappt (${current.uploadMsg}) – speichern geht trotzdem.`}
-            {current.upload === "aus" && event.galleryEnabled && "Nur auf deinem Handy – nicht in der Galerie."}
+            {current.upload === "aus" && event.galleryEnabled && (
+              <button
+                type="button"
+                onClick={() => {
+                  setConsent(true);
+                  uploadVariant(current, true);
+                }}
+                className="vb-glass inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white"
+              >
+                <span style={{ color: gold }}>＋</span> Foto in die Event-Galerie stellen
+              </button>
+            )}
           </p>
 
           {event.aiStyles.length > 0 && !rawRef.current && (
