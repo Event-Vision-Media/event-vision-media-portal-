@@ -1053,9 +1053,14 @@ const vbButton = (url: string, label: string) =>
   `<div style="margin:22px 0;text-align:center"><a href="${esc(url)}" style="display:inline-block;padding:13px 24px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${esc(label)}</a></div>`;
 
 /** Eine Woche vorher: gestalten, QR-Aufsteller drucken, Link teilen. */
-export function vbBeforeMail(o: { name: string | null; title: string; date: string; days: number; manageUrl: string; posterUrl: string }) {
+export function vbBeforeMail(o: { name: string | null; title: string; date: string; days: number; manageUrl: string; posterUrl: string; guestUrl?: string }) {
   const hello = o.name ? `Hallo ${o.name.split(" ")[0]}` : "Hallo";
   const when = o.days === 1 ? "morgen" : `in ${o.days} Tagen`;
+  // WhatsApp-Nachricht mit dem Gäste-Link, die der Gastgeber in seine Gruppe weiterleiten kann
+  const waText = o.guestUrl ? `📸 Unsere Fotobox für „${o.title}“: einfach öffnen, Fotos machen, mit KI verwandeln und mit allen teilen – ganz ohne App:\n${o.guestUrl}` : "";
+  const waUrl = o.guestUrl ? `https://wa.me/?text=${encodeURIComponent(waText)}` : "";
+  const tip = (icon: string, title: string, text: string) =>
+    `<tr><td style="vertical-align:top;padding:8px 10px 8px 0;font-size:20px">${icon}</td><td style="padding:8px 0;line-height:1.55"><strong>${title}</strong><br><span style="color:#5d6670;font-size:14px">${text}</span></td></tr>`;
   return {
     subject: `${o.days === 1 ? "Morgen" : `In ${o.days} Tagen`} geht's los – eure VisionBooth für „${o.title}“`,
     html: layout(
@@ -1067,12 +1072,21 @@ export function vbBeforeMail(o: { name: string | null; title: string; date: stri
 <li>🖨️ QR-Aufsteller ausgedruckt (am besten auf festes Papier)?</li>
 <li>🎯 Missionen oder Spiele gewählt?</li>
 </ul>
-<p style="margin:14px 0;padding:12px 14px;border-radius:12px;background:#f7f3ec;line-height:1.6;font-size:14px">📱 <strong>Ein Bildschirm ist nicht nötig:</strong> Alle Fotos, die Bestenliste der Missionen und die Spiel-Ergebnisse sehen eure Gäste direkt auf dem eigenen Handy. Die Foto-Wand ist ein optionales Extra-Highlight – wer mag, zeigt sie auf einem Fernseher, Beamer oder Laptop.</p>
 ${vbButton(o.manageUrl, "Meine VisionBooth öffnen")}
 <p style="text-align:center;font-size:13px"><a href="${esc(o.posterUrl)}" style="color:#a87731">QR-Aufsteller direkt drucken</a></p>
+<p style="margin:24px 0 6px;font-weight:700;font-size:16px">So machen möglichst viele Gäste mit</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;border-collapse:collapse">
+${tip("💬", "Link vorab per WhatsApp teilen", "Schickt den Fotobox-Link in eure Gäste-Gruppe – dann haben ihn alle sofort im Chat und müssen nichts scannen.")}
+${tip("🪧", "Ein Aufsteller pro Tisch", "Zusätzlich einen an Bar oder Eingang. Je öfter der QR-Code zu sehen ist, desto mehr Fotos.")}
+${tip("🎤", "Kurz ankündigen", "Ein Satz reicht: „Scannt den QR-Code auf eurem Tisch – macht Fotos und verwandelt sie mit KI!“")}
+${tip("📲", "Als App speichern", "Nach dem ersten Foto können Gäste die Fotobox als App aufs Handy legen – dann öffnet sie sich mit einem Tipp.")}
+${tip("🖼️", "Eigene Handyfotos teilen", "In der Event-Galerie können alle zusätzlich normale Fotos aus ihrer Handy-Galerie hochladen.")}
+</table>
+${waUrl ? `<p style="margin:16px 0;text-align:center"><a href="${esc(waUrl)}" style="display:inline-block;padding:11px 20px;border-radius:10px;background:#25d366;color:#ffffff;text-decoration:none;font-weight:600">Link per WhatsApp teilen</a></p>` : ""}
+<p style="margin:14px 0;padding:12px 14px;border-radius:12px;background:#f7f3ec;line-height:1.6;font-size:14px">📱 <strong>Ein Bildschirm ist nicht nötig:</strong> Alle Fotos, die Bestenliste der Missionen und die Spiel-Ergebnisse sehen eure Gäste direkt auf dem eigenen Handy. Die Foto-Wand ist ein optionales Extra-Highlight – wer mag, zeigt sie auf einem Fernseher, Beamer oder Laptop.</p>
 <p style="color:#6f7882;font-size:13px;line-height:1.6">Fragen? Ruf uns an oder schreib per WhatsApp: 0176 22748363.</p>`
     ),
-    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele.\n\nEin Bildschirm ist nicht nötig: Fotos, Bestenliste und Spiel-Ergebnisse sehen eure Gäste direkt auf dem Handy. Die Foto-Wand (Fernseher, Beamer oder Laptop) ist optional.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
+    text: `${hello},\n\n${when} ist euer Event „${o.title}“. Kurz checken: Design, QR-Aufsteller gedruckt, Missionen/Spiele.\n\nSo machen möglichst viele Gäste mit:\n- Link vorab per WhatsApp in eure Gäste-Gruppe schicken${o.guestUrl ? `: ${o.guestUrl}` : ""}\n- Ein Aufsteller pro Tisch, zusätzlich an Bar oder Eingang\n- Kurz ankündigen: „Scannt den QR-Code auf eurem Tisch!“\n- Nach dem ersten Foto als App speichern\n- In der Galerie eigene Handyfotos hochladen\n\nEin Bildschirm ist nicht nötig: Fotos, Bestenliste und Spiel-Ergebnisse sehen eure Gäste direkt auf dem Handy. Die Foto-Wand (Fernseher, Beamer oder Laptop) ist optional.\n\nMeine VisionBooth: ${o.manageUrl}\nQR-Aufsteller: ${o.posterUrl}\n\nFragen: 0176 22748363\n\n${BRAND}`,
   };
 }
 

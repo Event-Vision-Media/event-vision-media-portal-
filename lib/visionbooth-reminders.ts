@@ -50,7 +50,7 @@ export async function runVbReminders(dryRun = false): Promise<{ event: string; k
 
     const mail =
       kind === "vorher"
-        ? vbBeforeMail({ name: e.contact_name, title, date: e.event_date!, days: untilEvent, manageUrl: vbManageUrl(e.manage_token), posterUrl: `${vbManageUrl(e.manage_token)}/aufsteller` })
+        ? vbBeforeMail({ name: e.contact_name, title, date: e.event_date!, days: untilEvent, manageUrl: vbManageUrl(e.manage_token), posterUrl: `${vbManageUrl(e.manage_token)}/aufsteller`, guestUrl: guest })
         : kind === "danach"
           ? vbAfterMail({ name: e.contact_name, title, photos, galleryUrl: `${guest}/galerie`, manageUrl: vbManageUrl(e.manage_token), deleteDate, highlights: await vbHighlights(e) })
           : vbDeletionMail({ name: e.contact_name, title, photos, days: untilDelete, deleteDate, galleryUrl: `${guest}/galerie` });

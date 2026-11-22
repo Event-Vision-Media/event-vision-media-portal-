@@ -722,6 +722,11 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               <IconCamera className="h-6 w-6" />
               Foto machen
             </button>
+            {event.galleryEnabled && !event.probe && (
+              <a href={`/vb/${event.slug}/galerie`} className="vb-glass flex w-full items-center justify-center gap-2 rounded-full py-3 text-[14px] font-semibold text-white/90">
+                <IconGallery className="h-5 w-5" /> Galerie ansehen &amp; eigene Fotos teilen
+              </a>
+            )}
             {event.reveal && !reveal?.result && <RevealPicker state={reveal} options={event.reveal.options} question={event.reveal.question} onPick={pickTip} />}
             {event.reveal && reveal?.result && (
               <button onClick={() => setRevealShown(false)} className="w-full rounded-2xl px-4 py-3.5 text-left text-[15px] font-semibold" style={{ background: `color-mix(in srgb, ${gold} 30%, transparent)`, border: `1px solid ${gold}` }}>
