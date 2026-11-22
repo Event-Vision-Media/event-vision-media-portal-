@@ -39,6 +39,8 @@ import { BoardView, MissionList, MissionWinCard, NameForm, Sheet, type BoardData
 
 interface GuestEvent {
   slug: string;
+  /** Ende der Fotobox (ISO) – für „Zurück zu deinem Event“ */
+  closesAt?: string | null;
   title: string;
   frameText: string;
   template: string;
@@ -95,9 +97,26 @@ function guestKey(): string {
 }
 
 /** Gäste-Ablauf: Start → Kamera mit Rahmen und Countdown → Ergebnis mit Download/Teilen und KI-Stilen. */
+/** Anonyme Zählung (nichts auf dem Gerät, keine Kennung) – zeigt, wo Gäste aussteigen. */
+function stat(slug: string, s: "offen" | "foto" | "app" | "zurueck") {
+  try {
+    const body = JSON.stringify({ s });
+    if (!navigator.sendBeacon?.(`/api/vb/${slug}/stat`, body)) fetch(`/api/vb/${slug}/stat`, { method: "POST", body, keepalive: true }).catch(() => {});
+  } catch {
+    /* egal */
+  }
+}
+
+type InstallPrompt = Event & { prompt: () => Promise<void> };
+
 export function GuestBooth({ event }: { event: GuestEvent }) {
   const [step, setStep] = useState<Step>("start");
   const [consent, setConsent] = useState(false);
+  /** Einmal gefragt und auf dem Handy gemerkt: „ja“ = Fotos landen automatisch in der Galerie */
+  const [shareChoice, setShareChoice] = useState<"ja" | "nein" | null>(null);
+  const [installPrompt, setInstallPrompt] = useState<InstallPrompt | null>(null);
+  const [standalone, setStandalone] = useState(true);
+  const [iosHelp, setIosHelp] = useState(false);
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [camError, setCamError] = useState<string | null>(null);
   const [count, setCount] = useState<number | null>(null);
@@ -187,6 +206,48 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     }),
     [event, accent]
   );
+
+  /** Galerie teilen ja/nein – gilt für das ganze Event und wird auf dem Handy gemerkt. */
+  function decideShare(v: boolean) {
+    setConsent(v);
+    setShareChoice(v ? "ja" : "nein");
+    try {
+      localStorage.setItem(`vb-share-${event.slug}`, v ? "ja" : "nein");
+    } catch {
+      /* privater Modus */
+    }
+  }
+
+  // Beim Öffnen: gemerkte Galerie-Entscheidung, „letztes Event“ für visionbooth.de, App-Installation, Zählung
+  useEffect(() => {
+    try {
+      const c = localStorage.getItem(`vb-share-${event.slug}`);
+      if (c === "ja" || c === "nein") {
+        setShareChoice(c);
+        setConsent(c === "ja");
+      }
+      if (event.closesAt && !event.probe) localStorage.setItem("vb-last", JSON.stringify({ slug: event.slug, title: event.frameText, until: event.closesAt }));
+    } catch {
+      /* privater Modus */
+    }
+    const sa = window.matchMedia("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
+    setStandalone(sa);
+    const onPrompt = (e: Event) => {
+      e.preventDefault();
+      setInstallPrompt(e as InstallPrompt);
+    };
+    window.addEventListener("beforeinstallprompt", onPrompt);
+    if (!event.probe) stat(event.slug, new URLSearchParams(location.search).get("von") === "start" ? "zurueck" : "offen");
+    return () => window.removeEventListener("beforeinstallprompt", onPrompt);
+  }, [event.slug, event.frameText, event.closesAt, event.probe]);
+
+  async function installApp() {
+    if (installPrompt) {
+      await installPrompt.prompt();
+      setInstallPrompt(null);
+      stat(event.slug, "app");
+    } else setIosHelp(true);
+  }
 
   // Erledigte Missionen und Spitzname vom Server holen (z. B. nach Neuladen der Seite)
   useEffect(() => {
@@ -346,6 +407,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
   }
 
   async function finish(framed: Blob, raw: Blob | null) {
+    if (!event.probe) stat(event.slug, "foto");
     stopCamera();
     variants.forEach((v) => URL.revokeObjectURL(v.url));
     rawRef.current = raw;
@@ -656,6 +718,10 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
           </div>
 
           <div className="vb-in mt-8 space-y-4" style={{ animationDelay: "320ms" }}>
+            <button onClick={() => setStep("kamera")} className="vb-btn flex w-full items-center justify-center gap-2.5 rounded-full py-[18px] text-[17px] font-bold">
+              <IconCamera className="h-6 w-6" />
+              Foto machen
+            </button>
             {event.reveal && !reveal?.result && <RevealPicker state={reveal} options={event.reveal.options} question={event.reveal.question} onPick={pickTip} />}
             {event.reveal && reveal?.result && (
               <button onClick={() => setRevealShown(false)} className="w-full rounded-2xl px-4 py-3.5 text-left text-[15px] font-semibold" style={{ background: `color-mix(in srgb, ${gold} 30%, transparent)`, border: `1px solid ${gold}` }}>
@@ -695,7 +761,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               </button>
             )}
             {event.galleryEnabled && (
-              <button type="button" onClick={() => setConsent((c) => !c)} className="vb-glass flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left" aria-pressed={consent}>
+              <button type="button" onClick={() => decideShare(!consent)} className="vb-glass flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-left" aria-pressed={consent}>
                 <span className="flex-1 text-[13px] leading-snug text-white/80">
                   <span className="block font-semibold text-white">Meine Fotos mit allen teilen</span>
                   {consent
@@ -705,10 +771,6 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
                 <span className="vb-switch" data-on={consent} />
               </button>
             )}
-            <button onClick={() => setStep("kamera")} className="vb-btn flex w-full items-center justify-center gap-2.5 rounded-full py-[18px] text-[17px] font-bold">
-              <IconCamera className="h-6 w-6" />
-              Los geht&apos;s
-            </button>
             <a href={`/vb/${event.slug}/datenschutz`} className="block text-[11px] text-white/45 underline underline-offset-2">
               Datenschutz · was mit deinen Fotos passiert
             </a>
@@ -860,6 +922,28 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             )}
           </div>
 
+          {current.upload === "aus" && event.galleryEnabled && shareChoice === null && (
+            <div className="vb-in vb-glass rounded-2xl p-4 text-center">
+              <p className="text-[15px] font-semibold">Foto mit allen teilen? 💛</p>
+              <p className="mt-1 text-xs text-white/65">Dann sehen die Gastgeber und alle Gäste es in der Event-Galerie. Gilt für deine weiteren Fotos – änderbar jederzeit.</p>
+              <div className="mt-3 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    decideShare(true);
+                    uploadVariant(current, true);
+                  }}
+                  className="vb-btn flex-1 rounded-full py-3 text-[15px] font-bold"
+                >
+                  Ja, in die Galerie
+                </button>
+                <button type="button" onClick={() => decideShare(false)} className="vb-glass rounded-full px-4 py-3 text-[13px] font-semibold text-white/80">
+                  Nur für mich
+                </button>
+              </div>
+            </div>
+          )}
+
           {win && <MissionWinCard win={win} onNext={() => setSheet("missionen")} onBoard={() => setSheet("bestenliste")} />}
           {event.guestbook && (() => {
             const orig = variants.find((v) => v.id === "original");
@@ -881,51 +965,6 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               ))}
             </div>
           )}
-
-          <div className="vb-in flex items-center gap-3" style={{ animationDelay: "150ms" }}>
-            {canShare ? (
-              <button onClick={share} className="vb-btn flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-[16px] font-bold">
-                <IconShare className="h-5 w-5" /> Speichern &amp; teilen
-              </button>
-            ) : (
-              <a href={current.url} download="visionbooth.jpg" className="vb-btn flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-[16px] font-bold">
-                <IconShare className="h-5 w-5" /> Foto speichern
-              </a>
-            )}
-            <button onClick={again} disabled={Boolean(aiBusy)} className="vb-glass flex h-[56px] w-[56px] flex-none items-center justify-center rounded-full disabled:opacity-40" aria-label="Neues Foto">
-              <IconRetake className="h-6 w-6" />
-            </button>
-          </div>
-
-          <button onClick={shareStory} className="vb-glass -mt-1 flex items-center justify-center gap-2 rounded-full py-3 text-[14px] font-semibold text-white/90">
-            <span className="inline-block h-4 w-[9px] rounded-[3px] border-[1.5px] border-current" aria-hidden />
-            Als Story teilen (Instagram &amp; WhatsApp)
-          </button>
-
-          {event.leads && !leadDone && <LeadTeaser lead={event.leads} onOpen={() => setSheet("kontakt")} />}
-
-          <p className="-mt-2 text-center text-xs text-white/55">
-            {current.upload === "laeuft" && "Wird in die Event-Galerie geladen …"}
-            {current.upload === "ok" && (
-              <a href={`/vb/${event.slug}/galerie`} className="inline-flex items-center gap-1.5">
-                <span style={{ color: gold }}><IconCheck className="h-4 w-4" /></span>
-                In der Event-Galerie · <span className="underline underline-offset-2">ansehen</span>
-              </a>
-            )}
-            {current.upload === "fehler" && `Galerie-Upload hat nicht geklappt (${current.uploadMsg}) – speichern geht trotzdem.`}
-            {current.upload === "aus" && event.galleryEnabled && (
-              <button
-                type="button"
-                onClick={() => {
-                  setConsent(true);
-                  uploadVariant(current, true);
-                }}
-                className="vb-glass inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white"
-              >
-                <span style={{ color: gold }}>＋</span> Foto in die Event-Galerie stellen
-              </button>
-            )}
-          </p>
 
           {event.aiStyles.length > 0 && !rawRef.current && (
             <p className="vb-glass rounded-2xl px-4 py-3 text-center text-xs text-white/70">
@@ -970,7 +1009,74 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
               {aiError && <p className="vb-fade mt-3 rounded-xl bg-red-500/15 px-3 py-2 text-xs text-red-200">{aiError}</p>}
             </div>
           )}
+          <div className="vb-in flex items-center gap-3" style={{ animationDelay: "150ms" }}>
+            {canShare ? (
+              <button onClick={share} className="vb-btn flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-[16px] font-bold">
+                <IconShare className="h-5 w-5" /> Speichern &amp; teilen
+              </button>
+            ) : (
+              <a href={current.url} download="visionbooth.jpg" className="vb-btn flex flex-1 items-center justify-center gap-2 rounded-full py-4 text-[16px] font-bold">
+                <IconShare className="h-5 w-5" /> Foto speichern
+              </a>
+            )}
+            <button onClick={again} disabled={Boolean(aiBusy)} className="vb-glass flex h-[56px] w-[56px] flex-none items-center justify-center rounded-full disabled:opacity-40" aria-label="Neues Foto">
+              <IconRetake className="h-6 w-6" />
+            </button>
+          </div>
+
+          {!standalone && !event.probe && (
+            <button onClick={installApp} className="vb-glass -mt-1 flex items-center justify-center gap-2 rounded-full py-3 text-[14px] font-semibold text-white/90">
+              📲 Als App speichern – ohne neu scannen
+            </button>
+          )}
+          <button onClick={shareStory} className="vb-glass -mt-1 flex items-center justify-center gap-2 rounded-full py-3 text-[14px] font-semibold text-white/90">
+            <span className="inline-block h-4 w-[9px] rounded-[3px] border-[1.5px] border-current" aria-hidden />
+            Als Story teilen (Instagram &amp; WhatsApp)
+          </button>
+
+          {event.leads && !leadDone && <LeadTeaser lead={event.leads} onOpen={() => setSheet("kontakt")} />}
+
+          <p className="-mt-2 text-center text-xs text-white/55">
+            {current.upload === "laeuft" && "Wird in die Event-Galerie geladen …"}
+            {current.upload === "ok" && (
+              <a href={`/vb/${event.slug}/galerie`} className="inline-flex items-center gap-1.5">
+                <span style={{ color: gold }}><IconCheck className="h-4 w-4" /></span>
+                In der Event-Galerie · <span className="underline underline-offset-2">ansehen</span>
+              </a>
+            )}
+            {current.upload === "fehler" && `Galerie-Upload hat nicht geklappt (${current.uploadMsg}) – speichern geht trotzdem.`}
+            {current.upload === "aus" && event.galleryEnabled && shareChoice !== null && (
+              <button
+                type="button"
+                onClick={() => {
+                  decideShare(true);
+                  uploadVariant(current, true);
+                }}
+                className="vb-glass inline-flex items-center justify-center gap-2 rounded-full px-4 py-2.5 text-[13px] font-semibold text-white"
+              >
+                <span style={{ color: gold }}>＋</span> Foto in die Event-Galerie stellen
+              </button>
+            )}
+          </p>
+
         </section>
+      )}
+
+      {iosHelp && (
+        <Sheet title="Als App speichern" onClose={() => setIosHelp(false)}>
+          <ol className="space-y-3 text-[15px] leading-relaxed text-white/85">
+            <li>
+              1. Unten in Safari auf <strong>Teilen</strong> tippen <span className="ml-1 inline-block rounded border border-white/40 px-1.5 text-xs">⬆︎</span>
+            </li>
+            <li>
+              2. <strong>„Zum Home-Bildschirm“</strong> wählen
+            </li>
+            <li>
+              3. <strong>„Hinzufügen“</strong> – fertig! Ab jetzt öffnest du die Fotobox mit einem Tipp.
+            </li>
+          </ol>
+          <p className="mt-4 text-xs text-white/55">In Chrome: Menü ⋮ → „Zum Startbildschirm hinzufügen“.</p>
+        </Sheet>
       )}
 
       {reveal?.result && !revealShown && <RevealMoment state={reveal} onClose={() => setRevealShown(true)} />}
@@ -996,7 +1102,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
             active={mission?.id ?? null}
             consent={consent}
             nudge={nudge}
-            onConsent={() => setConsent(true)}
+            onConsent={() => decideShare(true)}
             onPick={pickMission}
             onBoard={() => setSheet("bestenliste")}
           />

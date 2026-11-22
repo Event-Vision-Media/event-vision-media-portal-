@@ -63,6 +63,8 @@ export interface VbEvent {
 /** Was die Gäste-Seite vom Event kennen darf (keine Kontaktdaten, keine Buchung). */
 export interface VbGuestEvent {
   slug: string;
+  /** Ende der Fotobox (ISO) – für „Zurück zu deinem Event“ auf visionbooth.de */
+  closesAt: string | null;
   title: string;
   frameText: string;
   template: string;
@@ -117,6 +119,7 @@ export async function toGuestEvent(e: VbEvent): Promise<VbGuestEvent> {
   }
   return {
     slug: e.slug,
+    closesAt: e.closes_at,
     title: e.title,
     frameText: e.frame_text || e.title,
     template: getTemplate(e.template ?? e.frame_style).id,

@@ -60,8 +60,10 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
 
         <Section title="Galerie und Foto-Wand">
           <p>
-            Wenn du den Schalter „In Galerie &amp; auf der Foto-Wand zeigen“ einschaltest, willigst du ein, dass wir dein Foto speichern und es den Gästen und dem
-            Veranstalter dieses Events zeigen (Art. 6 Abs. 1 lit. a DSGVO). Die Galerie ist nur über den Event-Link erreichbar und nicht in Suchmaschinen zu finden.
+            Wenn du „Ja, in die Galerie“ antippst oder den Schalter „Meine Fotos mit allen teilen“ einschaltest, willigst du ein, dass wir deine Fotos speichern und
+            sie den Gästen und dem Veranstalter dieses Events zeigen (Art. 6 Abs. 1 lit. a DSGVO). Deine Entscheidung merkt sich dein Handy für dieses Event, damit
+            du nicht bei jedem Foto neu gefragt wirst – ändern kannst du sie jederzeit über den Schalter. Die Galerie ist nur über den Event-Link erreichbar und nicht
+            in Suchmaschinen zu finden.
           </p>
           <p className="mt-2">
             Du kannst deine Einwilligung jederzeit widerrufen: Eigene Fotos löschst du selbst in der Galerie unter „Meine“ (mit dem Handy, mit dem du sie geteilt hast). Ansonsten schreib uns kurz an {LANDLORD.email} (am besten mit Uhrzeit des Fotos) oder wende dich an den Gastgeber – wir löschen dein Foto dann umgehend.
@@ -122,6 +124,11 @@ export default async function VisionBoothPrivacyPage(props: { params: Promise<{ 
           <p className="mt-2">
             Damit Limits, Missionen und „Meine Fotos“ funktionieren, legen wir im Speicher deines Browsers eine zufällige Kennung ab. Sie verrät nichts über dich,
             wird nur für diese Fotobox genutzt und ist für diese von dir gewünschten Funktionen technisch nötig (§ 25 Abs. 2 TDDDG).
+          </p>
+          <p className="mt-2">
+            Ebenfalls dort gemerkt werden deine Galerie-Entscheidung und welches Event du zuletzt geöffnet hast – damit du über visionbooth.de oder „Als App
+            speichern“ direkt zurückkommst, ohne neu zu scannen. Außerdem zählen wir anonym, wie oft die Fotobox geöffnet und wie viele Fotos gemacht werden
+            (nur Anzahl und Uhrzeit – ohne Kennung, ohne IP-Adresse, nichts auf deinem Handy), damit wir die Fotobox verbessern können.
           </p>
         </Section>
 

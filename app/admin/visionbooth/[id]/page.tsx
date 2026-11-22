@@ -52,6 +52,13 @@ export default async function AdminVisionBoothEventPage(props: { params: Promise
   const qrSvg = await QRCode.toString(guestUrl, { type: "svg", margin: 1 });
   const closed = vbClosedReason(event);
   const uniqueGuests = new Set((guests ?? []).map((g) => g.guest_key)).size;
+  // Anonyme Nutzung der Gäste-Seite (vb_event_stats): wo steigen Gäste aus?
+  const [{ data: statRows }, { count: sharedShots }] = await Promise.all([
+    supabase.from("vb_event_stats").select("step").eq("event_id", event.id).limit(50000),
+    supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("kind", "foto"),
+  ]);
+  const statCount = (st: string) => (statRows ?? []).filter((r) => r.step === st).length;
+  const usage = { opened: statCount("offen") + statCount("zurueck"), shots: statCount("foto"), apps: statCount("app"), back: statCount("zurueck") };
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -171,6 +178,13 @@ export default async function AdminVisionBoothEventPage(props: { params: Promise
           <div className="space-y-6">
             <Card>
               <h2 className="font-serif text-lg font-semibold text-anthracite-800">Zahlen</h2>
+              <dl className="mt-3 space-y-2 border-b border-anthracite-100 pb-3 text-sm">
+                <div className="flex justify-between"><dt className="text-anthracite-500">Seite geöffnet</dt><dd className="font-semibold text-anthracite-800">{usage.opened}</dd></div>
+                <div className="flex justify-between"><dt className="text-anthracite-500">Fotos gemacht</dt><dd className="font-semibold text-anthracite-800">{usage.shots}</dd></div>
+                <div className="flex justify-between"><dt className="text-anthracite-500">davon in die Galerie geteilt</dt><dd className="font-semibold text-anthracite-800">{sharedShots ?? 0}{usage.shots ? ` (${Math.min(100, Math.round(((sharedShots ?? 0) / usage.shots) * 100))} %)` : ""}</dd></div>
+                <div className="flex justify-between"><dt className="text-anthracite-500">Als App gespeichert</dt><dd className="font-semibold text-anthracite-800">{usage.apps}</dd></div>
+                <p className="pt-1 text-[11px] leading-snug text-anthracite-400">Anonym gezählt (ohne Namen oder Kennung). „Geöffnet“ zählt jedes Öffnen, auch wiederholt. Erfasst ab 22.11.2026.</p>
+              </dl>
               <dl className="mt-3 space-y-2 text-sm">
                 <div className="flex justify-between"><dt className="text-anthracite-500">Fotos in der Galerie</dt><dd className="font-semibold text-anthracite-800">{photoTotal ?? 0}</dd></div>
                 <div className="flex justify-between"><dt className="text-anthracite-500">Gäste (Geräte)</dt><dd className="font-semibold text-anthracite-800">{uniqueGuests}</dd></div>

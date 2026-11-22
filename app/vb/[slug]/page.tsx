@@ -5,10 +5,17 @@ import { GuestBooth } from "@/components/visionbooth/GuestBooth";
 
 export const dynamic = "force-dynamic";
 
-export const metadata: Metadata = {
-  title: "VisionBooth – Fotobox im Browser",
-  robots: { index: false, follow: false },
-};
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await props.params;
+  return {
+    title: "VisionBooth – Fotobox im Browser",
+    robots: { index: false, follow: false },
+    // „Als App speichern“: eigenes Manifest je Event, iPhone-Symbol und Vollbild
+    manifest: `/api/vb/${slug.toLowerCase()}/manifest`,
+    appleWebApp: { capable: true, title: "Fotobox", statusBarStyle: "black-translucent" },
+    icons: { apple: "/visionbooth/apple-touch-icon.png" },
+  };
+}
 
 export const viewport: Viewport = {
   width: "device-width",
