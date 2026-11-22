@@ -7,6 +7,7 @@ import type { Booking } from "@/lib/types";
 import { getAdSpend, isPaidGoogle } from "@/lib/ads";
 import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
 import { FUNNEL_EXTRAS, FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
+import { VB_FUNNEL_LABELS, VB_FUNNEL_MAIN, VB_SOURCES, VB_SOURCE_LABELS } from "@/lib/vb-funnel";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 import { DIRECT_CHANNELS, directChannelLabel, isDirectBooking } from "@/lib/direct-channels";
 
@@ -189,6 +190,21 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
     if (f) f[r.channel === "ads" ? "ads" : "sonst"]++;
   }
   const mainSteps = FUNNEL_STEPS.filter((k) => !(FUNNEL_EXTRAS as readonly string[]).includes(k));
+
+  // ---- VisionBooth: Besucher von visionbooth.de, Buchungen, Upsell im Kundenportal (gleicher Zeitraum) ----
+  const sb = createAdminClient();
+  let vbFunnelQuery = sb.from("funnel_events").select("step, campaign").like("step", "vb_%").gte("created_at", funnelSince);
+  let vbOrderQuery = sb.from("vb_orders").select("paid_cents, plan").not("paid_at", "is", null).gte("paid_at", funnelSince);
+  let vbAddonQuery = sb.from("vb_events").select("id", { count: "exact", head: true }).not("booking_id", "is", null).eq("package", "addon").gte("created_at", funnelSince);
+  if (funnelUntil) {
+    vbFunnelQuery = vbFunnelQuery.lt("created_at", funnelUntil);
+    vbOrderQuery = vbOrderQuery.lt("paid_at", funnelUntil);
+    vbAddonQuery = vbAddonQuery.lt("created_at", funnelUntil);
+  }
+  const [{ data: vbRows }, { data: vbOrders }, { count: vbAddons }] = await Promise.all([vbFunnelQuery.limit(100000), vbOrderQuery.limit(5000), vbAddonQuery]);
+  const vbCount = (st: string) => (vbRows ?? []).filter((r) => r.step === st).length;
+  const vbSources = VB_SOURCES.map((q) => ({ q, n: (vbRows ?? []).filter((r) => r.step === "vb_besuch" && (q === "ads" ? String(r.campaign ?? "").startsWith("ads") : r.campaign === q)).length }));
+  const vbPaid = (vbOrders ?? []).filter((o) => (o.paid_cents ?? 0) > 0);
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -380,6 +396,64 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
               </tbody>
             </table>
           )}
+        </Card>
+
+        <Card className="mt-6 scroll-mt-6" id="visionbooth">
+          <h2 className="font-serif text-lg font-semibold text-anthracite-800">VisionBooth: Besucher, Buchungen &amp; Upsell</h2>
+          <p className="mt-1 text-xs text-anthracite-500">
+            Gleicher Zeitraum wie oben ({funnelLabel}). Anonym gezählt auf visionbooth.de und im Kundenportal – ohne Cookies, ohne Kennung. Erfasst ab 22.11.2026.
+          </p>
+          <div className="mt-4 grid gap-6 lg:grid-cols-2">
+            <div>
+              <p className="text-sm font-medium text-anthracite-700">Wie weit kommen Besucher?</p>
+              <table className="mt-2 w-full text-sm">
+                <tbody className="divide-y divide-anthracite-50">
+                  {VB_FUNNEL_MAIN.map((k, i) => {
+                    const n = vbCount(k);
+                    const prev = i ? vbCount(VB_FUNNEL_MAIN[i - 1]) : null;
+                    return (
+                      <tr key={k}>
+                        <td className="py-1.5 text-anthracite-700">{VB_FUNNEL_LABELS[k]}</td>
+                        <td className="py-1.5 text-right tabular-nums font-medium text-anthracite-800">{n}</td>
+                        <td className="w-16 py-1.5 text-right tabular-nums text-xs text-anthracite-400">{prev !== null ? pct1(n, prev) : ""}</td>
+                      </tr>
+                    );
+                  })}
+                  <tr className="border-t-2 border-anthracite-100 font-medium text-anthracite-800">
+                    <td className="py-2">Online gebucht (bezahlt)</td>
+                    <td className="py-2 text-right tabular-nums">{vbPaid.length}</td>
+                    <td className="py-2 text-right text-xs text-anthracite-400">{vbPaid.length ? `${(vbPaid.reduce((s, o) => s + (o.paid_cents ?? 0), 0) / 100).toLocaleString("de-DE")} €` : ""}</td>
+                  </tr>
+                  <tr className="text-anthracite-500">
+                    <td className="py-1.5">{VB_FUNNEL_LABELS.vb_demo}</td>
+                    <td className="py-1.5 text-right tabular-nums">{vbCount("vb_demo")}</td>
+                    <td />
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <p className="text-sm font-medium text-anthracite-700">Woher kommen die Besucher?</p>
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  {vbSources.map(({ q, n }) => (
+                    <li key={q} className="flex justify-between gap-3">
+                      <span className="text-anthracite-600">{VB_SOURCE_LABELS[q]}</span>
+                      <span className="tabular-nums font-medium text-anthracite-800">{n}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-anthracite-700">Upsell im Kundenportal</p>
+                <ul className="mt-2 space-y-1.5 text-sm">
+                  <li className="flex justify-between gap-3"><span className="text-anthracite-600">Karte „Jeder Gast wird zur Fotobox“ gesehen</span><span className="tabular-nums font-medium text-anthracite-800">{vbCount("vb_upsell_gesehen")}</span></li>
+                  <li className="flex justify-between gap-3"><span className="text-anthracite-600">Dazugebucht</span><span className="tabular-nums font-medium text-anthracite-800">{vbAddons ?? 0}</span></li>
+                </ul>
+                <p className="mt-1 text-[11px] text-anthracite-400">„Gesehen“ zählt jedes Öffnen des Kundenbereichs mit Angebot, auch wiederholt.</p>
+              </div>
+            </div>
+          </div>
         </Card>
 
         {all.length === 0 ? (

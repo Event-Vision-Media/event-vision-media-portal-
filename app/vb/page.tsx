@@ -13,6 +13,7 @@ import { PlanTabs } from "@/components/visionbooth/site/PlanTabs";
 import { LANDLORD } from "@/lib/contract";
 import { ANLASS_ORDER, ANLASS_PAGES } from "@/components/visionbooth/site/anlass-pages";
 import { ReturnBanner } from "@/components/visionbooth/site/ReturnBanner";
+import { VbVisit } from "@/components/visionbooth/site/vbTrack";
 
 const SEO_TITLE = "Digitale Fotobox fürs Handy – ohne App, mit KI | VisionBooth";
 const SEO_DESC =
@@ -136,6 +137,7 @@ export default async function VisionBoothHome() {
   return (
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
       <ReturnBanner />
+      <VbVisit />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd()) }} />
       <div className="vb-aurora" aria-hidden />
 

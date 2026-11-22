@@ -31,6 +31,7 @@ import {
 import { IconBack, IconCamera, IconCheck, IconFlip, IconGallery, IconRetake, IconShare, IconSparkles } from "./icons";
 import type { Challenge } from "./challenges";
 import { photoBody } from "./thumb";
+import { vbTrack } from "./site/vbTrack";
 import { LeadFormView, LeadTeaser } from "./LeadForm";
 import { RevealMoment, RevealPicker, useRevealState } from "./RevealGame";
 import type { RevealOption } from "./reveal";
@@ -238,6 +239,7 @@ export function GuestBooth({ event }: { event: GuestEvent }) {
     };
     window.addEventListener("beforeinstallprompt", onPrompt);
     if (!event.probe) stat(event.slug, new URLSearchParams(location.search).get("von") === "start" ? "zurueck" : "offen");
+    if (event.slug === "demo") vbTrack("vb_demo");
     return () => window.removeEventListener("beforeinstallprompt", onPrompt);
   }, [event.slug, event.frameText, event.closesAt, event.probe]);
 

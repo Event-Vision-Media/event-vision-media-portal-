@@ -6,7 +6,7 @@ export { VB_CONSENT_START } from "@/components/visionbooth/consent";
 // Eine Quelle für die Seiten /vb/agb und /vb/widerruf und die Bestätigungs-Mail nach der Buchung.
 // Bei inhaltlichen Änderungen VB_LEGAL_VERSION hochzählen – sie wird mit der Zustimmung gespeichert.
 
-export const VB_LEGAL_VERSION = "2026-11-04";
+export const VB_LEGAL_VERSION = "2026-11-22";
 
 export type LegalBlock = string | { ul: string[] };
 export interface LegalSection {
@@ -197,6 +197,7 @@ export const VB_DATENSCHUTZ: LegalSection[] = [
     blocks: [
       "Diese Erklärung gilt für die VisionBooth-Website, die Online-Buchung und den Kundenbereich. Was mit den Fotos und Angaben der Gäste in einer VisionBooth passiert, steht in den Datenschutzhinweisen für Gäste, die in jeder VisionBooth unter „Datenschutz“ verlinkt sind.",
       "Wir setzen auf den VisionBooth-Seiten keine Werbe- oder Analyse-Cookies und kein Tracking ein.",
+      "Um zu sehen, wie die Seiten genutzt werden, zählen wir anonym, welche Schritte aufgerufen werden (z. B. Seite besucht, Buchung gestartet, Bezahlen geklickt) und über welche Art von Quelle Besucher kommen (z. B. Suchmaschine oder unsere Website fotobox-essen.com). Gespeichert werden nur Schritt, Quelle, aufgerufene Seite und Zeitpunkt – keine IP-Adresse, keine Kennung und nichts auf deinem Gerät. Ein Personenbezug ist damit nicht möglich.",
     ],
   },
   {

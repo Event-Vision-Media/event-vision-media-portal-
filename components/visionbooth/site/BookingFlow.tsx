@@ -3,6 +3,7 @@
 import { IconTile, OccasionIcon, type LineIconName } from "./OccasionIcon";
 import { GAME_HOW, WALL_INFO } from "@/components/visionbooth/games-info";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { VbVisit, vbTrack } from "./vbTrack";
 import { useFormStatus } from "react-dom";
 import { startVbCheckout, type VbShopResult } from "@/app/actions/vb-shop";
 import { drawFrame, FRAME_H, FRAME_W, loadVbFonts, onArtReady, type VbFonts } from "@/components/visionbooth/frame";
@@ -56,7 +57,12 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
   const [state, action] = useActionState<VbShopResult, FormData>(startVbCheckout, {});
   const top = useRef<HTMLDivElement>(null);
 
+  useEffect(() => vbTrack("vb_buchen"), []);
   const go = (n: number) => {
+    // Anonymer Trichter: wie weit kommen Besucher in der Buchung?
+    if (n >= 1) vbTrack("vb_paket");
+    if (n >= 3) vbTrack("vb_details");
+    if (n >= 4) vbTrack("vb_uebersicht");
     setStep(n);
     top.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
@@ -74,6 +80,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
 
   return (
     <div ref={top} className="mx-auto w-full max-w-xl scroll-mt-4 px-5 pb-16">
+      <VbVisit />
       {/* Fortschritt */}
       <div className="mb-8 flex items-center gap-2">
         {STEPS.map((s, i) => (
@@ -293,7 +300,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
       )}
 
       {step === 4 && occasion && p && (
-        <form key="s3" action={action} className="vb-in">
+        <form key="s3" action={action} onSubmit={() => vbTrack("vb_bezahlen")} className="vb-in">
           <h1 className="vb-display text-3xl font-semibold">Fast geschafft!</h1>
           <p className="mt-1 text-white/60">Prüf kurz alles – nach der Zahlung ist eure VisionBooth sofort startklar.</p>
           {[

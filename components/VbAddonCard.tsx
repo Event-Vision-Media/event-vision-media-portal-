@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { vbTrack } from "@/components/visionbooth/site/vbTrack";
 import { useRouter } from "next/navigation";
 import { bookVbAddon } from "@/app/actions/vb-addon";
 import { OccasionIcon } from "@/components/visionbooth/site/OccasionIcon";
@@ -39,6 +40,9 @@ export function VbAddonCard({
   const [pending, start] = useTransition();
   const router = useRouter();
   const t = (du: string, s: string) => (sie ? s : du);
+  useEffect(() => {
+    if (!existing) vbTrack("vb_upsell_gesehen");
+  }, [existing]);
   const picked = options.find((o) => o.id === choice)!;
 
   if (existing) {

@@ -8,6 +8,7 @@ import { CHALLENGE_SETS } from "@/components/visionbooth/challenges";
 import { getPlan } from "@/components/visionbooth/packages";
 import { LANDLORD } from "@/lib/contract";
 import { ANLASS_ORDER, ANLASS_PAGES, type AnlassPage } from "./anlass-pages";
+import { VbVisit } from "./vbTrack";
 
 const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
 export const anlassUrl = (slug: string) => `https://visionbooth.de/${slug}`;
@@ -48,6 +49,7 @@ export function AnlassView({ page: p }: { page: AnlassPage }) {
 
   return (
     <main className="vb" style={{ ["--a" as string]: "#c4933f" }}>
+      <VbVisit />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd(p)) }} />
       <div className="vb-aurora" aria-hidden />
 
