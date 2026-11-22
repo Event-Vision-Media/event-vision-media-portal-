@@ -1,4 +1,5 @@
 import { planSlots } from "@/lib/slots";
+import { busySelfPickupSlots } from "@/lib/slots-server";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { contractRequired } from "@/lib/contract";
@@ -82,6 +83,8 @@ export default async function ContractPage() {
   const doc = await buildContractFor(booking);
   const hasDelivery = doc.hasDelivery;
   const slots = planSlots({ ...booking, pickup: booking.inquiry_items?.pickup ?? null, delivered: hasDelivery });
+  // Selbstabholung: schon vergebene 1-Stunden-Termine anderer Kunden ausgrauen
+  const busy = hasDelivery ? [] : await busySelfPickupSlots(booking.id, slots.handoverRange[0], slots.retRange[1]);
 
   return (
     <div className="min-h-screen">
@@ -127,6 +130,7 @@ export default async function ContractPage() {
             devices={doc.devices}
             carryHelper={hasDelivery && booking.inquiry_items?.access?.help === "helfer"}
             slots={slots}
+            busy={busy}
             prefill={{
               renter_name: booking.customer_name || booking.couple_names,
               renter_company: booking.company ?? "",

@@ -25,6 +25,21 @@ export const TIME_OPTIONS: string[] = Array.from({ length: 49 }, (_, i) => `${St
 /** Selbstabholung und Rückgabe bei uns: täglich (Mo–So) in diesem Zeitraum. */
 export const SELF_PICKUP_HOURS: [string, string] = ["09:00", "19:00"];
 
+/** Selbstabholung/Rückgabe: feste 1-Stunden-Termine (Start 09:00 … 18:00), damit du den Tag planen kannst. */
+export const PICKUP_SLOT_STARTS: string[] = Array.from({ length: 10 }, (_, i) => `${String(9 + i).padStart(2, "0")}:00`);
+export const pickupSlotEnd = (from: string) => `${String(Number(from.slice(0, 2)) + 1).padStart(2, "0")}:${from.slice(3, 5)}`;
+
+/** Überschneiden sich zwei Zeitfenster am selben Tag? */
+export function slotsOverlap(a: Slot, b: Slot): boolean {
+  return a.date === b.date && a.from < b.to && b.from < a.to;
+}
+
+/** „Sa, 28.11.2026, 10:00–11:00 Uhr“ (so steht es im Vertrag) zurück in ein Zeitfenster. */
+export function parseSlotText(text: string | null | undefined): Slot | null {
+  const m = /(\d{2})\.(\d{2})\.(\d{4}),\s*(\d{2}:\d{2})\s*[–-]\s*(\d{2}:\d{2})/.exec(text ?? "");
+  return m ? { date: `${m[3]}-${m[2]}-${m[1]}`, from: m[4], to: m[5] } : null;
+}
+
 export function shiftDate(iso: string, days: number): string {
   const d = new Date(iso + "T00:00:00Z");
   d.setUTCDate(d.getUTCDate() + days);
@@ -57,9 +72,9 @@ export function planSlots(b: {
       : b.pickup === "spaetnacht" ? { date: shiftDate(lastDay, 1), from: "00:00", to: "03:00" }
       : { date: shiftDate(lastDay, 1), from: "10:00", to: "12:00" };
   } else {
-    // Selbstabholung am Standort: Vortag abholen, Folgetag zurückbringen
-    handover = { date: shiftDate(b.event_date, -1), from: "17:00", to: "19:00" };
-    ret = { date: shiftDate(lastDay, 1), from: "10:00", to: "12:00" };
+    // Selbstabholung am Standort: Vortag abholen, Folgetag zurückbringen – jeweils ein 1-Stunden-Termin
+    handover = { date: shiftDate(b.event_date, -1), from: "17:00", to: "18:00" };
+    ret = { date: shiftDate(lastDay, 1), from: "10:00", to: "11:00" };
   }
   const dt = hhmm(b.delivery_time), pt = hhmm(b.pickup_time);
   if (b.delivery_date) handover = { date: b.delivery_date, from: dt ?? handover.from, to: dt ? plus(dt, 1) : handover.to };
@@ -85,7 +100,7 @@ export function slotText(s: Slot): string {
 }
 
 /** Prüft die Auswahl; gibt eine Fehlermeldung (du/Sie) oder null zurück. */
-export function validateSlots(plan: SlotPlan, h: Slot, r: Slot, sie: boolean): string | null {
+export function validateSlots(plan: SlotPlan, h: Slot, r: Slot, sie: boolean, busy: Slot[] = []): string | null {
   const t = (du: string, s: string) => (sie ? s : du);
   const valid = (s: Slot) => /^\d{4}-\d{2}-\d{2}$/.test(s.date) && TIME_OPTIONS.includes(s.from) && TIME_OPTIONS.includes(s.to);
   if (!valid(h) || !valid(r)) return t("Bitte wähle Datum und Uhrzeiten vollständig aus.", "Bitte wählen Sie Datum und Uhrzeiten vollständig aus.");
@@ -103,6 +118,17 @@ export function validateSlots(plan: SlotPlan, h: Slot, r: Slot, sie: boolean): s
       return t(
         `Abholung und Rückgabe sind täglich zwischen ${Number(open.slice(0, 2))} und ${Number(close.slice(0, 2))} Uhr möglich. Bitte wähle ein Zeitfenster in dieser Zeit.`,
         `Abholung und Rückgabe sind täglich zwischen ${Number(open.slice(0, 2))} und ${Number(close.slice(0, 2))} Uhr möglich. Bitte wählen Sie ein Zeitfenster in dieser Zeit.`
+      );
+    }
+    // Feste 1-Stunden-Termine (von uns vorab geplante Zeiten ausgenommen)
+    const oneHour = (s: Slot, planned: Slot) => (PICKUP_SLOT_STARTS.includes(s.from) && s.to === pickupSlotEnd(s.from)) || (s.date === planned.date && s.from === planned.from && s.to === planned.to);
+    if (!oneHour(h, plan.handover) || !oneHour(r, plan.ret)) {
+      return t("Bitte wähle für Abholung und Rückgabe jeweils einen 1-Stunden-Termin.", "Bitte wählen Sie für Abholung und Rückgabe jeweils einen 1-Stunden-Termin.");
+    }
+    if (busy.some((x) => slotsOverlap(x, h)) || busy.some((x) => slotsOverlap(x, r))) {
+      return t(
+        "Dieser Termin ist gerade schon vergeben. Bitte wähle eine andere Uhrzeit – die Seite zeigt dir nach dem Neuladen, was noch frei ist.",
+        "Dieser Termin ist gerade schon vergeben. Bitte wählen Sie eine andere Uhrzeit – nach dem Neuladen sehen Sie, was noch frei ist."
       );
     }
   }

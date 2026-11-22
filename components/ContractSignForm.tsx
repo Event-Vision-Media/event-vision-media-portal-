@@ -7,7 +7,8 @@ import { signContract, type ContractActionResult } from "@/app/actions/contract"
 import { SignaturePad } from "@/components/SignaturePad";
 import { Button } from "@/components/ui/Button";
 import { SlotPicker } from "@/components/SlotPicker";
-import { SELF_PICKUP_HOURS, type SlotPlan } from "@/lib/slots";
+import { PickupSlotPicker } from "@/components/PickupSlotPicker";
+import { SELF_PICKUP_HOURS, type Slot, type SlotPlan } from "@/lib/slots";
 
 export interface ContractPrefill {
   renter_name: string;
@@ -32,6 +33,7 @@ export function ContractSignForm({
   devices = [],
   afterEventDays = null,
   agreedDueDays = null,
+  busy = [],
 }: {
   prefill: ContractPrefill;
   sie: boolean;
@@ -52,6 +54,8 @@ export function ContractSignForm({
   afterEventDays?: number | null;
   /** So vereinbart: Gesamtbetrag so viele Tage vor der Veranstaltung. */
   agreedDueDays?: number | null;
+  /** Selbstabholung: schon vergebene Termine anderer Kunden */
+  busy?: Slot[];
 }) {
   const ref = referenceMedia(devices);
   const [state, formAction] = useFormState(signContract, initialState);
@@ -100,6 +104,12 @@ export function ContractSignForm({
           <Input name="onsite_contact_name" label="Ansprechpartner vor Ort" defaultValue={prefill.onsite_contact_name} required={hasDelivery} />
           <Input name="onsite_contact_phone" label="Telefon vor Ort" type="tel" defaultValue={prefill.onsite_contact_phone} required={hasDelivery} autoComplete="tel" />
         </div>
+        {!hasDelivery ? (
+          <div className="grid gap-3 md:grid-cols-2">
+            <PickupSlotPicker name="handover" label="Abholung bei uns (Übergabe)" initial={slots.handover} range={slots.handoverRange} busy={busy} hint={pickupHoursHint} />
+            <PickupSlotPicker name="return" label="Rückgabe bei uns" initial={slots.ret} range={slots.retRange} busy={busy} hint={pickupHoursHint} />
+          </div>
+        ) : (
         <div className="grid gap-3 md:grid-cols-2">
           <SlotPicker
             name="handover"
@@ -124,6 +134,7 @@ export function ContractSignForm({
             }
           />
         </div>
+        )}
         <p className="text-xs text-anthracite-400">
           {t("Die Zeiten stimmen wir vor dem Event noch einmal gemeinsam mit euch ab.", "Die Zeiten stimmen wir vor dem Event noch einmal gemeinsam mit Ihnen ab.")}
         </p>

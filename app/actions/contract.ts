@@ -1,6 +1,7 @@
 "use server";
 
 import { planSlots, slotText, validateSlots } from "@/lib/slots";
+import { busySelfPickupSlots } from "@/lib/slots-server";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { getCurrentBooking } from "@/lib/booking-session";
@@ -95,7 +96,9 @@ export async function signContract(_prev: ContractActionResult, formData: FormDa
   const slot = (k: "handover" | "return") => ({ date: field(formData, `${k}_date`, 10), from: field(formData, `${k}_from`, 5), to: field(formData, `${k}_to`, 5) });
   const plan = planSlots({ ...booking, pickup: booking.inquiry_items?.pickup ?? null, delivered: (await buildContractFor(booking)).hasDelivery });
   const hSlot = slot("handover"), rSlot = slot("return");
-  const slotError = validateSlots(plan, hSlot, rSlot, sie);
+  // Selbstabholung: Termin könnte inzwischen von jemand anderem gebucht sein
+  const busy = plan.delivered ? [] : await busySelfPickupSlots(booking.id, plan.handoverRange[0], plan.retRange[1]);
+  const slotError = validateSlots(plan, hSlot, rSlot, sie, busy);
   if (slotError) return { error: slotError };
   renter.handover_window = slotText(hSlot);
   renter.return_window = slotText(rSlot);
