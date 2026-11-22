@@ -2,7 +2,7 @@
 // Paket = Umfang (KI-Kontingent, Laufzeit, Business-Funktionen), Anlass = Design und Missionen.
 // Der Kunde kann Design und Missionen danach im Kundenbereich anpassen.
 
-export type VbPlanId = "party" | "hochzeit" | "business" | "messe" | "addon-privat" | "addon-firma";
+export type VbPlanId = "party" | "hochzeit" | "business" | "messe" | "addon-privat" | "addon-privat-ki" | "addon-firma";
 export type VbOccasionId = "hochzeit" | "geburtstag" | "kindergeburtstag" | "babyparty" | "party" | "firma" | "weihnachtsfeier" | "messe" | "sonstiges";
 
 /**
@@ -44,8 +44,9 @@ export const VB_PLANS: VbPlan[] = [
   { id: "hochzeit", label: "Premium mit KI", price: 129, kind: "privat", firma: false, aiLimit: 150, aiPerGuest: 3, days: 14, retentionDays: 180, summary: "wie Classic + 150 KI-Bilder, 6 Monate Galerie" },
   { id: "business", label: "Business", price: 299, kind: "business", firma: true, aiLimit: 300, aiPerGuest: 3, days: 7, retentionDays: 90, summary: "Firmen-Design mit Logo, 300 KI-Bilder, Missionen für Teams" },
   { id: "messe", label: "Messe", price: 699, kind: "business", firma: true, aiLimit: 1000, aiPerGuest: 2, days: 5, retentionDays: 60, summary: "mehrtägig, 1.000 KI-Bilder, Marken-Rahmen" },
-  { id: "addon-privat", label: "Add-on Fotobox (privat)", price: 49, kind: "addon", firma: false, aiLimit: 100, aiPerGuest: 3, days: 14, retentionDays: 90, summary: "zusätzlich zur Fotobox/Spiegel, 100 KI-Bilder" },
-  { id: "addon-firma", label: "Add-on Fotobox (Firma)", price: 149, kind: "addon", firma: true, aiLimit: 200, aiPerGuest: 3, days: 7, retentionDays: 90, summary: "zusätzlich zur Fotobox/Spiegel, 200 KI-Bilder, Logo" },
+  { id: "addon-privat", label: "VisionBooth-Zusatz (ohne KI)", price: 39, kind: "addon", firma: false, aiLimit: 0, aiPerGuest: 0, days: 14, retentionDays: 90, summary: "zu eurer Buchung: Rahmen, Galerie, Spiele, Foto-Wand (optional)" },
+  { id: "addon-privat-ki", label: "VisionBooth-Zusatz mit KI", price: 59, kind: "addon", firma: false, aiLimit: 100, aiPerGuest: 3, days: 14, retentionDays: 90, summary: "zu eurer Buchung: alles plus 100 KI-Bilder" },
+  { id: "addon-firma", label: "VisionBooth-Zusatz (Firma)", price: 149, kind: "addon", firma: true, aiLimit: 200, aiPerGuest: 3, days: 7, retentionDays: 90, summary: "zusätzlich zur Fotobox/Spiegel, 200 KI-Bilder, Logo" },
 ];
 
 export interface VbOccasion {
@@ -113,4 +114,11 @@ export function guessOccasion(text: string | null | undefined, firma = false): V
 }
 
 /** Passendes Paket, wenn VisionBooth als Zusatz zu einer Fotobox-Buchung angelegt wird. */
-export const addonPlanFor = (firma: boolean): VbPlanId => (firma ? "addon-firma" : "addon-privat");
+export const addonPlanFor = (firma: boolean): VbPlanId => (firma ? "addon-firma" : "addon-privat-ki");
+
+/** Regulärer Online-Preis, gegen den der Zusatz-Preis verglichen wird („statt …“). */
+export const addonListPrice = (plan: VbPlanId): number => (plan === "addon-privat" ? 79 : plan === "addon-privat-ki" ? 129 : plan === "addon-firma" ? 299 : 0);
+
+/** vb_events.package: Zusatz wird über die Buchung berechnet („addon“) oder ist geschenkt („addon-gratis“). */
+export const ADDON_CHARGED = "addon";
+export const ADDON_FREE = "addon-gratis";

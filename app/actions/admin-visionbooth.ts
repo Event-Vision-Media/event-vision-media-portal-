@@ -12,7 +12,8 @@ import { parseChallenges } from "@/components/visionbooth/challenges";
 import { leadConfigFromForm } from "@/lib/visionbooth-leads";
 import { revealFromForm } from "@/lib/visionbooth-reveal";
 import { issueVbInvoice, vbInvoiceDraftTest } from "@/lib/visionbooth-invoice";
-import { addonPlanFor, getOccasion, getPlan, guessOccasion } from "@/components/visionbooth/packages";
+import { ADDON_CHARGED, ADDON_FREE, addonPlanFor, getOccasion, getPlan, guessOccasion } from "@/components/visionbooth/packages";
+import { logActivity } from "@/lib/activity-log";
 import { berlinIso, provisionVbEvent } from "@/lib/visionbooth-provision";
 import type { AdminActionResult } from "@/app/actions/admin";
 
@@ -69,6 +70,13 @@ export async function createVbForBooking(bookingId: string, _prev: AdminActionRe
     sendMail: formData.get("send_mail") === "on",
   });
   if ("error" in res) return { error: res.error };
+  // Zusatz zur Buchung: mit Preis über Restbetrag/Nachzahlung abrechnen oder verschenken
+  const plan = getPlan(str(formData, "plan", 20) || addonPlanFor(firma));
+  if (plan.kind === "addon") {
+    const free = formData.get("price_mode") === "gratis";
+    await createAdminClient().from("vb_events").update({ package: free ? ADDON_FREE : ADDON_CHARGED }).eq("id", res.id);
+    await logActivity(bookingId, "vb_zusatz", free ? `📱 VisionBooth (${plan.label}) geschenkt – von dir angelegt` : `📱 VisionBooth (${plan.label}, ${plan.price} €) zur Buchung hinzugefügt – von dir angelegt, wird mit dem Restbetrag abgerechnet`);
+  }
   revalidatePath(`/admin/bookings/${bookingId}`);
   paths(res.id);
   return { success: true };
@@ -89,7 +97,7 @@ export async function updateVbEvent(_prev: AdminActionResult, formData: FormData
   const patch: Record<string, unknown> = {
     title,
     event_date: str(formData, "event_date", 10) || null,
-    package: ["privat", "business", "addon"].includes(str(formData, "package")) ? str(formData, "package") : "privat",
+    package: ["privat", "business", "addon", "addon-gratis"].includes(str(formData, "package")) ? str(formData, "package") : "privat",
     status: ["entwurf", "aktiv", "beendet"].includes(str(formData, "status")) ? str(formData, "status") : "aktiv",
     contact_name: str(formData, "contact_name", 120) || null,
     contact_email: str(formData, "contact_email", 200).toLowerCase() || null,

@@ -29,6 +29,9 @@ import { getLatestContract } from "@/lib/contract-server";
 import { contractRequired, paymentsTracked } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentCard } from "@/components/PaymentCard";
+import { VbAddonCard } from "@/components/VbAddonCard";
+import { vbAddonState } from "@/lib/vb-upsell";
+import { getPlan } from "@/components/visionbooth/packages";
 import { invoiceTitle, listInvoices } from "@/lib/invoices";
 import type { LayoutProof } from "@/lib/types";
 
@@ -223,6 +226,11 @@ export default async function DashboardPage() {
     { label: "Event Highlights", done: extrasDone },
   ];
 
+  const vbAddon = await vbAddonState(booking);
+  // Dazugebuchte VisionBooth (nicht geschenkt) in „Eure Buchung“ mit aufführen
+  const vbPlan = vbAddon.existing && !vbAddon.existing.free ? getPlan(vbAddon.existing.plan) : null;
+  const vbAddonLine = vbPlan && vbPlan.kind === "addon" ? [{ name: vbPlan.label, price: vbPlan.price }] : [];
+
   return (
     <div className="min-h-screen">
       <GuestHeader bookingCode={booking.booking_code} />
@@ -371,7 +379,7 @@ export default async function DashboardPage() {
           <Countdown eventDate={booking.event_date} sie={sie} />
         </div>
 
-        {booking.inquiry_items?.packages?.length ? <BookedItemsCard booking={booking} laterExtras={laterExtras} /> : null}
+        {booking.inquiry_items?.packages?.length ? <BookedItemsCard booking={booking} laterExtras={[...laterExtras, ...vbAddonLine]} /> : null}
 
         {payment && (
           <PaymentCard
@@ -381,6 +389,15 @@ export default async function DashboardPage() {
             bookingCode={booking.booking_code}
             hasContract={Boolean(contract) || Boolean(booking.contract_on_file)}
             invoices={invoices.map((i) => ({ id: i.id, kind: i.kind, title: invoiceTitle(i), amount: i.amount, date: i.created_at }))}
+          />
+        )}
+
+        {(vbAddon.existing || vbAddon.offer) && (
+          <VbAddonCard
+            sie={sie}
+            firma={booking.customer_type === "business" || Boolean(booking.company)}
+            existing={vbAddon.existing}
+            dateLabel={formatDateGerman(booking.event_date)}
           />
         )}
 

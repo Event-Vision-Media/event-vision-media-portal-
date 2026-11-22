@@ -87,7 +87,8 @@ export function VbEventForm({ event: e, styles }: { event: EventValues; styles: 
           <select id="f-package" name="package" defaultValue={e.package} className="input-field">
             <option value="privat">Privat</option>
             <option value="business">Business</option>
-            <option value="addon">Add-on zur Buchung</option>
+            <option value="addon">Zusatz zur Buchung (wird berechnet)</option>
+            <option value="addon-gratis">Zusatz zur Buchung (geschenkt)</option>
           </select>
         </div>
         <div />

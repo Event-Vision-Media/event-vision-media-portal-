@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { createVbForBooking } from "@/app/actions/admin-visionbooth";
 import type { AdminActionResult } from "@/app/actions/admin";
 import { VbPlanOccasionFields, VbSetupPreview } from "@/components/admin/visionbooth/VbPlanFields";
-import type { VbOccasionId, VbPlanId } from "@/components/visionbooth/packages";
+import { getPlan, type VbOccasionId, type VbPlanId } from "@/components/visionbooth/packages";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -37,6 +37,17 @@ export function VbBookingCreateForm({ bookingId, plan: p0, occasion: o0, hasEmai
       <VbPlanOccasionFields plan={plan} occasion={occasion} onPlan={setPlan} onOccasion={setOccasion} />
       <VbSetupPreview plan={plan} occasion={occasion} />
       <p className="text-xs text-anthracite-500">Name, Datum, Kunde und E-Mail werden aus der Buchung übernommen.</p>
+      {getPlan(plan).kind === "addon" && (
+        <fieldset className="space-y-1.5 rounded-xl border border-anthracite-100 p-3 text-sm">
+          <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-anthracite-400">Abrechnung</legend>
+          <label className="flex items-center gap-2 text-anthracite-700">
+            <input type="radio" name="price_mode" value="berechnet" defaultChecked /> Mit Preis ({getPlan(plan).price} €) – kommt zum Restbetrag bzw. als Nachzahlung
+          </label>
+          <label className="flex items-center gap-2 text-anthracite-700">
+            <input type="radio" name="price_mode" value="gratis" /> Geschenkt (z. B. Testkunde, Stammkunde)
+          </label>
+        </fieldset>
+      )}
       {hasEmail && (
         <label className="flex items-center gap-2 text-sm text-anthracite-700">
           <input type="checkbox" name="send_mail" defaultChecked className="h-4 w-4" /> Kunden-Link gleich per Mail schicken

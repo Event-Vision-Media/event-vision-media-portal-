@@ -84,6 +84,10 @@ export default async function AdminMailPreviewPage(props: { searchParams: Promis
         [{ name: "XXL-LOVE Leuchtbuchstaben", priceLabel: "149,00 €" }, { name: "Aufblasbare Fotokabine", priceLabel: "69,00 €" }]
       ),
     },
+    {
+      title: "6b · Erinnerung mit VisionBooth-Empfehlung (wenn Zusatz eingeschaltet)",
+      mail: reminderMail(sample, [], [{ name: "XXL-LOVE Leuchtbuchstaben", priceLabel: "149,00 €" }], business ? { price: 149, list: 299 } : { price: 59, list: 129 }),
+    },
     { title: "7 · Nach dem Event: Fotos + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 0 }) },
     { title: "7b · Nach dem Event: nur Audiogästebuch (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: false, audios: 23 }) },
     { title: "7c · Nach dem Event: schon informiert → nur Danke + Bewertung (automatisch)", mail: followupMail(sample, "https://g.page/r/beispiel/review", { photos: true, audios: 23 }, true) },

@@ -346,7 +346,7 @@ export function declineMail(b: MailBooking, reason: string | null) {
 }
 
 /** Erinnerung ca. 4 Wochen vor dem Event (bei kurzfristigen Buchungen später): offene Schritte + passende Extras. */
-export function reminderMail(b: MailBooking, openSteps: string[], recs: { name: string; priceLabel: string }[]) {
+export function reminderMail(b: MailBooking, openSteps: string[], recs: { name: string; priceLabel: string }[], vbOffer: { price: number; list: number } | null = null) {
   const sie = isSie(b);
   const url = portalUrl();
   const date = formatDateGerman(b.event_date);
@@ -368,9 +368,19 @@ ${recs.map((r) => `<p style="margin:4px 0">${esc(r.name)} – <strong>${esc(r.pr
     : "";
   return {
     subject: sie ? `Noch ${span} bis zu Ihrem Event – ${b.booking_code}` : `Noch ${span} bis zu deinem Event! – ${b.booking_code}`,
-    html: layout(title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${steps}${codeBox(b)}${recHtml}`),
+    html: layout(title, `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p>${steps}${codeBox(b)}${vbOffer ? vbOfferBlock(sie, vbOffer) : ""}${recHtml}`),
     text: `${greeting(b)},\n\n${stripTags(intro)}\n${openSteps.map((s) => `- ${s}`).join("\n")}\n\nZugangscode: ${loginCode(b)}${url ? `\n${url}` : ""}${recs.length ? `\n\nNoch verfügbar:\n${recs.map((r) => `- ${r.name}: ${r.priceLabel}`).join("\n")}` : ""}\n\n${BRAND}`,
   };
+}
+
+/** Erinnerungsmail: Empfehlung „Jeder Gast wird zur Fotobox“ (VisionBooth als Zusatz im Portal). */
+function vbOfferBlock(sie: boolean, o: { price: number; list: number }): string {
+  return `<div style="margin-top:22px;padding:18px;border-radius:14px;background:#0d0d10;color:#f3eee5">
+<div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#dcb56a;font-weight:600">Neu · nur für Event-Vision-Kunden</div>
+<div style="margin-top:6px;font-family:Georgia,serif;font-size:19px;color:#ffffff">Jeder Gast wird zur Fotobox</div>
+<p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(243,238,229,.8)">${sie ? "Ihre Gäste scannen einen QR-Code und fotografieren mit dem eigenen Handy im Rahmen Ihres Events – alle Bilder landen in einer gemeinsamen Galerie." : "Eure Gäste scannen einen QR-Code und machen mit dem eigenen Handy Fotos mit eurem Rahmen – alle Bilder landen in einer gemeinsamen Galerie, auch abseits der Fotobox."}</p>
+<p style="margin:10px 0 0;font-size:15px"><strong style="color:#f0d595">${esc(euro2(o.price))}</strong> <span style="color:rgba(243,238,229,.5);text-decoration:line-through">${esc(euro2(o.list))}</span> <span style="font-size:13px;color:rgba(243,238,229,.6)">· mit einem Klick im Kundenportal dazubuchbar, Zahlung mit dem Restbetrag</span></p>
+</div>`;
 }
 
 /** Nach dem Event: Online-Galerie ist freigeschaltet + Bitte um Google-Bewertung. */

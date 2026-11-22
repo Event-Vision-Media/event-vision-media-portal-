@@ -12,6 +12,7 @@ import { gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMai
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
+import { vbAddonState } from "@/lib/vb-upsell";
 import { usesSie } from "@/lib/address";
 import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestbook-game";
 import { gameAccess, gameConfig, type GuestbookGameRow } from "@/lib/guestbook-game-server";
@@ -349,7 +350,9 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     ];
     let sent = false;
     if (!dryRun) {
-      const mail = reminderMail(toMailBooking(b), openSteps, recs);
+      // VisionBooth als Zusatz empfehlen (nur wenn eingeschaltet und noch keine angelegt)
+      const vbOffer = (await vbAddonState(b)).offer ? (b.customer_type === "business" || b.company ? { price: 149, list: 299 } : { price: 59, list: 129 }) : null;
+      const mail = reminderMail(toMailBooking(b), openSteps, recs, vbOffer);
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ reminder_sent_at: new Date().toISOString() }).eq("id", b.id);

@@ -1,4 +1,5 @@
 import "server-only";
+import { ADDON_CHARGED, getPlan } from "@/components/visionbooth/packages";
 import { createHash } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { EXTRAS as CATALOG_EXTRAS, bundledExtraNames, premiumLayoutIncluded } from "@/lib/catalog";
@@ -46,12 +47,13 @@ export async function getBankDetails(): Promise<BankDetails | null> {
 /** Lädt alles, was für den Vertragstext einer Buchung nötig ist. */
 export async function contractInputFor(booking: Booking) {
   const supabase = createAdminClient();
-  const [{ data: bookedExtras }, { data: layout }, bank] = await Promise.all([
+  const [{ data: bookedExtras }, { data: layout }, bank, { data: vbAddon }] = await Promise.all([
     supabase.from("booking_extras").select("price, extras(name), extra_variants(name)").eq("booking_id", booking.id),
     booking.selected_layout_id
       ? supabase.from("layouts").select("extra_price").eq("id", booking.selected_layout_id).maybeSingle()
       : Promise.resolve({ data: null }),
     getBankDetails(),
+    supabase.from("vb_events").select("plan, package").eq("booking_id", booking.id).maybeSingle(),
   ]);
 
   const bookedExtraNames = (bookedExtras ?? []).map((be: any) => be.extras?.name).filter(Boolean) as string[];
@@ -72,6 +74,11 @@ export async function contractInputFor(booking: Booking) {
   if (premiumFee > 0 && !premiumInInquiry) portalFees.push({ name: "Premium-Layout", price: premiumFee });
   const switches = (booking.layout_switch_count ?? 0) + (booking.home_screen_switch_count ?? 0);
   if (switches > 0) portalFees.push({ name: `Layout-/Startbildschirm-Wechsel (${switches}×)`, price: switches * SELECTION_SWITCH_FEE });
+  // VisionBooth als Zusatz zur Buchung (im Portal dazugebucht oder vom Admin mit Preis angelegt)
+  if (vbAddon && vbAddon.package === ADDON_CHARGED) {
+    const plan = getPlan(vbAddon.plan);
+    if (plan.kind === "addon" && plan.price > 0) portalFees.push({ name: plan.label, price: plan.price });
+  }
 
   // Auswahl bei im Firmen-Komplett enthaltenen Extras (z. B. Hintergrund-Motiv)
   const bundledNames = new Set(bundledExtraNames(booking.inquiry_items));
