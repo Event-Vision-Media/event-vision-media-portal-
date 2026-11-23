@@ -140,6 +140,13 @@ export function VideoGalleryAdmin({
         {state === "online" && <span className="text-anthracite-500">· {views}× aufgerufen</span>}
       </div>
 
+      {publicUrl && state === "entwurf" && items.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl bg-sand-50 p-3 text-sm">
+          <a href={publicUrl} target="_blank" rel="noopener" className="rounded-lg border border-gold-300 bg-white px-3 py-1.5 font-medium text-gold-800">👀 Vorschau ansehen</a>
+          <span className="text-xs text-anthracite-500">So sieht die Seite für Gäste aus – nur für dich sichtbar, bis du freischaltest.</span>
+        </div>
+      )}
+
       {publicUrl && (state === "online" || state === "abgelaufen") && (
         <div className="flex flex-wrap items-center gap-2 rounded-xl bg-sand-50 p-3 text-sm">
           <a href={publicUrl} target="_blank" rel="noopener" className="min-w-0 flex-1 truncate font-medium text-gold-700 underline underline-offset-2">{publicUrl}</a>

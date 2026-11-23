@@ -4,6 +4,7 @@ import { GalleryGrid } from "@/components/GalleryGrid";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { galleryItems, galleryState, getGalleryByToken } from "@/lib/event-gallery-server";
 import { GALLERY_DAYS } from "@/lib/event-gallery";
+import { isAdminAuthenticated } from "@/lib/require-admin";
 
 export const dynamic = "force-dynamic";
 
@@ -27,11 +28,15 @@ export default async function GalleryPage(props: { params: Promise<{ token: stri
   const g = await getGalleryByToken(token);
   const state = g ? galleryState(g) : "geloescht";
   const supabase = createAdminClient();
+  // Du (im Admin angemeldet) siehst die Galerie schon vor dem Freischalten als Vorschau; deine Aufrufe zählen nicht mit
+  const isAdmin = g ? await isAdminAuthenticated() : false;
+  const preview = Boolean(g && state === "entwurf" && isAdmin);
+  const show = state === "online" || preview;
   const [items, { data: review }] = await Promise.all([
-    g && state === "online" ? galleryItems(g.id) : Promise.resolve([]),
+    g && show ? galleryItems(g.id) : Promise.resolve([]),
     supabase.from("app_settings").select("value").eq("key", "google_review_url").maybeSingle(),
   ]);
-  if (g && state === "online") await supabase.from("event_galleries").update({ views: (g.views ?? 0) + 1 }).eq("id", g.id);
+  if (g && state === "online" && !isAdmin) await supabase.from("event_galleries").update({ views: (g.views ?? 0) + 1 }).eq("id", g.id);
   const reviewUrl = (review?.value as string | undefined) || null;
   // Titel „Anlass · Datum“ → Datum klein über die Überschrift, damit mobil nichts unschön umbricht
   const [titleMain, titleDate] = (() => {
@@ -56,8 +61,13 @@ export default async function GalleryPage(props: { params: Promise<{ token: stri
       </header>
 
       <main className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6">
-        {state === "online" && g ? (
+        {show && g ? (
           <>
+            {preview && (
+              <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
+                <strong>Vorschau</strong> – nur für dich sichtbar. Gäste sehen die Galerie erst nach „Galerie freischalten“ im Admin.
+              </div>
+            )}
             <div className="text-center">
               <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-700">
                 360°-Videos{titleDate ? ` · ${titleDate}` : ""}
