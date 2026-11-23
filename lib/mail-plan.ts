@@ -1,6 +1,7 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
+import { bookingDevices } from "@/lib/audience";
 import { handoverFor, type DeviceKey } from "@/lib/catalog";
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired } from "@/lib/contract";
@@ -129,8 +130,22 @@ export async function mailPlanFor(b: Booking): Promise<MailPlan> {
     if (date <= add(event, -GAME_REMINDER_MIN_DAYS)) push(date, "Gästebuch-Spiel: QR-Aufsteller drucken", false);
   }
 
-  // Nach dem Event: Galerie/Audios + Bewertung
-  if (!b.followup_sent_at) push(maxDate(today, add(event, GALLERY_UNLOCK_DAYS)), "Danke + Galerie/Audios + Bewertung", false, "wartet bis zu 14 Tage, falls Fotos/Audios noch fehlen");
+  // Nach dem Event: Danke + das, was gebucht ist (Fotos / 360°-Videos / Audios) + Bewertung
+  if (!b.followup_sent_at) {
+    const devices = bookingDevices(b);
+    const media = [
+      (devices.has("fotobox") || devices.has("spiegel")) && "Fotos",
+      devices.has("360") && "360°-Videos",
+      bookingHasAudioGuestbook(b.product_type, extraNames, b.inquiry_items) && "Audios",
+    ].filter(Boolean) as string[];
+    const what = media.length > 1 ? `${media.slice(0, -1).join(", ")} & ${media[media.length - 1]}` : media[0];
+    push(
+      maxDate(today, add(event, GALLERY_UNLOCK_DAYS)),
+      what ? `Danke + ${what} + Bewertung` : "Danke + Bewertung",
+      false,
+      what ? `wartet bis zu 14 Tage, falls ${what} noch fehlen` : undefined
+    );
+  }
 
   // Online-Galerie: Erinnerung vor dem Ablauf (mit Verlängerungs-Angebot)
   const { data: gal } = await supabase.from("event_galleries").select("expires_at, published_at, deleted_at").eq("booking_id", b.id).maybeSingle();
