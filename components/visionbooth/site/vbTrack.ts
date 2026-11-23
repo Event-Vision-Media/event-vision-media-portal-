@@ -10,6 +10,7 @@ function source(): { q: VbSource; k: string } {
   try {
     const p = new URLSearchParams(location.search);
     if (p.get("von") === "website") return { q: "website", k: "" };
+    if (p.get("von") === "galerie") return { q: "galerie", k: "" };
     if (p.get("gclid") || p.get("gbraid") || p.get("wbraid") || /cpc|paid|ads/i.test(p.get("utm_medium") ?? "")) return { q: "ads", k: (p.get("utm_campaign") ?? "").slice(0, 50) };
     const ref = document.referrer ? new URL(document.referrer).host : "";
     if (!ref) return { q: "direkt", k: "" };

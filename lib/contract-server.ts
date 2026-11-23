@@ -74,6 +74,9 @@ export async function contractInputFor(booking: Booking) {
   if (premiumFee > 0 && !premiumInInquiry) portalFees.push({ name: "Premium-Layout", price: premiumFee });
   const switches = (booking.layout_switch_count ?? 0) + (booking.home_screen_switch_count ?? 0);
   if (switches > 0) portalFees.push({ name: `Layout-/Startbildschirm-Wechsel (${switches}×)`, price: switches * SELECTION_SWITCH_FEE });
+  // Online-Galerie im Kundenportal verlängert
+  const { data: gallery } = await supabase.from("event_galleries").select("extension_days, extension_price").eq("booking_id", booking.id).maybeSingle();
+  if (gallery && Number(gallery.extension_price) > 0) portalFees.push({ name: `Online-Galerie verlängert (+${gallery.extension_days} Tage)`, price: Number(gallery.extension_price) });
   // VisionBooth als Zusatz zur Buchung (im Portal dazugebucht oder vom Admin mit Preis angelegt)
   if (vbAddon && vbAddon.package === ADDON_CHARGED) {
     const plan = getPlan(vbAddon.plan);

@@ -132,6 +132,12 @@ export async function mailPlanFor(b: Booking): Promise<MailPlan> {
   // Nach dem Event: Galerie/Audios + Bewertung
   if (!b.followup_sent_at) push(maxDate(today, add(event, GALLERY_UNLOCK_DAYS)), "Danke + Galerie/Audios + Bewertung", false, "wartet bis zu 14 Tage, falls Fotos/Audios noch fehlen");
 
+  // Online-Galerie: Erinnerung vor dem Ablauf (mit Verlängerungs-Angebot)
+  const { data: gal } = await supabase.from("event_galleries").select("expires_at, published_at, deleted_at").eq("booking_id", b.id).maybeSingle();
+  if (gal?.published_at && gal.expires_at && !gal.deleted_at && gal.expires_at.slice(0, 10) > today) {
+    push(maxDate(today, add(gal.expires_at.slice(0, 10), -5)), "Online-Galerie läuft bald ab (Verlängerung)", false);
+  }
+
   // Firmenkunden: Wiederbuchung ~3 Monate vor dem Jahrestag
   if (b.customer_type === "business" && !logged.has("wiederbuchung_angebot")) push(add(event, 264), "Firmenkunde: „Nächstes Jahr wieder?“", false);
 

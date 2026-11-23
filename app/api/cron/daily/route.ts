@@ -3,6 +3,7 @@ import { runJourneyMails } from "@/lib/journey-mails";
 import { cleanupVbPhotos } from "@/lib/visionbooth";
 import { runVbReminders } from "@/lib/visionbooth-reminders";
 import { runOfferJobs } from "@/lib/offers";
+import { cleanupExpiredGalleries } from "@/lib/event-gallery-server";
 
 export const dynamic = "force-dynamic";
 
@@ -35,5 +36,10 @@ export async function GET(req: NextRequest) {
     return [];
   });
   const offers = await runOfferJobs(dryRun);
-  return NextResponse.json({ ok: true, dryRun, ...result, ...offers, visionbooth, visionboothMails });
+  // Online-Galerien nach Ablauf (+1 Tag) samt Videos löschen
+  const galleries = await cleanupExpiredGalleries(dryRun).catch((e) => {
+    console.error("Galerie-Löschung fehlgeschlagen:", e);
+    return [];
+  });
+  return NextResponse.json({ ok: true, dryRun, ...result, ...offers, visionbooth, visionboothMails, galleries });
 }

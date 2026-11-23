@@ -30,6 +30,8 @@ import { contractRequired, paymentsTracked } from "@/lib/contract";
 import { getPaymentSummary } from "@/lib/payments";
 import { PaymentCard } from "@/components/PaymentCard";
 import { VbAddonCard } from "@/components/VbAddonCard";
+import { VideoGalleryCard } from "@/components/VideoGalleryCard";
+import { galleryPublicUrl, galleryState, getGalleryForBooking } from "@/lib/event-gallery-server";
 import { vbAddonState } from "@/lib/vb-upsell";
 import { getPlan } from "@/components/visionbooth/packages";
 import { invoiceTitle, listInvoices } from "@/lib/invoices";
@@ -227,6 +229,13 @@ export default async function DashboardPage() {
   ];
 
   const vbAddon = await vbAddonState(booking);
+  // Eigene 360°-Video-Galerie (online)
+  const videoGallery = await getGalleryForBooking(booking.id);
+  const videoGalleryOnline = videoGallery && galleryState(videoGallery) === "online" && videoGallery.expires_at ? videoGallery : null;
+  const videoGalleryUrl = videoGalleryOnline ? galleryPublicUrl(videoGalleryOnline.token) : null;
+  const { count: videoCount } = videoGalleryOnline
+    ? await createAdminClient().from("event_gallery_items").select("id", { count: "exact", head: true }).eq("gallery_id", videoGalleryOnline.id)
+    : { count: 0 };
   // Dazugebuchte VisionBooth (nicht geschenkt) in „Eure Buchung“ mit aufführen
   const vbPlan = vbAddon.existing && !vbAddon.existing.free ? getPlan(vbAddon.existing.plan) : null;
   const vbAddonLine = vbPlan && vbPlan.kind === "addon" ? [{ name: vbPlan.label, price: vbPlan.price }] : [];
@@ -620,6 +629,13 @@ export default async function DashboardPage() {
           </div>
         )}
 
+        {videoGalleryOnline && videoGalleryUrl && (
+          <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "240ms" }}>
+            <VideoGalleryCard sie={sie} url={videoGalleryUrl} count={videoCount ?? 0} expiresAt={videoGalleryOnline.expires_at!} extensionDays={videoGalleryOnline.extension_days} />
+          </div>
+        )}
+
+        {booking.online_gallery_url !== videoGalleryUrl && (
         <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "260ms" }}>
           <OnlineGallerySection
             sie={sie}
@@ -628,6 +644,7 @@ export default async function DashboardPage() {
             clickedAt={booking.online_gallery_clicked_at}
           />
         </div>
+        )}
 
         <div className="mt-4 animate-fade-in-up" style={{ animationDelay: "300ms" }}>
           <GoogleReviewSection reviewUrl={googleReviewUrl} sie={sie} />

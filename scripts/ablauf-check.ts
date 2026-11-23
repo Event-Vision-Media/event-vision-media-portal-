@@ -107,6 +107,8 @@ for (const c of COMBOS) {
     ["Rechnung (Überweisung)", mails.invoiceMail(b, { title: "Gesamtrechnung RE-1", amount: 529, pay: "ueberweisung", dueText: "bis zum 27. November 2026", bank, note: null })],
     ["Rechnung (bar)", mails.invoiceMail(b, { title: "Rechnung RE-2", amount: 429, pay: "bar_abholung", dueText: null, bank: null })],
     ["Gästebuch-Spiel", mails.gameReminderMail(b, "Hochzeit von Anna & Max")],
+    ["Galerie läuft ab", mails.galleryExpiryMail(b, { url: "https://portal.fotobox-essen.com/g/beispiel", until: "2027-07-12", days: 5, canExtend: true })],
+    ["Galerie läuft ab (max. erreicht)", mails.galleryExpiryMail(b, { url: "https://portal.fotobox-essen.com/g/beispiel", until: "2027-09-12", days: 3, canExtend: false })],
     ["Restzahlung", mails.restTransferReminderMail(b, 429, "2027-05-29", bank)],
     ["Abholung morgen", mails.pickupReminderMail(b, { devices: "Fotobox", handover: "Freitag 11.06., 17–18 Uhr", ret: "Sonntag 13.06., 12–13 Uhr", cash: 429 })],
     ["Barzahlung", mails.cashReminderMail(b, 429, { pickup: true })],

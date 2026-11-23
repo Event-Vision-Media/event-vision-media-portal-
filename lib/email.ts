@@ -684,6 +684,35 @@ export function paymentCompleteMail(b: MailBooking, total: number | null) {
   };
 }
 
+/** Online-Galerie läuft bald ab – mit Verlängerung im Kundenportal (+30 / +60 Tage). */
+export function galleryExpiryMail(b: MailBooking, o: { url: string; until: string; days: number; canExtend: boolean }) {
+  const sie = isSie(b);
+  const portal = portalUrl();
+  const until = esc(formatDateGerman(o.until));
+  const intro = sie
+    ? `Ihre Online-Galerie mit den 360°-Videos ist noch <strong>${o.days} Tage</strong> online – bis zum <strong>${until}</strong>. Danach werden die Videos aus Datenschutzgründen automatisch gelöscht.`
+    : `deine Online-Galerie mit den 360°-Videos ist noch <strong>${o.days} Tage</strong> online – bis zum <strong>${until}</strong>. Danach werden die Videos aus Datenschutzgründen automatisch gelöscht.`;
+  const tip = sie
+    ? "Laden Sie Ihre Lieblingsvideos am besten jetzt herunter – am Computer geht das mit einem Klick für alle."
+    : "Lade deine Lieblingsvideos am besten jetzt herunter – am Computer geht das mit einem Klick für alle.";
+  const extend = o.canExtend
+    ? sie
+      ? "Sie möchten die Galerie länger behalten? Im Kundenportal verlängern Sie mit einem Klick: <strong>+30 Tage für 9 €</strong> oder <strong>+60 Tage für 15 €</strong>."
+      : "Du möchtest die Galerie länger behalten? Im Kundenportal verlängerst du mit einem Klick: <strong>+30 Tage für 9 €</strong> oder <strong>+60 Tage für 15 €</strong>."
+    : "";
+  const btn = (href: string, label: string, gold: boolean) =>
+    `<a href="${esc(href)}" style="display:inline-block;margin:4px;padding:12px 20px;border-radius:10px;background:${gold ? "#a87731" : "#1f2227"};color:#ffffff;text-decoration:none;font-weight:600">${label}</a>`;
+  return {
+    subject: sie ? `Ihre Video-Galerie ist noch ${o.days} Tage online – ${b.booking_code}` : `Deine Video-Galerie ist noch ${o.days} Tage online – ${b.booking_code}`,
+    html: layout(
+      "Nur noch wenige Tage online",
+      `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${intro}</p><p style="line-height:1.6">${esc(tip)}</p>${extend ? `<p style="line-height:1.6">${extend}</p>` : ""}
+<p style="margin:20px 0;text-align:center">${btn(o.url, "Galerie öffnen", false)}${o.canExtend && portal ? btn(portal, "Im Portal verlängern", true) : ""}</p>${o.canExtend ? codeBox(b) : ""}`
+    ),
+    text: `${greeting(b)},\n\n${stripTags(intro)}\n\n${tip}\n\n${extend ? stripTags(extend) + "\n\n" : ""}Galerie: ${o.url}${o.canExtend && portal ? `\nKundenportal: ${portal}\nZugangscode: ${loginCode(b)}` : ""}\n\n${BRAND}`,
+  };
+}
+
 /** Bestätigung an den Kunden: Anzahlung ist eingegangen – plus was noch offen ist (je nach Zahlungsweise). */
 export function depositReceivedMail(
   b: MailBooking,

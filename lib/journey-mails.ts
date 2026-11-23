@@ -8,7 +8,7 @@ import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } f
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired, depositForBooking, fullPaymentTerms, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
-import { gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
+import { galleryExpiryMail, gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
@@ -16,6 +16,8 @@ import { vbAddonState } from "@/lib/vb-upsell";
 import { usesSie } from "@/lib/address";
 import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestbook-game";
 import { gameAccess, gameConfig, type GuestbookGameRow } from "@/lib/guestbook-game-server";
+import { GALLERY_DAYS, GALLERY_EXTENSIONS, GALLERY_MAX_DAYS, GALLERY_REMIND_DAYS } from "@/lib/event-gallery";
+import { galleryPublicUrl } from "@/lib/event-gallery-server";
 
 /** Erinnerung geht raus, sobald das Event höchstens so viele Tage entfernt ist … */
 export const REMINDER_DAYS_BEFORE = 28;
@@ -47,6 +49,8 @@ export interface JourneyRunResult {
   greetingReminders: { booking: string; kind: "bald" | "ueberfaellig"; sent: boolean }[];
   /** Gästebuch-Spiel: Erinnerung an den QR-Aufsteller. */
   gameReminders: { booking: string; sent: boolean }[];
+  /** Online-Galerie läuft in wenigen Tagen ab (mit Verlängerungs-Angebot). */
+  galleryExpiry: { booking: string; sent: boolean }[];
 }
 
 function toMailBooking(b: Booking): MailBooking {
@@ -125,7 +129,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [], gameReminders: [] };
+  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [], gameReminders: [], galleryExpiry: [] };
 
   // ---- Für dich: Anfragen, die seit über 24 Stunden unbeantwortet sind ----
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
@@ -508,6 +512,37 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     }
     if (sent || dryRun) mailedToday.add(b.id);
     result.followups.push({ booking: b.booking_code, sent });
+  }
+
+  // ---- Online-Galerie: Erinnerung kurz vor dem Ablauf (mit Verlängerung +30/+60 Tage) ----
+  const { data: expiring } = await supabase
+    .from("event_galleries")
+    .select("id, booking_id, token, expires_at, extension_days, galerie_bookings:bookings(*)")
+    .is("deleted_at", null)
+    .not("published_at", "is", null)
+    .gte("expires_at", new Date().toISOString())
+    .lte("expires_at", new Date(Date.now() + GALLERY_REMIND_DAYS * 86_400_000).toISOString())
+    .limit(MAX_PER_RUN);
+  const expIds = (expiring ?? []).map((g) => g.booking_id);
+  const { data: expLogs } = expIds.length
+    ? await supabase.from("activity_log").select("booking_id, created_at").eq("event_type", "galerie_ablauf_erinnerung").in("booking_id", expIds)
+    : { data: [] as { booking_id: string; created_at: string }[] };
+  for (const g of expiring ?? []) {
+    const b = (Array.isArray(g.galerie_bookings) ? g.galerie_bookings[0] : g.galerie_bookings) as Booking | null;
+    if (!b?.email || mailedToday.has(b.id)) continue;
+    // Pro Ablauftermin nur einmal erinnern (nach einer Verlängerung gibt es eine neue Erinnerung)
+    const lastLog = (expLogs ?? []).filter((l) => l.booking_id === b.id).map((l) => l.created_at).sort().at(-1);
+    if (lastLog && new Date(lastLog).getTime() > new Date(g.expires_at!).getTime() - (GALLERY_REMIND_DAYS + 1) * 86_400_000) continue;
+    const days = Math.max(1, Math.ceil((new Date(g.expires_at!).getTime() - Date.now()) / 86_400_000));
+    const canExtend = GALLERY_EXTENSIONS.some((o) => GALLERY_DAYS + g.extension_days + o.days <= GALLERY_MAX_DAYS);
+    let sent = false;
+    if (!dryRun) {
+      const mail = galleryExpiryMail(toMailBooking(b), { url: galleryPublicUrl(g.token), until: g.expires_at!.slice(0, 10), days, canExtend });
+      sent = (await sendEmail({ to: b.email, ...mail, bookingId: b.id })).sent;
+      if (sent) await logActivity(b.id, "galerie_ablauf_erinnerung", mailLog(b, mail.subject, `Online-Galerie läuft am ${dateDE(g.expires_at!.slice(0, 10))} ab${canExtend ? " – Verlängerung angeboten" : ""}.`));
+    }
+    if (sent || dryRun) mailedToday.add(b.id);
+    result.galleryExpiry.push({ booking: b.booking_code, sent });
   }
 
   // ---- Firmenkunden: "Nächstes Jahr wieder?" ca. 3 Monate vor dem Jahrestag ----

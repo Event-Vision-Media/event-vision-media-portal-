@@ -20,6 +20,8 @@ import { PersonalizedScreenProofPanel } from "@/components/admin/PersonalizedScr
 import { NewPersonalizedScreenProofForm } from "@/components/admin/NewPersonalizedScreenProofForm";
 import { DeliveryPickupForm } from "@/components/admin/DeliveryPickupForm";
 import { OnlineGalleryCell } from "@/components/admin/OnlineGalleryCell";
+import { VideoGalleryAdmin } from "@/components/admin/VideoGalleryAdmin";
+import { galleryItems, galleryPublicUrl, galleryState, getGalleryForBooking } from "@/lib/event-gallery-server";
 import { AdminNotesEditor } from "@/components/admin/AdminNotesEditor";
 import { AudioGuestbookAdminSection } from "@/components/admin/AudioGuestbookAdminSection";
 import { GuestbookGameAdminCard } from "@/components/admin/GuestbookGameAdminCard";
@@ -130,6 +132,8 @@ export default async function AdminBookingDetailPage(props: {
   const contract = booking ? await getLatestContract(booking.id) : null;
   const [payment, invoices] = booking ? await Promise.all([getPaymentSummary(booking), listInvoices(booking.id)]) : [null, []];
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
+  const videoGallery = booking ? await getGalleryForBooking(booking.id) : null;
+  const videoGalleryItems = videoGallery && !videoGallery.deleted_at ? await galleryItems(videoGallery.id) : [];
   const media = booking ? await mediaStatus(booking) : { photos: false, videos: false, audios: 0, galleryReady: false, photoBooked: false, videoBooked: false, audioBooked: false, informedAt: null };
   // 360°-Betreuung im Portal angefragt und noch nicht eingetragen
   const staffReq = (booking?.inquiry_items as { staffRequest?: StaffRequest | null } | null)?.staffRequest ?? null;
@@ -692,6 +696,24 @@ export default async function AdminBookingDetailPage(props: {
             audios={media.audios}
             informedAt={media.informedAt}
           />
+        )}
+
+        {(media.videoBooked || videoGallery) && (
+          <section id="video-galerie" className="scroll-mt-6">
+            <h2 className="mb-3 font-serif text-lg font-semibold text-anthracite-800">🎬 360°-Video-Galerie</h2>
+            <Card>
+              <VideoGalleryAdmin
+                bookingId={booking.id}
+                state={videoGallery ? galleryState(videoGallery) : "keine"}
+                title={videoGallery?.title ?? null}
+                publicUrl={videoGallery ? galleryPublicUrl(videoGallery.token) : null}
+                expiresAt={videoGallery?.expires_at ?? null}
+                views={videoGallery?.views ?? 0}
+                items={videoGalleryItems}
+                linkIsBookingGallery={Boolean(videoGallery && booking.online_gallery_url === galleryPublicUrl(videoGallery.token))}
+              />
+            </Card>
+          </section>
         )}
 
         <section id="online-galerie" className="scroll-mt-6">
