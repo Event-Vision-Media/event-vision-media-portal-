@@ -444,6 +444,51 @@ export function followupMail(b: MailBooking, reviewUrl: string | null, m: MediaR
   };
 }
 
+/**
+ * Per Knopf im Admin: Layout-Entwürfe (und ggf. persönlicher Startbildschirm) liegen zur Ansicht
+ * im Kundenportal – bitte freigeben oder Änderungswunsch schreiben.
+ */
+export function layoutProofsMail(b: MailBooking, o: { layouts: string[]; screen: boolean; revised: boolean }) {
+  const sie = isSie(b);
+  const url = portalUrl();
+  const n = o.layouts.length;
+  const names = n ? (n > 1 ? `${o.layouts.slice(0, -1).map((l) => `„${l}“`).join(", ")} und „${o.layouts[n - 1]}“` : `„${o.layouts[0]}“`) : "";
+  const thing = n === 0 ? (sie ? "Ihr persönlicher Startbildschirm" : "dein persönlicher Startbildschirm") : n === 1 ? (sie ? "Ihr Layout" : "dein Layout") : sie ? "Ihre Layouts" : "deine Layouts";
+  const title = o.revised
+    ? n > 1 ? (sie ? "Ihre überarbeiteten Layouts sind da" : "Deine überarbeiteten Layouts sind da 🎨") : n === 1 ? (sie ? "Ihr überarbeitetes Layout ist da" : "Dein überarbeitetes Layout ist da 🎨") : sie ? "Ihr überarbeiteter Startbildschirm ist da" : "Dein überarbeiteter Startbildschirm ist da 🎨"
+    : n > 1 ? (sie ? "Ihre Layouts sind da" : "Deine Layouts sind da 🎨") : n === 1 ? (sie ? "Ihr Layout ist da" : "Dein Layout ist da 🎨") : sie ? "Ihr Startbildschirm ist da" : "Dein Startbildschirm ist da 🎨";
+  const date = formatDateGerman(b.event_date);
+  const what = n ? `${thing} ${names}` : thing;
+  const intro = o.revised
+    ? sie
+      ? `wir haben Ihre Änderungswünsche umgesetzt – ${what} für Ihr Event am ${date} ${n > 1 ? "liegen" : "liegt"} jetzt in der neuen Version im Kundenportal für Sie bereit.`
+      : `wir haben deine Änderungswünsche umgesetzt – ${what} für euer Event am ${date} ${n > 1 ? "liegen" : "liegt"} jetzt in der neuen Version im Kundenportal für dich bereit.`
+    : sie
+      ? `wir haben ${what} für Ihr Event am ${date} gestaltet – ${n > 1 ? "sie liegen" : n === 1 ? "es liegt" : "er liegt"} ab sofort zur Ansicht im Kundenportal bereit.`
+      : `wir haben ${what} für euer Event am ${date} gestaltet – ${n > 1 ? "sie liegen" : n === 1 ? "es liegt" : "er liegt"} ab sofort zur Ansicht im Kundenportal bereit.`;
+  const screenLine = n && o.screen ? (sie ? "Außerdem wartet Ihr persönlicher Startbildschirm auf Ihre Freigabe." : "Außerdem wartet dein persönlicher Startbildschirm auf deine Freigabe.") : "";
+  // Knopf-Namen wie im Portal (LayoutProofsSection / PersonalizedScreenWorkflow)
+  const ok = n ? "Layout freigeben" : "Startbildschirm freigeben";
+  const steps = sie
+    ? [`Gefällt Ihnen alles? Dann klicken Sie einfach auf „${ok}“.`, "Sie möchten etwas ändern? Dann auf „Änderungen anfordern“ klicken und Ihren Wunsch dazuschreiben – wir passen es gern an."]
+    : [`Gefällt dir alles? Dann tipp einfach auf „${ok}“.`, "Du möchtest etwas ändern? Dann auf „Änderungen anfordern“ tippen und deinen Wunsch dazuschreiben – wir passen es gern an."];
+  const soon = sie ? "Am besten geben Sie uns in den nächsten Tagen Rückmeldung, damit wir alles rechtzeitig für Ihr Event vorbereiten können." : "Am besten gibst du uns in den nächsten Tagen Rückmeldung, damit wir alles rechtzeitig für euer Event vorbereiten können.";
+  const target = n ? "/dashboard/layout-freigabe" : "/dashboard/startbildschirm";
+  const label = n ? (n > 1 ? "Layouts ansehen" : "Layout ansehen") : "Startbildschirm ansehen";
+  const button = url ? `<p style="margin:22px 0;text-align:center"><a href="${esc(url)}${target}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#a87731;color:#ffffff;text-decoration:none;font-weight:600">${label}</a></p>` : "";
+  const subject = `${title.replace(/ 🎨$/, "")} – ${b.booking_code}`;
+  return {
+    subject,
+    html: layout(
+      esc(title),
+      `<p style="line-height:1.6">${esc(greeting(b))},</p><p style="line-height:1.6">${esc(intro)}</p>${screenLine ? `<p style="line-height:1.6">${esc(screenLine)}</p>` : ""}
+<ul style="margin:12px 0;padding-left:20px;line-height:1.7">${steps.map((s) => `<li>${esc(s)}</li>`).join("")}</ul>${button}
+<p style="line-height:1.6">${esc(soon)}</p>${codeBox(b)}`
+    ),
+    text: `${greeting(b)},\n\n${intro}${screenLine ? `\n\n${screenLine}` : ""}\n\n${steps.map((s) => `– ${s}`).join("\n")}\n\n${url ? `${url}${target}\n\n` : ""}${soon}\n\nZugangscode: ${loginCode(b)}\n\n${BRAND}`,
+  };
+}
+
 /** Per Knopf im Admin: „Deine Fotos/Audios sind da“ – sofort nach dem Hochladen, ohne Bewertungsbitte. */
 export function mediaReadyMail(b: MailBooking, m: MediaReady) {
   const sie = isSie(b);

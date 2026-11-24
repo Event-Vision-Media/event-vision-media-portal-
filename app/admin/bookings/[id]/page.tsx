@@ -2,6 +2,8 @@ import { bookingDevices } from "@/lib/audience";
 import { premiumLayoutIncluded } from "@/lib/catalog";
 import Link from "next/link";
 import { MediaReadyCard } from "@/components/admin/MediaReadyCard";
+import { LayoutProofsNotifyCard } from "@/components/admin/LayoutProofsNotifyCard";
+import { pendingProofs } from "@/lib/layout-proofs-pending";
 import { mediaStatus } from "@/lib/media-ready";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { AdminHeader } from "@/components/admin/AdminHeader";
@@ -134,6 +136,7 @@ export default async function AdminBookingDetailPage(props: {
   const info = booking ? (await loadBookingInfos([booking]))[0] : null;
   const videoGallery = booking ? await getGalleryForBooking(booking.id) : null;
   const videoGalleryItems = videoGallery && !videoGallery.deleted_at ? await galleryItems(videoGallery.id) : [];
+  const proofsPending = booking ? await pendingProofs(booking.id) : null;
   const media = booking ? await mediaStatus(booking) : { photos: false, videos: false, audios: 0, galleryReady: false, photoBooked: false, videoBooked: false, audioBooked: false, informedAt: null };
   // 360°-Betreuung im Portal angefragt und noch nicht eingetragen
   const staffReq = (booking?.inquiry_items as { staffRequest?: StaffRequest | null } | null)?.staffRequest ?? null;
@@ -557,6 +560,16 @@ export default async function AdminBookingDetailPage(props: {
               <h3 className="mb-3 font-medium text-anthracite-800">Neuen Layout-Entwurf hochladen</h3>
               <NewLayoutProofForm bookingId={booking.id} existingLayoutNames={layoutNames} />
             </Card>
+            {proofsPending && (layoutNames.length > 0 || screenProofs.length > 0) && (
+              <LayoutProofsNotifyCard
+                bookingId={booking.id}
+                email={booking.email}
+                layouts={proofsPending.layouts}
+                screen={proofsPending.screen}
+                revised={proofsPending.revised}
+                informedAt={proofsPending.informedAt}
+              />
+            )}
           </div>
         </section>
 
