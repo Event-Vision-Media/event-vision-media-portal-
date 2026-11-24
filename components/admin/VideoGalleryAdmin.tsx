@@ -72,8 +72,14 @@ export function VideoGalleryAdmin({
   const [pending, start] = useTransition();
 
   async function upload(list: FileList | File[] | null) {
-    const files = Array.from(list ?? []).filter((f) => VIDEO_TYPES.includes(f.type));
-    if (!files.length) return setError("Bitte Videos auswählen (MP4, MOV oder WebM).");
+    const all = Array.from(list ?? []).filter((f) => VIDEO_TYPES.includes(f.type));
+    // 360°-Software legt jedes Video zusätzlich als „…_fullSize.MP4“ (HEVC, ~5× größer, spielt nicht überall) ab.
+    // Gibt es die normale Version (in der Auswahl oder schon in der Galerie), wird die fullSize-Datei übersprungen.
+    const known = new Set([...all.map((f) => f.name.toLowerCase()), ...items.map((i) => i.name.toLowerCase())]);
+    const isDouble = (f: File) => /_fullsize(\.[^.]+)$/i.test(f.name) && known.has(f.name.toLowerCase().replace(/_fullsize(\.[^.]+)$/, "$1"));
+    const files = all.filter((f) => !isDouble(f));
+    const skipped = all.length - files.length;
+    if (!files.length) return setError(skipped ? `Nur „_fullSize“-Doppel ausgewählt (${skipped}) – die normalen Versionen sind schon in der Galerie.` : "Bitte Videos auswählen (MP4, MOV oder WebM).");
     setError(null);
     setMsg(null);
     setBusy({ done: 0, total: files.length, current: "Vorschaubilder werden erstellt …" });
@@ -119,7 +125,7 @@ export function VideoGalleryAdmin({
     }
     setBusy(null);
     if (failed.length) setError(`Nicht geklappt: ${failed.slice(0, 5).join(", ")}${failed.length > 5 ? " …" : ""} – bitte diese erneut hochladen.`);
-    setMsg(`${done.length} Video${done.length === 1 ? "" : "s"} hochgeladen.`);
+    setMsg(`${done.length} Video${done.length === 1 ? "" : "s"} hochgeladen.${skipped ? ` ${skipped} „_fullSize“-Doppel übersprungen.` : ""}`);
     router.refresh();
   }
 
