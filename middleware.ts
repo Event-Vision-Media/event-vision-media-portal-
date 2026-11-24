@@ -23,6 +23,10 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
   if (request.nextUrl.pathname.startsWith("/admin")) return updateSession(request);
+  // Galerie-Vorschau: Admin-Anmeldung auffrischen (ohne Umleitung) – nur wenn ein Login-Cookie da ist, Gäste bleiben unberührt
+  if (request.nextUrl.pathname.startsWith("/g/") && request.cookies.getAll().some((c) => c.name.startsWith("sb-"))) {
+    return updateSession(request, { redirectToLogin: false });
+  }
   return NextResponse.next();
 }
 
