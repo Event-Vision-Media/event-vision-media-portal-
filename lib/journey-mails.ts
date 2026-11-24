@@ -13,6 +13,7 @@ import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
 import { vbAddonState } from "@/lib/vb-upsell";
+import { activeVbPromo, vbPrice } from "@/lib/vb-promo";
 import { usesSie } from "@/lib/address";
 import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestbook-game";
 import { gameAccess, gameConfig, type GuestbookGameRow } from "@/lib/guestbook-game-server";
@@ -355,7 +356,14 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     let sent = false;
     if (!dryRun) {
       // VisionBooth als Zusatz empfehlen (nur wenn eingeschaltet und noch keine angelegt)
-      const vbOffer = (await vbAddonState(b)).offer ? (b.customer_type === "business" || b.company ? { price: 149, list: 299 } : { price: 59, list: 129 }) : null;
+      // Während einer Aktion (Black Week): reduzierter Preis, durchgestrichen der normale Zusatz-Preis
+      const vbBase = b.customer_type === "business" || b.company ? { price: 149, list: 299 } : { price: 59, list: 129 };
+      const vbPromo = activeVbPromo();
+      const vbOffer = (await vbAddonState(b)).offer
+        ? vbPromo
+          ? { price: vbPrice(vbBase.price), list: vbBase.price, promo: `${vbPromo.label} −${vbPromo.percent} % · nur bis ${vbPromo.untilLabel}` }
+          : vbBase
+        : null;
       const mail = reminderMail(toMailBooking(b), openSteps, recs, vbOffer);
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {

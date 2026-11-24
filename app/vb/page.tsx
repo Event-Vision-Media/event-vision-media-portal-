@@ -14,7 +14,12 @@ import { LANDLORD } from "@/lib/contract";
 import { ANLASS_ORDER, ANLASS_PAGES } from "@/components/visionbooth/site/anlass-pages";
 import { ReturnBanner } from "@/components/visionbooth/site/ReturnBanner";
 import { VbVisit } from "@/components/visionbooth/site/vbTrack";
+import { VbPromoBanner } from "@/components/visionbooth/site/VbPromoBanner";
+import { vbEuro, vbPrice } from "@/lib/vb-promo";
 
+
+// Aktionspreise (z. B. Black Week) wechseln zeitgesteuert – Seite alle 5 Minuten neu erzeugen
+export const revalidate = 300;
 const SEO_TITLE = "Digitale Fotobox fürs Handy – ohne App, mit KI | VisionBooth";
 const SEO_DESC =
   "Die digitale Fotobox für Hochzeit, Geburtstag & Firmenfeier: Gäste scannen einen QR-Code und fotografieren mit dem eigenen Handy – mit eurem Rahmen, KI-Bildern, Foto-Spielen und gemeinsamer Galerie. Deutschlandweit, ganz ohne App. Ab 79 €.";
@@ -68,7 +73,7 @@ const FAQ = [
   { q: "Was kostet eine digitale Fotobox?", a: "Die VisionBooth gibt es ab 79 € (Classic) bzw. 129 € mit KI-Bildern – als Einmalzahlung, ohne Abo. Für Firmen gibt es das Business-Paket mit Logo ab 299 €." },
 ];
 
-const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+const euro = (n: number) => vbEuro(n);
 
 /** Strukturierte Daten für Google: Organisation, Produkt mit Preisen, häufige Fragen. */
 function jsonLd() {
@@ -95,7 +100,7 @@ function jsonLd() {
         offers: plans.map((p) => ({
           "@type": "Offer",
           name: p.label,
-          price: String(p.price),
+          price: String(vbPrice(p.price)),
           priceCurrency: "EUR",
           availability: "https://schema.org/InStock",
           url: "https://visionbooth.de/vb/buchen",
@@ -156,6 +161,7 @@ export default async function VisionBoothHome() {
       {/* Hero */}
       <section className="relative mx-auto grid max-w-6xl items-center gap-12 px-5 pb-20 pt-6 md:grid-cols-[1.1fr_1fr] md:pt-12">
         <div className="text-center md:text-left">
+          <VbPromoBanner className="mb-4" />
           <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">Die digitale Fotobox fürs Handy · ohne App</span>
           <h1 className="vb-in vb-display mt-5 text-[2.6rem] font-semibold leading-[1.05] sm:text-6xl" style={{ animationDelay: "80ms" }}>
             Jedes Handy wird zur <span className="vb-gold-text">Fotobox</span> – mit KI-Magie.
@@ -165,7 +171,7 @@ export default async function VisionBoothHome() {
           </p>
           <div className="vb-in mt-8 flex flex-col items-center gap-3 sm:flex-row md:justify-start" style={{ animationDelay: "240ms" }}>
             <Link href="/vb/buchen" className="vb-btn w-full rounded-full px-8 py-4 text-center text-[17px] font-bold sm:w-auto">
-              Jetzt buchen – ab {euro(getPlan("party").price)}
+              Jetzt buchen – ab {euro(vbPrice(getPlan("party").price))}
             </Link>
             <a href="/vb/demo" className="vb-glass w-full rounded-full px-8 py-4 text-center text-[16px] font-semibold sm:w-auto">
               Live-Demo am Handy testen

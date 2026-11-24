@@ -3,6 +3,7 @@ import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { IconTile } from "./OccasionIcon";
 import { Reveal } from "./Reveal";
 import { PlanTabs } from "./PlanTabs";
+import { VbPromoBanner } from "./VbPromoBanner";
 import { FrameShowcase } from "./FrameShowcase";
 import { CHALLENGE_SETS } from "@/components/visionbooth/challenges";
 import { getPlan } from "@/components/visionbooth/packages";
@@ -10,7 +11,8 @@ import { LANDLORD } from "@/lib/contract";
 import { ANLASS_ORDER, ANLASS_PAGES, type AnlassPage } from "./anlass-pages";
 import { VbVisit } from "./vbTrack";
 
-const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+import { activeVbPromo, vbEuro, vbPrice } from "@/lib/vb-promo";
+const euro = (n: number) => vbEuro(n);
 export const anlassUrl = (slug: string) => `https://visionbooth.de/${slug}`;
 
 function jsonLd(p: AnlassPage) {
@@ -30,7 +32,7 @@ function jsonLd(p: AnlassPage) {
         description: p.seoDesc,
         provider: { "@id": "https://visionbooth.de/#org" },
         areaServed: "DE",
-        offers: { "@type": "Offer", price: String(getPlan(p.plan).price), priceCurrency: "EUR", url: `https://visionbooth.de/vb/buchen?paket=${p.plan}` },
+        offers: { "@type": "Offer", price: String(vbPrice(getPlan(p.plan).price)), priceCurrency: "EUR", url: `https://visionbooth.de/vb/buchen?paket=${p.plan}` },
       },
       {
         "@type": "FAQPage",
@@ -69,6 +71,7 @@ export function AnlassView({ page: p }: { page: AnlassPage }) {
 
       {/* Hero */}
       <section className="relative mx-auto max-w-4xl px-5 pb-14 pt-6 text-center md:pt-12">
+        <VbPromoBanner className="mb-4" />
         <span className="vb-in vb-glass inline-block rounded-full px-4 py-1.5 text-xs font-semibold text-white/80">{p.eyebrow}</span>
         <h1 className="vb-in vb-display mt-5 text-[2.4rem] font-semibold leading-[1.08] sm:text-6xl" style={{ animationDelay: "80ms" }}>
           {p.h1[0]}
@@ -80,7 +83,8 @@ export function AnlassView({ page: p }: { page: AnlassPage }) {
         <div className="vb-in mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row" style={{ animationDelay: "240ms" }}>
           <Link href={book} className="vb-btn w-full rounded-full px-8 py-4 text-center text-[17px] font-bold sm:w-auto">
             Jetzt buchen – {p.plan === "business" ? "ab " : ""}
-            {euro(plan.price)}
+            {euro(vbPrice(plan.price))}
+            {activeVbPromo() && <span className="ml-1.5 font-normal line-through opacity-60">{euro(plan.price)}</span>}
           </Link>
           <a href="/vb/demo" className="vb-glass w-full rounded-full px-8 py-4 text-center text-[16px] font-semibold sm:w-auto">
             Live-Demo am Handy testen

@@ -29,7 +29,8 @@ const BUSINESS_OCC: VbOccasionId[] = ["firma", "weihnachtsfeier", "messe"];
 const plansFor = (o: VbOccasionId): VbPlanId[] =>
   o === "sonstiges" ? SHOP_PLANS : BUSINESS_OCC.includes(o) ? ["business", "messe"] : ["party", "hochzeit"];
 const STEPS = ["Anlass", "Paket", "Spiele", "Details", "Bezahlen"];
-const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+import { activeVbPromo, vbEuro, vbPrice } from "@/lib/vb-promo";
+const euro = (n: number) => vbEuro(n);
 
 function PayButton({ price }: { price: number }) {
   const { pending } = useFormStatus();
@@ -149,7 +150,10 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
                     </span>
                     <span className="mt-0.5 block text-[13px] text-white/60">{pl.summary}</span>
                   </span>
-                  <span className="vb-display text-xl font-semibold">{euro(pl.price)}</span>
+                  <span className="text-right">
+                    <span className="vb-display block text-xl font-semibold">{euro(vbPrice(pl.price))}</span>
+                    {activeVbPromo() && <span className="block text-xs text-white/45 line-through">{euro(pl.price)}</span>}
+                  </span>
                 </button>
               );
             })}
@@ -332,7 +336,12 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
             <div className="flex items-center justify-between px-5 py-4">
               <span className="font-semibold">Gesamt</span>
               <span className="text-right">
-                <span className="vb-display block text-2xl font-semibold">{euro(p.price)}</span>
+                <span className="vb-display block text-2xl font-semibold">{euro(vbPrice(p.price))}</span>
+                {activeVbPromo() && (
+                  <span className="block text-[12px] font-semibold" style={{ color: "var(--a)" }}>
+                    {activeVbPromo()!.label} −{activeVbPromo()!.percent} % · statt <span className="line-through">{euro(p.price)}</span>
+                  </span>
+                )}
                 <span className="block text-[11px] text-white/45">{vbTaxNote()}</span>
               </span>
             </div>
@@ -362,7 +371,7 @@ export function BookingFlow({ initialPlan, cancelled, testMode }: { initialPlan:
           </label>
           {state.error && <p className="mt-4 rounded-xl bg-red-500/15 px-4 py-3 text-sm text-red-200">{state.error}</p>}
           <div className="mt-5">
-            <PayButton price={p.price} />
+            <PayButton price={vbPrice(p.price)} />
           </div>
           <p className="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-white/45"><OccasionIcon id="lock" className="h-3.5 w-3.5 flex-none" />Sichere Zahlung über Stripe · Karte, Apple Pay, Google Pay, PayPal u. a.</p>
           <p className="mt-1 text-center text-xs text-white/45">Gutschein-Code? Den gibst du auf der nächsten Seite unter „Code hinzufügen“ ein.</p>

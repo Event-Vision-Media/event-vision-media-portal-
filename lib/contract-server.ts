@@ -53,7 +53,7 @@ export async function contractInputFor(booking: Booking) {
       ? supabase.from("layouts").select("extra_price").eq("id", booking.selected_layout_id).maybeSingle()
       : Promise.resolve({ data: null }),
     getBankDetails(),
-    supabase.from("vb_events").select("plan, package").eq("booking_id", booking.id).maybeSingle(),
+    supabase.from("vb_events").select("*").eq("booking_id", booking.id).maybeSingle(),
   ]);
 
   const bookedExtraNames = (bookedExtras ?? []).map((be: any) => be.extras?.name).filter(Boolean) as string[];
@@ -80,7 +80,9 @@ export async function contractInputFor(booking: Booking) {
   // VisionBooth als Zusatz zur Buchung (im Portal dazugebucht oder vom Admin mit Preis angelegt)
   if (vbAddon && vbAddon.package === ADDON_CHARGED) {
     const plan = getPlan(vbAddon.plan);
-    if (plan.kind === "addon" && plan.price > 0) portalFees.push({ name: plan.label, price: plan.price });
+    // addon_price = beim Dazubuchen festgehaltener Preis (z. B. Black Week), sonst Listenpreis
+    const price = vbAddon.addon_price != null ? Number(vbAddon.addon_price) : plan.price;
+    if (plan.kind === "addon" && price > 0) portalFees.push({ name: plan.label, price });
   }
 
   // Auswahl bei im Firmen-Komplett enthaltenen Extras (z. B. Hintergrund-Motiv)

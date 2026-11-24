@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { vbBaseUrl } from "@/lib/visionbooth";
 import { provisionVbEvent } from "@/lib/visionbooth-provision";
 import { getOccasion, getPlan } from "@/components/visionbooth/packages";
+import { vbPromoForOrder } from "@/lib/vb-promo";
 import { issueVbInvoice, type VbBilling } from "@/lib/visionbooth-invoice";
 import { sendEmail, vbAdminOrderMail } from "@/lib/email";
 import { lexwareEnabled } from "@/lib/lexware";
@@ -45,6 +46,7 @@ export interface VbOrder {
   status: "offen" | "wird_eingerichtet" | "bezahlt" | "abgebrochen" | "fehler";
   stripe_session_id: string | null;
   vb_event_id: string | null;
+  created_at?: string;
 }
 
 export const stripeReady = () => Boolean(process.env.STRIPE_SECRET_KEY);
@@ -64,11 +66,20 @@ async function stripe(path: string, params?: Record<string, string>) {
   return data;
 }
 
+/** Name der Aktion, die bei der Bestellung galt (für Mails), z. B. „Black Week −50 %“. */
+function promoName(order: VbOrder): string | undefined {
+  const p = order.created_at ? vbPromoForOrder(new Date(order.created_at)) : null;
+  return p ? `${p.label} −${p.percent} %` : undefined;
+}
+
 /** Checkout-Seite bei Stripe öffnen; gibt die Weiterleitungs-URL zurück. */
 export async function createCheckout(order: VbOrder): Promise<string> {
   const plan = getPlan(order.plan);
   const occ = getOccasion(order.occasion);
   const base = vbBaseUrl();
+  // Aktion (z. B. Black Week): zählt der Zeitpunkt der Bestellung – auch wenn erst später bezahlt wird
+  const promo = vbPromoForOrder(order.created_at ? new Date(order.created_at) : new Date());
+  const unitCents = promo ? Math.round((order.amount_cents * (100 - promo.percent)) / 100) : order.amount_cents;
   const session = await stripe("checkout/sessions", {
     mode: "payment",
     locale: "de",
@@ -80,8 +91,8 @@ export async function createCheckout(order: VbOrder): Promise<string> {
     "payment_intent_data[metadata][order_id]": order.id,
     "line_items[0][quantity]": "1",
     "line_items[0][price_data][currency]": "eur",
-    "line_items[0][price_data][unit_amount]": String(order.amount_cents),
-    "line_items[0][price_data][product_data][name]": `VisionBooth ${plan.label}`,
+    "line_items[0][price_data][unit_amount]": String(unitCents),
+    "line_items[0][price_data][product_data][name]": `VisionBooth ${plan.label}${promo ? ` – ${promo.label} −${promo.percent} %` : ""}`,
     "line_items[0][price_data][product_data][description]": `${occ.label}${order.event_date ? ` am ${new Date(order.event_date).toLocaleDateString("de-DE")}` : ""} – ${plan.summary}`,
     // Rabattcodes (z. B. 100 % für Testkunden) – werden im Stripe-Dashboard angelegt
     allow_promotion_codes: "true",
@@ -152,7 +163,7 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
     sendMail: true,
     // Gratis-Testbuchung (100-%-Code): KI-Kontingent begrenzen – im Admin jederzeit erhöhbar
     ...(paidCents === 0 ? { aiLimitCap: FREE_AI_LIMIT } : {}),
-    order: { plan: getPlan(order.plan).label, price: paidCents / 100, listPrice: paidCents < order.amount_cents ? order.amount_cents / 100 : undefined, orderNo: order.id.slice(0, 8).toUpperCase() },
+    order: { plan: getPlan(order.plan).label, price: paidCents / 100, listPrice: paidCents < order.amount_cents ? order.amount_cents / 100 : undefined, promo: promoName(order), orderNo: order.id.slice(0, 8).toUpperCase() },
   });
   if ("error" in res) {
     await supabase.from("vb_orders").update({ status: "fehler" }).eq("id", order.id);
@@ -178,6 +189,7 @@ export async function fulfillOrder(sessionId: string): Promise<{ order: VbOrder 
         company: order.company,
         paidEur: paidCents / 100,
         listEur: order.amount_cents / 100,
+        promo: promoName(order),
         adminUrl: `${portal}/admin/visionbooth/bestellungen`,
         manageUrl: res.manageUrl ?? null,
         invoice: lexwareEnabled(),

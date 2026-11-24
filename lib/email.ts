@@ -346,7 +346,7 @@ export function declineMail(b: MailBooking, reason: string | null) {
 }
 
 /** Erinnerung ca. 4 Wochen vor dem Event (bei kurzfristigen Buchungen später): offene Schritte + passende Extras. */
-export function reminderMail(b: MailBooking, openSteps: string[], recs: { name: string; priceLabel: string }[], vbOffer: { price: number; list: number } | null = null) {
+export function reminderMail(b: MailBooking, openSteps: string[], recs: { name: string; priceLabel: string }[], vbOffer: { price: number; list: number; promo?: string } | null = null) {
   const sie = isSie(b);
   const url = portalUrl();
   const date = formatDateGerman(b.event_date);
@@ -374,9 +374,9 @@ ${recs.map((r) => `<p style="margin:4px 0">${esc(r.name)} – <strong>${esc(r.pr
 }
 
 /** Erinnerungsmail: Empfehlung „Jeder Gast wird zur Fotobox“ (VisionBooth als Zusatz im Portal). */
-function vbOfferBlock(sie: boolean, o: { price: number; list: number }): string {
+function vbOfferBlock(sie: boolean, o: { price: number; list: number; promo?: string }): string {
   return `<div style="margin-top:22px;padding:18px;border-radius:14px;background:#0d0d10;color:#f3eee5">
-<div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#dcb56a;font-weight:600">Neu · nur für Event-Vision-Kunden</div>
+<div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#dcb56a;font-weight:600">${esc(o.promo ?? "Neu · nur für Event-Vision-Kunden")}</div>
 <div style="margin-top:6px;font-family:Georgia,serif;font-size:19px;color:#ffffff">Jeder Gast wird zur Fotobox</div>
 <p style="margin:8px 0 0;font-size:14px;line-height:1.6;color:rgba(243,238,229,.8)">${sie ? "Ihre Gäste scannen einen QR-Code und fotografieren mit dem eigenen Handy im Rahmen Ihres Events – alle Bilder landen in einer gemeinsamen Galerie." : "Eure Gäste scannen einen QR-Code und machen mit dem eigenen Handy Fotos mit eurem Rahmen – alle Bilder landen in einer gemeinsamen Galerie, auch abseits der Fotobox."}</p>
 <p style="margin:10px 0 0;font-size:15px"><strong style="color:#f0d595">${esc(euro2(o.price))}</strong> <span style="color:rgba(243,238,229,.5);text-decoration:line-through">${esc(euro2(o.list))}</span> <span style="font-size:13px;color:rgba(243,238,229,.6)">· mit einem Klick im Kundenportal dazubuchbar, Zahlung mit dem Restbetrag</span></p>
@@ -1060,14 +1060,16 @@ ${i.notes.length ? `<div style="margin-top:4px;color:${i.warn ? "#9a3412" : i.ki
 export interface VbOrderConfirmation {
   plan: string;
   price: number;
-  /** Listenpreis, falls ein Rabattcode eingelöst wurde */
+  /** Listenpreis, falls ein Rabattcode eingelöst wurde bzw. eine Aktion lief */
   listPrice?: number;
+  /** Name der Aktion (z. B. „Black Week −50 %“), sonst Rabattcode */
+  promo?: string;
   orderNo: string;
 }
 
 function vbContractBlock(c: VbOrderConfirmation): { html: string; text: string } {
   const fmt = (n: number) => n.toLocaleString("de-DE", { style: "currency", currency: "EUR" });
-  const eur = c.listPrice != null ? `${fmt(c.price)} (statt ${fmt(c.listPrice)} – Gutschein eingelöst)` : fmt(c.price);
+  const eur = c.listPrice != null ? `${fmt(c.price)} (statt ${fmt(c.listPrice)} – ${c.promo ?? "Gutschein eingelöst"})` : fmt(c.price);
   const para = (t: string) => `<p style="margin:6px 0;line-height:1.5">${esc(t)}</p>`;
   const sections = VB_WIDERRUF.map((s) => `<p style="margin:14px 0 4px;font-weight:600">${esc(s.title)}</p>${s.blocks.map((b) => (typeof b === "string" ? para(b) : "")).join("")}`).join("");
   const form = VB_WIDERRUF_FORM.map((l, i) => (i === 0 ? `<p style="margin:14px 0 4px;font-weight:600">${esc(l)}</p>` : para(l))).join("");
@@ -1411,13 +1413,15 @@ export function vbAdminOrderMail(o: {
   company: string | null;
   paidEur: number;
   listEur: number;
+  /** Name der Aktion (z. B. „Black Week −50 %“) */
+  promo?: string;
   adminUrl: string;
   manageUrl: string | null;
   /** Lexware-Rechnungen eingeschaltet? */
   invoice?: boolean;
 }) {
   const free = o.paidEur === 0;
-  const price = free ? `0 € (Gratis-Code, statt ${formatEuro(o.listEur)})` : o.paidEur < o.listEur ? `${formatEuro(o.paidEur)} (mit Rabattcode, statt ${formatEuro(o.listEur)})` : formatEuro(o.paidEur);
+  const price = free ? `0 € (Gratis-Code, statt ${formatEuro(o.listEur)})` : o.paidEur < o.listEur ? `${formatEuro(o.paidEur)} (${o.promo ?? "mit Rabattcode"}, statt ${formatEuro(o.listEur)})` : formatEuro(o.paidEur);
   const date = o.eventDate ? formatDateGerman(o.eventDate) : "ohne Datum";
   const rows: [string, string][] = [
     ["Event", o.title],

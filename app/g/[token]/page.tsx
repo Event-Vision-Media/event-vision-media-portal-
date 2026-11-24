@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { galleryItems, galleryState, getGalleryByToken } from "@/lib/event-gallery-server";
 import { GALLERY_DAYS } from "@/lib/event-gallery";
 import { isAdminAuthenticated } from "@/lib/require-admin";
+import { activeVbPromo, vbEuro, vbPrice } from "@/lib/vb-promo";
 
 export const dynamic = "force-dynamic";
 
@@ -38,6 +39,7 @@ export default async function GalleryPage(props: { params: Promise<{ token: stri
   ]);
   if (g && state === "online" && !isAdmin) await supabase.from("event_galleries").update({ views: (g.views ?? 0) + 1 }).eq("id", g.id);
   const reviewUrl = (review?.value as string | undefined) || null;
+  const vbPromo = activeVbPromo();
   // Titel „Anlass · Datum“ → Datum klein über die Überschrift, damit mobil nichts unschön umbricht
   const [titleMain, titleDate] = (() => {
     const t = g?.title ?? "";
@@ -110,7 +112,7 @@ export default async function GalleryPage(props: { params: Promise<{ token: stri
           <a href="https://visionbooth.de/?von=galerie" className="rounded-3xl border border-gold-200 bg-gradient-to-br from-white to-gold-50 p-6 shadow-card transition hover:-translate-y-0.5 sm:col-span-2">
             <p className="text-[11px] font-semibold uppercase tracking-[0.25em] text-gold-700">Neu · VisionBooth</p>
             <p className="mt-2 font-serif text-xl font-semibold text-anthracite-800">Jedes Handy wird zur Fotobox</p>
-            <p className="mt-1 text-sm text-anthracite-500">QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und mit allen teilen – ganz ohne App. Ab 79 €.</p>
+            <p className="mt-1 text-sm text-anthracite-500">QR-Code scannen, Foto mit eurem Rahmen machen, mit KI verwandeln und mit allen teilen – ganz ohne App. {vbPromo ? `${vbPromo.label}: ab ${vbEuro(vbPrice(79))} statt 79 €.` : "Ab 79 €."}</p>
             <span className="mt-4 inline-block text-sm font-semibold text-gold-700">VisionBooth entdecken →</span>
           </a>
         </section>

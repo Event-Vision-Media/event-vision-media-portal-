@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { bookVbAddon } from "@/app/actions/vb-addon";
 import { OccasionIcon } from "@/components/visionbooth/site/OccasionIcon";
 
-const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+import { activeVbPromo, vbEuro as euro, vbPrice } from "@/lib/vb-promo";
 const START_NOW =
   "Bitte sofort einrichten: Ich möchte, dass ihr meine VisionBooth direkt einrichtet – also schon vor Ablauf der 14-tägigen Widerrufsfrist. Mir ist klar, dass mein Widerrufsrecht erlischt, sobald alles vollständig erbracht ist, und dass ich bei einem früheren Widerruf anteilig zahle.";
 
@@ -28,12 +28,15 @@ export function VbAddonCard({
   dateLabel: string;
 }) {
   const s = sie;
-  const options: Option[] = firma
+  const baseOptions: Option[] = firma
     ? [{ id: "addon-firma", title: s ? "VisionBooth für Ihr Event" : "VisionBooth für euer Event", price: 149, list: 299, points: [s ? "Ihr Logo im Foto-Rahmen" : "Euer Logo im Foto-Rahmen", s ? "200 KI-Bilder für Ihre Gäste" : "200 KI-Bilder für eure Gäste", "Foto-Missionen für Teams, Foto-Wand optional"] }]
     : [
         { id: "addon-privat-ki", title: "Mit KI-Bildern", price: 59, list: 129, tag: "Beliebt", points: ["Alles aus „Ohne KI“", s ? "100 KI-Verwandlungen für Ihre Gäste" : "100 KI-Verwandlungen für eure Gäste"] },
         { id: "addon-privat", title: "Ohne KI", price: 39, list: 79, points: [s ? "Fotos mit Ihrem Rahmen" : "Fotos mit eurem Rahmen", "Galerie & Spiele, Foto-Wand optional"] },
       ];
+  // Aktion (z. B. Black Week): reduzierter Preis, durchgestrichen der normale Zusatz-Preis
+  const promo = activeVbPromo();
+  const options: Option[] = promo ? baseOptions.map((o) => ({ ...o, price: vbPrice(o.price), list: o.price })) : baseOptions;
   const [choice, setChoice] = useState(options[0].id);
   const [startNow, setStartNow] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +79,7 @@ export function VbAddonCard({
       <div className="pointer-events-none absolute -right-20 -top-20 h-56 w-56 rounded-full bg-[#c9a04e]/25 blur-3xl" aria-hidden />
       <div className="relative">
         <p className="inline-flex items-center gap-2 rounded-full border border-[#dcb56a]/30 bg-[#dcb56a]/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#dcb56a]">
-          Neu · {t("Nur für Event-Vision-Kunden", "Exklusiv für Event-Vision-Kunden")}
+          {promo ? `${promo.label} −${promo.percent} % · nur bis ${promo.untilLabel}` : <>Neu · {t("Nur für Event-Vision-Kunden", "Exklusiv für Event-Vision-Kunden")}</>}
         </p>
         <h2 className="mt-3 font-serif text-2xl font-semibold leading-snug sm:text-[1.7rem]">Jeder Gast wird zur Fotobox</h2>
         <p className="mt-2 text-sm leading-relaxed text-white/70">

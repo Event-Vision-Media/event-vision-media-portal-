@@ -8,6 +8,7 @@ import { logActivity } from "@/lib/activity-log";
 import { daysUntil } from "@/lib/catalog";
 import { ADDON_CHARGED, getPlan, guessOccasion, type VbPlanId } from "@/components/visionbooth/packages";
 import { vbUpsellLive } from "@/lib/vb-upsell";
+import { vbEuro, vbPrice, vbPromoForOrder } from "@/lib/vb-promo";
 
 const ALLOWED: VbPlanId[] = ["addon-privat", "addon-privat-ki", "addon-firma"];
 
@@ -44,10 +45,17 @@ export async function bookVbAddon(planId: string, startNow: boolean): Promise<{ 
   });
   if ("error" in res) return { error: "Das hat leider nicht geklappt. Bitte versuch es gleich noch einmal oder melde dich bei uns." };
   await supabase.from("vb_events").update({ package: ADDON_CHARGED }).eq("id", res.id);
+  // Aktion (z. B. Black Week): reduzierten Preis festhalten – zählt dauerhaft für Vertrag und Restbetrag
+  const promo = vbPromoForOrder();
+  const price = vbPrice(plan.price, new Date(), promo);
+  if (promo) {
+    const { error } = await supabase.from("vb_events").update({ addon_price: price }).eq("id", res.id);
+    if (error) console.error("VisionBooth-Zusatz: Aktionspreis nicht gespeichert", res.id, error.message);
+  }
   await logActivity(
     b.id,
     "vb_zusatz",
-    `📱 Kunde hat die VisionBooth dazugebucht: ${plan.label} für ${plan.price} € – kommt zum Restbetrag/Nachzahlung${!firma ? " · Zustimmung zum sofortigen Beginn erteilt" : ""}`
+    `📱 Kunde hat die VisionBooth dazugebucht: ${plan.label} für ${vbEuro(price)}${promo ? ` (${promo.label} −${promo.percent} %, statt ${vbEuro(plan.price)})` : ""} – kommt zum Restbetrag/Nachzahlung${!firma ? " · Zustimmung zum sofortigen Beginn erteilt" : ""}`
   );
   revalidatePath("/dashboard");
   return { success: true, manageUrl: res.manageUrl };

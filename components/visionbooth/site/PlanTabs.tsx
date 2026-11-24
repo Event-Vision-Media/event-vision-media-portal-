@@ -7,7 +7,8 @@ import { getPlan, vbTaxNote, type VbPlanId } from "@/components/visionbooth/pack
 
 // Pakete getrennt nach Privat- und Business-Kunden – jeder sieht nur, was zu ihm passt, mit den passenden Vorteilen.
 
-const euro = (n: number) => `${n.toLocaleString("de-DE")} €`;
+import { activeVbPromo, vbEuro, vbPrice } from "@/lib/vb-promo";
+const euro = (n: number) => vbEuro(vbPrice(n));
 
 const GROUPS = {
   privat: {
@@ -42,6 +43,7 @@ const GROUPS = {
 export function PlanTabs({ initial = "privat" }: { initial?: "privat" | "business" } = {}) {
   const [tab, setTab] = useState<"privat" | "business">(initial);
   const g = GROUPS[tab];
+  const promo = activeVbPromo();
   return (
     <div>
       <div className="mx-auto mt-8 flex w-fit rounded-full bg-white/10 p-1.5" role="tablist">
@@ -90,7 +92,11 @@ export function PlanTabs({ initial = "privat" }: { initial?: "privat" | "busines
                   </span>
                 )}
                 <p className="text-lg font-bold">{p.label}</p>
-                <p className="vb-display mt-2 text-4xl font-semibold">{euro(p.price)}</p>
+                <p className="vb-display mt-2 text-4xl font-semibold">
+                  {euro(p.price)}
+                  {promo && <span className="ml-2 align-middle text-lg font-normal text-white/45 line-through">{vbEuro(p.price)}</span>}
+                </p>
+                {promo && <p className="mt-1 text-xs font-bold" style={{ color: "var(--a)" }}>{promo.label} −{promo.percent} % · nur bis {promo.untilLabel}</p>}
                 <ul className="mt-5 flex-1 space-y-2 text-[14px] text-white/75">
                   {c.points.map((pt) => (
                     <li key={pt} className="flex gap-2">
@@ -111,7 +117,7 @@ export function PlanTabs({ initial = "privat" }: { initial?: "privat" | "busines
           <>
           <p className="mx-auto mt-6 max-w-xl rounded-2xl bg-white/5 px-4 py-3 text-center text-sm text-white/70">
             Eine klassische Fotobox kostet oft mehrere hundert Euro. Die VisionBooth gibt&apos;s ab {euro(getPlan("party").price)} – bei 100 Gästen sind das beim Paket „Premium mit KI“ nur{" "}
-            {(getPlan("hochzeit").price / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
+            {(vbPrice(getPlan("hochzeit").price) / 100).toLocaleString("de-DE", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} € pro Gast.
           </p>
           <p className="mx-auto mt-4 max-w-xl text-center text-sm text-white/55">
             Ihr mietet bei uns schon eine Fotobox oder einen Fotospiegel? Dann gibt&apos;s die VisionBooth als Add-on ab {euro(getPlan("addon-privat").price)} –{" "}

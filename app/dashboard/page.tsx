@@ -238,7 +238,7 @@ export default async function DashboardPage() {
     : { count: 0 };
   // Dazugebuchte VisionBooth (nicht geschenkt) in „Eure Buchung“ mit aufführen
   const vbPlan = vbAddon.existing && !vbAddon.existing.free ? getPlan(vbAddon.existing.plan) : null;
-  const vbAddonLine = vbPlan && vbPlan.kind === "addon" ? [{ name: vbPlan.label, price: vbPlan.price }] : [];
+  const vbAddonLine = vbPlan && vbPlan.kind === "addon" ? [{ name: vbPlan.label, price: vbAddon.existing?.price ?? vbPlan.price }] : [];
 
   return (
     <div className="min-h-screen">
