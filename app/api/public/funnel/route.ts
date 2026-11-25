@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { allowedOrigins } from "@/lib/public-cors";
-import { FUNNEL_STEPS } from "@/lib/funnel";
+import { FUNNEL_DETAIL_STEPS, FUNNEL_STEPS } from "@/lib/funnel";
 
 export const dynamic = "force-dynamic";
 
@@ -24,14 +24,20 @@ export async function POST(req: NextRequest) {
     return new NextResponse(null, { status: 400 });
   }
   const step = String(body?.s ?? "");
-  if (!(FUNNEL_STEPS as readonly string[]).includes(step)) return new NextResponse(null, { status: 400 });
+  if (![...FUNNEL_STEPS, ...FUNNEL_DETAIL_STEPS].includes(step as never)) return new NextResponse(null, { status: 400 });
   const channel = body?.c === "ads" ? "ads" : "sonst";
+  // Detail: Gerät (spiegel, fotobox, 360 …) bzw. Herkunftsseite (fotospiegel-mieten.html) – nichts Persönliches
+  const detail = typeof body?.d === "string" ? body.d.replace(/[^a-z0-9._+\-]/gi, "").slice(0, 60) || null : null;
 
-  await createAdminClient().from("funnel_events").insert({
+  const row: Record<string, string | null> = {
     step,
     channel,
     campaign: channel === "ads" ? clean(body?.k, 60) || null : null,
     page: clean(body?.p, 80) || null,
-  });
+  };
+  const sb = createAdminClient();
+  const { error } = await sb.from("funnel_events").insert(detail ? { ...row, detail } : row);
+  // Falls die Spalte „detail“ (SQL 0039) noch fehlt: Ereignis trotzdem zählen
+  if (error && detail) await sb.from("funnel_events").insert(row);
   return new NextResponse(null, { status: 204 });
 }

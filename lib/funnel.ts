@@ -35,3 +35,10 @@ export const FUNNEL_LABELS: Record<FunnelStep, string> = {
 
 /** Zusatzzeilen unter dem Trichter (keine Trichter-Schritte). */
 export const FUNNEL_EXTRAS = ["whatsapp", "telefon", "cookie_ok", "cookie_nein"] as const;
+
+/**
+ * Zusatz-Ereignisse mit Detail (Gerät bzw. Herkunftsseite) – nicht Teil des Trichters,
+ * eigene Auswertung „Termin-Check & Herkunft“ in der Statistik.
+ */
+export const FUNNEL_DETAIL_STEPS = ["termin_frei", "termin_kurz", "termin_belegt", "formular_belegt"] as const;
+export type FunnelDetailStep = (typeof FUNNEL_DETAIL_STEPS)[number];

@@ -7,7 +7,7 @@ import { formatCurrencyEUR } from "@/lib/format";
 import type { Booking } from "@/lib/types";
 import { getAdSpend, isPaidGoogle } from "@/lib/ads";
 import { PRODUCT_LABELS, type DeviceKey } from "@/lib/catalog";
-import { FUNNEL_EXTRAS, FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
+import { FUNNEL_DETAIL_STEPS, FUNNEL_EXTRAS, FUNNEL_LABELS, FUNNEL_STEPS } from "@/lib/funnel";
 import { VB_FUNNEL_LABELS, VB_FUNNEL_MAIN, VB_SOURCES, VB_SOURCE_LABELS } from "@/lib/vb-funnel";
 import { AdSpendForm } from "@/components/admin/AdSpendForm";
 import { DIRECT_CHANNELS, directChannelLabel, isDirectBooking } from "@/lib/direct-channels";
@@ -187,10 +187,51 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
     : quick ? `letzte ${FUNNEL_QUICK[quick]}` : RANGES[range].label;
   // seitenweise – vorher wurden ab 1.000 Ereignissen stillschweigend nur die ersten 1.000 gezählt
   const funnelRows = await fetchAll((from, to) => {
-    let q = createAdminClient().from("funnel_events").select("id, step, channel").gte("created_at", funnelSince);
+    let q = createAdminClient().from("funnel_events").select("id, step, channel, page").gte("created_at", funnelSince);
     if (funnelUntil) q = q.lt("created_at", funnelUntil);
     return q.order("id").range(from, to);
   });
+  // Termin-Check-Ergebnis je Gerät und Herkunftsseite des Formulars (Spalte „detail“, erfasst ab 25.11.2026)
+  let detailRows: { step: string; channel: string; detail: string | null }[] = [];
+  let detailMissing = false;
+  try {
+    detailRows = await fetchAll((from, to) => {
+      let q = createAdminClient().from("funnel_events").select("id, step, channel, detail").in("step", [...FUNNEL_DETAIL_STEPS, "formular"]).not("detail", "is", null).gte("created_at", funnelSince);
+      if (funnelUntil) q = q.lt("created_at", funnelUntil);
+      return q.order("id").range(from, to);
+    });
+  } catch {
+    detailMissing = true; // SQL 0039 noch nicht ausgeführt
+  }
+  const normPage = (p: string | null | undefined) => (p ?? "").replace(/^\//, "").replace(/[?#].*$/, "") || "index.html";
+  const DEVICE_ORDER = ["spiegel", "fotobox", "360", "audio", "love"] as const;
+  const termin = new Map<string, { frei: number; kurz: number; belegt: number; formBelegt: number }>(DEVICE_ORDER.map((d) => [d, { frei: 0, kurz: 0, belegt: 0, formBelegt: 0 }]));
+  for (const r of detailRows) {
+    for (const dev of (r.detail ?? "").split("+")) {
+      const t = termin.get(dev);
+      if (!t) continue;
+      if (r.step === "termin_frei") t.frei++;
+      else if (r.step === "termin_kurz") t.kurz++;
+      else if (r.step === "termin_belegt") t.belegt++;
+      else if (r.step === "formular_belegt") t.formBelegt++;
+    }
+  }
+  const terminTotal = [...termin.values()].reduce((s, t) => s + t.frei + t.kurz + t.belegt + t.formBelegt, 0);
+  // Landeseite → Formular → Anfrage
+  const landing = new Map<string, { ads: number; sonst: number; form: number; formAds: number; inq: number }>();
+  const land = (p: string) => landing.get(p) ?? landing.set(p, { ads: 0, sonst: 0, form: 0, formAds: 0, inq: 0 }).get(p)!;
+  for (const r of funnelRows) if (r.step === "einstieg") land(normPage(r.page))[r.channel === "ads" ? "ads" : "sonst"]++;
+  for (const r of detailRows) if (r.step === "formular") {
+    const l = land(normPage(r.detail));
+    l.form++;
+    if (r.channel === "ads") l.formAds++;
+  }
+  const funnelFrom = Date.parse(funnelSince), funnelTo = funnelUntil ? Date.parse(funnelUntil) : Infinity;
+  for (const b of all) {
+    const t = Date.parse(b.created_at);
+    if (t >= funnelFrom && t < funnelTo && b.inquiry_items?.source?.page) land(normPage(b.inquiry_items.source.page)).inq++;
+  }
+  const landingRows = [...landing.entries()].filter(([p, l]) => p !== "anfrage.html" || l.form || l.inq).sort((a, b) => b[1].ads + b[1].sonst - (a[1].ads + a[1].sonst)).slice(0, 15);
   const funnelHref = (extra: Record<string, string>) => `/admin/statistik?${new URLSearchParams({ zeitraum: range, ...extra }).toString()}#trichter`;
   const funnel = new Map<string, { ads: number; sonst: number }>(FUNNEL_STEPS.map((k) => [k, { ads: 0, sonst: 0 }]));
   for (const r of funnelRows ?? []) {
@@ -409,6 +450,79 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
                 ))}
               </tbody>
             </table>
+          )}
+        </Card>
+
+        <Card className="mt-6 scroll-mt-6" id="termine">
+          <h2 className="font-serif text-lg font-semibold text-anthracite-800">Termin-Check &amp; Herkunft der Anfragen</h2>
+          <p className="mt-1 text-xs text-anthracite-500">
+            Gleicher Zeitraum wie der Trichter ({funnelLabel}). Anonym gezählt, erfasst ab 25.11.2026 – je Besucher und Seitenaufruf einmal.
+          </p>
+          {detailMissing ? (
+            <p className="mt-4 text-sm text-amber-700">Noch nicht aktiv – bitte SQL 0039 (funnel_events.detail) in Supabase ausführen.</p>
+          ) : (
+            <div className="mt-4 grid gap-6 lg:grid-cols-2">
+              <div>
+                <h3 className="text-sm font-semibold text-anthracite-800">„Termin prüfen“: Ergebnis je Gerät</h3>
+                <p className="mt-0.5 text-xs text-anthracite-400">„Belegt“ = Besucher hat einen schon gebuchten Termin gesehen – mögliche verlorene Kunden.</p>
+                {terminTotal === 0 ? (
+                  <p className="mt-3 text-sm text-anthracite-400">Noch keine Daten in diesem Zeitraum.</p>
+                ) : (
+                  <table className="mt-3 w-full text-sm">
+                    <thead className="text-left text-xs text-anthracite-400">
+                      <tr><th className="pb-2 font-medium">Gerät</th><th className="pb-2 text-right font-medium">frei</th><th className="pb-2 text-right font-medium">kurzfristig</th><th className="pb-2 text-right font-medium">belegt</th><th className="pb-2 text-right font-medium" title="Im Anfrageformular (Schritt 4) war der Wunschtermin schon belegt">im Formular belegt</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-anthracite-50">
+                      {DEVICE_ORDER.map((d) => {
+                        const t = termin.get(d)!;
+                        const checked = t.frei + t.kurz + t.belegt;
+                        if (!checked && !t.formBelegt) return null;
+                        return (
+                          <tr key={d}>
+                            <td className="py-1.5 text-anthracite-700">{PRODUCT_LABELS[d as DeviceKey] ?? d}</td>
+                            <td className="py-1.5 text-right">{t.frei}</td>
+                            <td className="py-1.5 text-right">{t.kurz}</td>
+                            <td className={`py-1.5 text-right ${t.belegt ? "font-semibold text-red-600" : ""}`}>
+                              {t.belegt}
+                              {checked ? <span className="ml-1 text-xs font-normal text-anthracite-400">({pct(t.belegt, checked)})</span> : null}
+                            </td>
+                            <td className="py-1.5 text-right">{t.formBelegt}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-anthracite-800">Landeseite → Formular → Anfrage</h3>
+                <p className="mt-0.5 text-xs text-anthracite-400">Besucher, die auf dieser Seite angekommen sind, wie oft von dort das Formular geöffnet wurde und wie viele Anfragen über diese Seite kamen.</p>
+                {landingRows.length === 0 ? (
+                  <p className="mt-3 text-sm text-anthracite-400">Noch keine Daten in diesem Zeitraum.</p>
+                ) : (
+                  <table className="mt-3 w-full text-sm">
+                    <thead className="text-left text-xs text-anthracite-400">
+                      <tr><th className="pb-2 font-medium">Seite</th><th className="pb-2 text-right font-medium">Besucher</th><th className="pb-2 text-right font-medium">davon Ads</th><th className="pb-2 text-right font-medium">Formular</th><th className="pb-2 text-right font-medium">Anfragen</th></tr>
+                    </thead>
+                    <tbody className="divide-y divide-anthracite-50">
+                      {landingRows.map(([p, l]) => (
+                        <tr key={p}>
+                          <td className="py-1.5 text-anthracite-700">{pageLabel(p)}</td>
+                          <td className="py-1.5 text-right">{l.ads + l.sonst}</td>
+                          <td className="py-1.5 text-right text-anthracite-500">{l.ads}</td>
+                          <td className="py-1.5 text-right">
+                            {l.form}
+                            {l.ads + l.sonst ? <span className="ml-1 text-xs text-anthracite-400">({pct(l.form, l.ads + l.sonst)})</span> : null}
+                          </td>
+                          <td className="py-1.5 text-right font-medium">{l.inq}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+                <p className="mt-2 text-xs text-anthracite-400">„Formular“ zählt erst ab 25.11.2026; Besucher, die erst eine zweite Seite ansehen, werden bei der Seite gezählt, von der sie ins Formular gehen.</p>
+              </div>
+            </div>
           )}
         </Card>
 
