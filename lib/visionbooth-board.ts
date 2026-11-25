@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { parseChallenges } from "@/components/visionbooth/challenges";
 import { VB_BUCKET, type VbEvent } from "@/lib/visionbooth";
 
@@ -27,8 +28,8 @@ export async function vbBoard(event: VbEvent, guestKey: string | null, limit = 1
   const supabase = createAdminClient();
   const challenges = new Map(parseChallenges(event.challenges).map((c) => [c.id, c]));
   const [{ data: rows }, { data: guests }, { data: liked }] = await Promise.all([
-    supabase.from("vb_photos").select("guest_key, challenge_id").eq("event_id", event.id).eq("hidden", false).not("challenge_id", "is", null).limit(20000),
-    supabase.from("vb_guests").select("guest_key, name").eq("event_id", event.id).limit(5000),
+    fetchAll((f, t) => supabase.from("vb_photos").select("id, guest_key, challenge_id").eq("event_id", event.id).eq("hidden", false).not("challenge_id", "is", null).order("id").range(f, t)).then((data) => ({ data })),
+    fetchAll((f, t) => supabase.from("vb_guests").select("guest_key, name").eq("event_id", event.id).order("guest_key").range(f, t)).then((data) => ({ data })),
     supabase.from("vb_photos").select("id, file_path, thumb_path, likes").eq("event_id", event.id).eq("hidden", false).gt("likes", 0).order("likes", { ascending: false }).order("created_at").limit(1),
   ]);
 

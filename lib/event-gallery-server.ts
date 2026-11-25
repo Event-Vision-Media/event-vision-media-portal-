@@ -1,6 +1,7 @@
 import "server-only";
 import { randomBytes } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { GALLERY_BUCKET, GALLERY_DAYS, type GalleryItemView } from "@/lib/event-gallery";
 import type { Booking } from "@/lib/types";
 
@@ -96,7 +97,7 @@ export async function cleanupExpiredGalleries(dryRun = false): Promise<{ gallery
   const { data: due } = await supabase.from("event_galleries").select("id, token").is("deleted_at", null).not("expires_at", "is", null).lt("expires_at", cutoff).limit(50);
   const out: { gallery: string; files: number }[] = [];
   for (const g of due ?? []) {
-    const { data: items } = await supabase.from("event_gallery_items").select("file_path, thumb_path").eq("gallery_id", g.id).limit(2000);
+    const items = await fetchAll((f, t) => supabase.from("event_gallery_items").select("id, file_path, thumb_path").eq("gallery_id", g.id).order("id").range(f, t));
     const paths = (items ?? []).flatMap((i) => [i.file_path, i.thumb_path].filter(Boolean) as string[]);
     if (!dryRun) {
       for (let k = 0; k < paths.length; k += 500) await supabase.storage.from(GALLERY_BUCKET).remove(paths.slice(k, k + 500));

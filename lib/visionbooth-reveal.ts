@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { parseReveal, type RevealState } from "@/components/visionbooth/reveal";
 import type { VbEvent } from "@/lib/visionbooth";
 
@@ -8,7 +9,7 @@ export async function vbRevealState(event: VbEvent, guestKey: string | null): Pr
   const cfg = parseReveal(event.reveal);
   if (!cfg.enabled) return null;
   const supabase = createAdminClient();
-  const { data: tips } = await supabase.from("vb_tips").select("guest_key, choice").eq("event_id", event.id).limit(10000);
+  const tips = await fetchAll((f, t) => supabase.from("vb_tips").select("guest_key, choice").eq("event_id", event.id).order("guest_key").range(f, t));
   const counts = { a: 0, b: 0 };
   for (const t of tips ?? []) counts[t.choice as "a" | "b"]++;
   const mine = (tips ?? []).find((t) => t.guest_key === guestKey)?.choice ?? null;

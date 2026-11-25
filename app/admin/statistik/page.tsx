@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { Card } from "@/components/ui/Card";
 import { formatCurrencyEUR } from "@/lib/format";
@@ -73,14 +74,18 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
   const searchParams = await props.searchParams;
   const range: RangeKey = (searchParams.zeitraum as RangeKey) in RANGES ? (searchParams.zeitraum as RangeKey) : "90";
   const since = new Date(Date.now() - RANGES[range].days * 86_400_000).toISOString();
-  const { data } = await createAdminClient()
-    .from("bookings")
-    .select("id, created_at, event_date, lifecycle, customer_type, occasion, location, total_price, inquiry_items")
-    .eq("source", "website")
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(2000);
-  const rows = (data ?? []) as Pick<Booking, "id" | "created_at" | "event_date" | "lifecycle" | "customer_type" | "occasion" | "location" | "total_price" | "inquiry_items">[];
+  // seitenweise – Supabase liefert pro Abfrage höchstens 1.000 Zeilen
+  const data = await fetchAll((from, to) =>
+    createAdminClient()
+      .from("bookings")
+      .select("id, created_at, event_date, lifecycle, customer_type, occasion, location, total_price, inquiry_items")
+      .eq("source", "website")
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(from, to)
+  );
+  const rows = data as Pick<Booking, "id" | "created_at" | "event_date" | "lifecycle" | "customer_type" | "occasion" | "location" | "total_price" | "inquiry_items">[];
   // Im Admin selbst angelegte Buchungen (WhatsApp, Telefon …) zählen nicht als Website-Anfragen
   const all = rows.filter((b) => !isDirectBooking(b.inquiry_items?.source));
   const direct = rows.filter((b) => isDirectBooking(b.inquiry_items?.source));
@@ -180,9 +185,12 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
   const funnelLabel = custom
     ? `${fromDay ? dayDE(fromDay) : "Start"} – ${toDay ? dayDE(toDay) : "heute"}`
     : quick ? `letzte ${FUNNEL_QUICK[quick]}` : RANGES[range].label;
-  let funnelQuery = createAdminClient().from("funnel_events").select("step, channel").gte("created_at", funnelSince);
-  if (funnelUntil) funnelQuery = funnelQuery.lt("created_at", funnelUntil);
-  const { data: funnelRows } = await funnelQuery.limit(100000);
+  // seitenweise – vorher wurden ab 1.000 Ereignissen stillschweigend nur die ersten 1.000 gezählt
+  const funnelRows = await fetchAll((from, to) => {
+    let q = createAdminClient().from("funnel_events").select("id, step, channel").gte("created_at", funnelSince);
+    if (funnelUntil) q = q.lt("created_at", funnelUntil);
+    return q.order("id").range(from, to);
+  });
   const funnelHref = (extra: Record<string, string>) => `/admin/statistik?${new URLSearchParams({ zeitraum: range, ...extra }).toString()}#trichter`;
   const funnel = new Map<string, { ads: number; sonst: number }>(FUNNEL_STEPS.map((k) => [k, { ads: 0, sonst: 0 }]));
   for (const r of funnelRows ?? []) {
@@ -193,15 +201,21 @@ export default async function AdminStatsPage(props: { searchParams: Promise<{ ze
 
   // ---- VisionBooth: Besucher von visionbooth.de, Buchungen, Upsell im Kundenportal (gleicher Zeitraum) ----
   const sb = createAdminClient();
-  let vbFunnelQuery = sb.from("funnel_events").select("step, campaign").like("step", "vb_%").gte("created_at", funnelSince);
-  let vbOrderQuery = sb.from("vb_orders").select("paid_cents, plan").not("paid_at", "is", null).gte("paid_at", funnelSince);
   let vbAddonQuery = sb.from("vb_events").select("id", { count: "exact", head: true }).not("booking_id", "is", null).eq("package", "addon").gte("created_at", funnelSince);
-  if (funnelUntil) {
-    vbFunnelQuery = vbFunnelQuery.lt("created_at", funnelUntil);
-    vbOrderQuery = vbOrderQuery.lt("paid_at", funnelUntil);
-    vbAddonQuery = vbAddonQuery.lt("created_at", funnelUntil);
-  }
-  const [{ data: vbRows }, { data: vbOrders }, { count: vbAddons }] = await Promise.all([vbFunnelQuery.limit(100000), vbOrderQuery.limit(5000), vbAddonQuery]);
+  if (funnelUntil) vbAddonQuery = vbAddonQuery.lt("created_at", funnelUntil);
+  const [vbRows, vbOrders, { count: vbAddons }] = await Promise.all([
+    fetchAll((from, to) => {
+      let q = sb.from("funnel_events").select("id, step, campaign").like("step", "vb_%").gte("created_at", funnelSince);
+      if (funnelUntil) q = q.lt("created_at", funnelUntil);
+      return q.order("id").range(from, to);
+    }),
+    fetchAll((from, to) => {
+      let q = sb.from("vb_orders").select("id, paid_cents, plan").not("paid_at", "is", null).gte("paid_at", funnelSince);
+      if (funnelUntil) q = q.lt("paid_at", funnelUntil);
+      return q.order("id").range(from, to);
+    }),
+    vbAddonQuery,
+  ]);
   const vbCount = (st: string) => (vbRows ?? []).filter((r) => r.step === st).length;
   const vbSources = VB_SOURCES.map((q) => ({ q, n: (vbRows ?? []).filter((r) => r.step === "vb_besuch" && (q === "ads" ? String(r.campaign ?? "").startsWith("ads") : r.campaign === q)).length }));
   const vbPaid = (vbOrders ?? []).filter((o) => (o.paid_cents ?? 0) > 0);

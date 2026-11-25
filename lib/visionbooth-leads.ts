@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { LEAD_FIELDS, parseLeadConfig } from "@/components/visionbooth/leads";
 
 /** Lead-Einstellungen aus dem Formular lesen. */
@@ -17,13 +18,15 @@ export function leadConfigFromForm(f: FormData) {
 }
 
 export async function listVbLeads(eventId: string) {
-  const { data } = await createAdminClient()
-    .from("vb_leads")
-    .select("name, email, company, phone, consent_text, created_at")
-    .eq("event_id", eventId)
-    .order("created_at", { ascending: false })
-    .limit(5000);
-  return data ?? [];
+  return fetchAll((f, t) =>
+    createAdminClient()
+      .from("vb_leads")
+      .select("name, email, company, phone, consent_text, created_at")
+      .eq("event_id", eventId)
+      .order("created_at", { ascending: false })
+      .order("id")
+      .range(f, t)
+  );
 }
 
 /** CSV für Excel (Semikolon, BOM); Zellen mit = + - @ werden entschärft. */

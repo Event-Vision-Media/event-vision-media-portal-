@@ -8,6 +8,7 @@ import { VbLogo } from "@/components/visionbooth/VbLogo";
 import { VbHeroArt } from "@/components/visionbooth/customer/VbHeroArt";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { loadVbEventByToken, vbClosedReason, vbDeleteAfter, vbGuestUrl, vbProbeKey, VB_BUCKET } from "@/lib/visionbooth";
 import { getTemplate } from "@/components/visionbooth/templates";
 import { deleteVbPhotoByCustomer, setVbPhotoHiddenByCustomer, updateVbChallenges, updateVbDesign, updateVbGuestbook, updateVbLeads, updateVbReveal, updateVbWheel } from "@/app/actions/vb-customer";
@@ -66,7 +67,7 @@ export default async function VisionBoothCustomerPage(props: { params: Promise<{
     supabase.from("vb_photos").select("id, kind, style, file_path, thumb_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fertig"),
-    supabase.from("vb_photos").select("guest_key").eq("event_id", event.id).not("guest_key", "is", null).limit(5000),
+    fetchAll((f, t) => supabase.from("vb_photos").select("id, guest_key").eq("event_id", event.id).not("guest_key", "is", null).order("id").range(f, t)).then((data) => ({ data })),
     supabase.from("vb_photos").select("id, greeting, greeting_name, thumb_path, file_path", { count: "exact" }).eq("event_id", event.id).eq("hidden", false).not("greeting", "is", null).order("created_at", { ascending: false }).limit(6),
   ]);
   const paths = [
@@ -481,6 +482,7 @@ function Swoosh({ className = "", small = false }: { className?: string; small?:
 }
 
 async function tipCounts(eventId: string) {
-  const { data } = await createAdminClient().from("vb_tips").select("choice").eq("event_id", eventId).limit(10000);
-  return { a: (data ?? []).filter((t) => t.choice === "a").length, b: (data ?? []).filter((t) => t.choice === "b").length };
+  // Zählen in der Datenbank statt Zeilen laden (Supabase liefert sonst höchstens 1.000)
+  const n = async (c: "a" | "b") => (await createAdminClient().from("vb_tips").select("guest_key", { count: "exact", head: true }).eq("event_id", eventId).eq("choice", c)).count ?? 0;
+  return { a: await n("a"), b: await n("b") };
 }

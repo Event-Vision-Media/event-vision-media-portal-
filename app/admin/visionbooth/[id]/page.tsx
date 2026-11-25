@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import QRCode from "qrcode";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { fetchAll } from "@/lib/supabase/fetch-all";
 import { AdminHeader } from "@/components/admin/AdminHeader";
 import { CopyField } from "@/components/admin/CopyField";
 import { VbEventForm } from "@/components/admin/visionbooth/VbEventForm";
@@ -38,9 +39,9 @@ export default async function AdminVisionBoothEventPage(props: { params: Promise
     supabase.from("vb_photos").select("id, kind, style, file_path, thumb_path, hidden, created_at").eq("event_id", event.id).order("created_at", { ascending: false }).limit(120),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fertig"),
-    supabase.from("vb_ai_jobs").select("style").eq("event_id", event.id).eq("status", "fertig").limit(5000),
+    fetchAll((f, t) => supabase.from("vb_ai_jobs").select("id, style").eq("event_id", event.id).eq("status", "fertig").order("id").range(f, t)).then((data) => ({ data })),
     supabase.from("vb_ai_jobs").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("status", "fehler"),
-    supabase.from("vb_photos").select("guest_key").eq("event_id", event.id).not("guest_key", "is", null).limit(5000),
+    fetchAll((f, t) => supabase.from("vb_photos").select("id, guest_key").eq("event_id", event.id).not("guest_key", "is", null).order("id").range(f, t)).then((data) => ({ data })),
   ]);
 
   const paths = [...(photoRows ?? []).flatMap((p) => (p.thumb_path ? [p.thumb_path, p.file_path] : [p.file_path])), ...(event.logo_path ? [event.logo_path] : [])];
@@ -54,7 +55,7 @@ export default async function AdminVisionBoothEventPage(props: { params: Promise
   const uniqueGuests = new Set((guests ?? []).map((g) => g.guest_key)).size;
   // Anonyme Nutzung der Gäste-Seite (vb_event_stats): wo steigen Gäste aus?
   const [{ data: statRows }, { count: sharedShots }] = await Promise.all([
-    supabase.from("vb_event_stats").select("step").eq("event_id", event.id).limit(50000),
+    fetchAll((f, t) => supabase.from("vb_event_stats").select("id, step").eq("event_id", event.id).order("id").range(f, t)).then((data) => ({ data })),
     supabase.from("vb_photos").select("id", { count: "exact", head: true }).eq("event_id", event.id).eq("kind", "foto"),
   ]);
   const statCount = (st: string) => (statRows ?? []).filter((r) => r.step === st).length;
@@ -150,8 +151,9 @@ export default async function AdminVisionBoothEventPage(props: { params: Promise
               <h2 className="font-serif text-lg font-semibold text-anthracite-800">🔮 Tippspiel / Gender Reveal</h2>
               <div className="mt-4">
                 <VbRevealEditor action={updateVbRevealAdmin.bind(null, event.id)} initial={parseReveal(event.reveal)} counts={await (async () => {
-                  const { data: t } = await supabase.from("vb_tips").select("choice").eq("event_id", event.id).limit(10000);
-                  return { a: (t ?? []).filter((x) => x.choice === "a").length, b: (t ?? []).filter((x) => x.choice === "b").length };
+                  // Zählen in der Datenbank statt Zeilen laden (Supabase liefert sonst höchstens 1.000)
+                  const n = async (c: "a" | "b") => (await supabase.from("vb_tips").select("guest_key", { count: "exact", head: true }).eq("event_id", event.id).eq("choice", c)).count ?? 0;
+                  return { a: await n("a"), b: await n("b") };
                 })()} />
               </div>
             </Card>
