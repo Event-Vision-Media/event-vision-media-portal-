@@ -92,6 +92,7 @@ for (const c of COMBOS) {
     ["Erinnerung vor dem Event", mails.reminderMail(b, ["Layout auswählen"], [{ name: "Gästebuch-Spiel", priceLabel: "10 €" }])],
     ["Nachher-Mail", mails.followupMail(b, "https://g.page/r/test", { photos: true, audios: 3 })],
     ["Medien bereit", mails.mediaReadyMail(b, { photos: true, audios: 2 })],
+    ["Bewertung Erinnerung", mails.reviewReminderMail(b, "https://portal.fotobox-essen.com/api/bewertung/x.y")],
     ["Layouts da", mails.layoutProofsMail(b, { layouts: ["Hochzeit Gold", "Hochzeit Weiß"], screen: true, revised: false })],
     ["Layout überarbeitet", mails.layoutProofsMail(b, { layouts: ["Hochzeit Gold"], screen: false, revised: true })],
     ["Startbildschirm da", mails.layoutProofsMail(b, { layouts: [], screen: true, revised: false })],

@@ -445,6 +445,37 @@ export function followupMail(b: MailBooking, reviewUrl: string | null, m: MediaR
 }
 
 /**
+ * Einmalige, freundliche Erinnerung an die Google-Bewertung – nur wenn der Link aus der
+ * Danke-Mail (bzw. im Portal) noch nicht geöffnet wurde. Kein Druck, keine Gegenleistung (Google-Richtlinien).
+ */
+export function reviewReminderMail(b: MailBooking, link: string) {
+  const sie = isSie(b);
+  const date = formatDateGerman(b.event_date);
+  const lines = sie
+    ? [
+        `wir hoffen, Sie denken noch gern an Ihr Event am ${date} zurück!`,
+        "Wir haben eine kleine Bitte: Falls Sie mit uns zufrieden waren, würden Sie uns mit einer kurzen Google-Bewertung sehr helfen. Das dauert keine zwei Minuten – und für uns als kleines Familienunternehmen ist jede Bewertung Gold wert.",
+        "Falls Sie schon bewertet haben: herzlichen Dank! Dann ignorieren Sie diese Nachricht einfach.",
+      ]
+    : [
+        `wir hoffen, du denkst noch gern an euer Event am ${date} zurück!`,
+        "Wir hätten eine kleine Bitte: Wenn es dir gefallen hat, würdest du uns mit einer kurzen Google-Bewertung riesig helfen. Das dauert keine zwei Minuten – und für uns als kleines Familienunternehmen ist jede Bewertung Gold wert. 💛",
+        "Falls du schon bewertet hast: tausend Dank! Dann ignorier diese Nachricht einfach.",
+      ];
+  const bye = sie ? "Herzliche Grüße" : "Liebe Grüße";
+  return {
+    subject: sie ? `Eine kurze Bitte – ${BRAND}` : `Eine kleine Bitte 💛 – ${BRAND}`,
+    html: layout(
+      "",
+      `<p style="line-height:1.6">${esc(greeting(b))},</p>${lines.map((l) => `<p style="line-height:1.6">${esc(l)}</p>`).join("")}
+<p style="margin:22px 0;text-align:center"><a href="${esc(link)}" style="display:inline-block;padding:12px 22px;border-radius:10px;background:#16181c;color:#ffffff;text-decoration:none;font-weight:600">★★★★★ Bewertung schreiben</a></p>
+<p style="line-height:1.6">${bye}<br>Dustin von ${BRAND}</p>`
+    ),
+    text: `${greeting(b)},\n\n${lines.join("\n\n")}\n\n${link}\n\n${bye}\nDustin von ${BRAND}`,
+  };
+}
+
+/**
  * Per Knopf im Admin: Layout-Entwürfe (und ggf. persönlicher Startbildschirm) liegen zur Ansicht
  * im Kundenportal – bitte freigeben oder Änderungswunsch schreiben.
  */

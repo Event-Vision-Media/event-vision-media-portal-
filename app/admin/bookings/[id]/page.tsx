@@ -58,6 +58,9 @@ import type { StaffRequest } from "@/lib/staff-upsell";
 import { BookingInfoPanel } from "@/components/admin/BookingInfoPanel";
 import { loadBookingInfos } from "@/lib/admin-booking-info";
 import { Badge } from "@/components/ui/Badge";
+import { ReviewRequestButtons } from "@/components/admin/ReviewRequestButtons";
+import { reviewLink } from "@/lib/review-link";
+import { greetingLine, usesSie } from "@/lib/address";
 import { formatCurrencyEUR, formatDateGerman, formatDateTimeGerman } from "@/lib/format";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import {
@@ -757,6 +760,16 @@ export default async function AdminBookingDetailPage(props: {
                 </div>
               ) : (
                 <Badge tone="neutral">Noch nicht geklickt</Badge>
+              )}
+              {!booking.google_review_clicked_at && reviewLink(booking.id) && (
+                <>
+                  <p className="mt-2 text-xs text-anthracite-500">
+                    {booking.email
+                      ? "Per Mail: Danke-Mail 7 Tage nach dem Event, einmalige Erinnerung 7 Tage später (nur ohne Klick)."
+                      : "Keine E-Mail hinterlegt – hier per WhatsApp um eine Bewertung bitten:"}
+                  </p>
+                  <ReviewRequestButtons phone={booking.phone} greeting={greetingLine(booking)} sie={usesSie(booking)} link={reviewLink(booking.id)!} />
+                </>
               )}
             </div>
           </Card>

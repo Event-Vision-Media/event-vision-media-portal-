@@ -2,6 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { bookingHasAudioGuestbook } from "@/lib/audio-guestbook";
 import { bookingDevices } from "@/lib/audience";
+import { REVIEW_REMINDER_DAYS, REVIEW_TRACKING_SINCE } from "@/lib/journey-mails";
 import { handoverFor, type DeviceKey } from "@/lib/catalog";
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired } from "@/lib/contract";
@@ -145,6 +146,13 @@ export async function mailPlanFor(b: Booking): Promise<MailPlan> {
       false,
       what ? `wartet bis zu 14 Tage, falls ${what} noch fehlen` : undefined
     );
+  }
+
+  // Bewertung: einmalige Erinnerung 7 Tage nach der Danke-Mail – nur wenn der Link noch nicht geöffnet wurde
+  if (!b.google_review_clicked_at && !logged.has("bewertung_erinnerung")) {
+    const thanks = b.followup_sent_at ? b.followup_sent_at.slice(0, 10) : maxDate(today, add(event, GALLERY_UNLOCK_DAYS));
+    const tracked = !b.followup_sent_at || b.followup_sent_at >= new Date(REVIEW_TRACKING_SINCE).toISOString();
+    if (tracked) push(maxDate(today, add(thanks, REVIEW_REMINDER_DAYS)), "Erinnerung Google-Bewertung", false, "entfällt, sobald der Bewertungs-Link geöffnet wurde");
   }
 
   // Online-Galerie: Erinnerung vor dem Ablauf (mit Verlängerungs-Angebot)

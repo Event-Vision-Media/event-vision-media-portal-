@@ -8,11 +8,12 @@ import { PRODUCT_LABELS, daysUntil, handoverFor, hasDelivery, type DeviceKey } f
 import { dateFromText } from "@/lib/calendar";
 import { contractRequired, depositForBooking, fullPaymentTerms, isShortNotice, restDueDaysFor, SHORT_LAST_DAYS } from "@/lib/contract";
 import { logActivity } from "@/lib/activity-log";
-import { galleryExpiryMail, gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
+import { reviewReminderMail, galleryExpiryMail, gameReminderMail, greetingAdminMail, greetingReminderMail, rebookingMail, waitingInquiriesMail, cashReminderMail, pickupReminderMail, contractReminderMail, depositReminderMail, followupMail, reminderMail, restTransferReminderMail, sendEmail, type MailBooking } from "@/lib/email";
 import { getPaymentSummary } from "@/lib/payments";
 import { GALLERY_UNLOCK_DAYS, getAudioGreetingDeadline, type Booking } from "@/lib/types";
 import { deliveryUpsells } from "@/lib/delivery-upsell";
 import { vbAddonState } from "@/lib/vb-upsell";
+import { reviewLink } from "@/lib/review-link";
 import { activeVbPromo, vbPrice } from "@/lib/vb-promo";
 import { usesSie } from "@/lib/address";
 import { gameTitle, namesFromBooking, occasionFromBooking } from "@/lib/guestbook-game";
@@ -26,6 +27,10 @@ export const REMINDER_DAYS_BEFORE = 28;
 export const REMINDER_MIN_DAYS = 3;
 /** Nachher-Mail nur für Events der letzten X Tage (verhindert Massenversand beim ersten Start). */
 export const FOLLOWUP_MAX_AGE_DAYS = 30;
+/** Tage nach der Danke-Mail bis zur (einmaligen) Bewertungs-Erinnerung */
+export const REVIEW_REMINDER_DAYS = 7;
+/** Erst Danke-Mails ab hier haben den mitzählenden Bewertungs-Link – ältere bekommen keine Erinnerung. */
+export const REVIEW_TRACKING_SINCE = "2026-11-26T00:00:00+01:00";
 const MAX_PER_RUN = 50;
 /** Vertrags-Erinnerung, wenn X Tage nach der Reservierung noch nicht unterschrieben wurde. */
 export const CONTRACT_REMINDER_AFTER_DAYS = 3;
@@ -38,6 +43,7 @@ export const GAME_REMINDER_MIN_DAYS = 2;
 export interface JourneyRunResult {
   reminders: { booking: string; openSteps: string[]; recommendations: string[]; sent: boolean }[];
   followups: { booking: string; sent: boolean }[];
+  reviewReminders: { booking: string; sent: boolean }[];
   contractReminders: { booking: string; sent: boolean }[];
   paymentReminders: { booking: string; kind: "anzahlung" | "rest_ueberweisung" | "rest_bar"; sent: boolean }[];
   /** Selbstabholung: Erinnerung am Tag vor der Abholung. */
@@ -130,7 +136,7 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     d.setUTCDate(d.getUTCDate() + n);
     return d.toISOString().slice(0, 10);
   };
-  const result: JourneyRunResult = { reminders: [], followups: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [], gameReminders: [], galleryExpiry: [] };
+  const result: JourneyRunResult = { reminders: [], followups: [], reviewReminders: [], contractReminders: [], paymentReminders: [], pickupReminders: [], waitingInquiries: [], adminDigestSent: false, rebookingOffers: [], greetingReminders: [], gameReminders: [], galleryExpiry: [] };
 
   // ---- Für dich: Anfragen, die seit über 24 Stunden unbeantwortet sind ----
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
@@ -511,7 +517,8 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     if (!media.informedAt && missing && daysUntil(b.event_date) > -14) continue;
     let sent = false;
     if (!dryRun) {
-      const mail = followupMail(toMailBooking(b), reviewUrl, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
+      // Bewertungs-Knopf über unseren Link – so sehen wir den Klick (für die Erinnerung)
+      const mail = followupMail(toMailBooking(b), reviewUrl ? reviewLink(b.id) ?? reviewUrl : null, { photos: media.photos, videos: media.videos, audios: media.audioBooked ? media.audios : 0 }, Boolean(media.informedAt));
       sent = (await sendEmail({ to: b.email!, ...mail })).sent;
       if (sent) {
         await supabase.from("bookings").update({ followup_sent_at: new Date().toISOString() }).eq("id", b.id);
@@ -520,6 +527,34 @@ export async function runJourneyMails(dryRun = false): Promise<JourneyRunResult>
     }
     if (sent || dryRun) mailedToday.add(b.id);
     result.followups.push({ booking: b.booking_code, sent });
+  }
+
+  // ---- Bewertung: einmalige Erinnerung 7 Tage nach der Danke-Mail, nur wenn noch nicht geklickt ----
+  if (reviewUrl) {
+    const { data: noReview } = await supabase
+      .from("bookings")
+      .select("*")
+      .eq("lifecycle", "bestaetigt")
+      .not("email", "is", null)
+      .is("google_review_clicked_at", null)
+      .lte("followup_sent_at", new Date(Date.now() - REVIEW_REMINDER_DAYS * 86_400_000).toISOString())
+      .gte("followup_sent_at", new Date(Math.max(Date.now() - (REVIEW_REMINDER_DAYS + 14) * 86_400_000, Date.parse(REVIEW_TRACKING_SINCE))).toISOString())
+      .limit(MAX_PER_RUN);
+    for (const b of (noReview ?? []) as Booking[]) {
+      if (mailedToday.has(b.id)) continue;
+      const { count } = await supabase.from("activity_log").select("id", { count: "exact", head: true }).eq("booking_id", b.id).eq("event_type", "bewertung_erinnerung");
+      if (count) continue;
+      const link = reviewLink(b.id);
+      if (!link) continue;
+      let sent = false;
+      if (!dryRun) {
+        const mail = reviewReminderMail(toMailBooking(b), link);
+        sent = (await sendEmail({ to: b.email!, ...mail })).sent;
+        if (sent) await logActivity(b.id, "bewertung_erinnerung", mailLog(b, mail.subject, "Einmalige Erinnerung an die Google-Bewertung (Link aus der Danke-Mail noch nicht geöffnet)."));
+      }
+      if (sent || dryRun) mailedToday.add(b.id);
+      result.reviewReminders.push({ booking: b.booking_code, sent });
+    }
   }
 
   // ---- Online-Galerie: Erinnerung kurz vor dem Ablauf (mit Verlängerung +30/+60 Tage) ----
